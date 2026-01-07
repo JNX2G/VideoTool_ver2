@@ -77,4 +77,13 @@ urlpatterns = [
         views.PreprocessingDeleteView.as_view(),
         name="preprocessing_delete",
     ),
+
+    # 전처리 작업 편집
+    path(
+        "<int:task_id>/update-step/",
+        views.UpdatePreprocessingStepView.as_view(),
+        name="update_step",
+    ),
+
 ]
+

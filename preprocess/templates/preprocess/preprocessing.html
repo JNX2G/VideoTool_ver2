@@ -3,7 +3,6 @@
 {% block title %}전처리 설정 - {{ content.title }}{% endblock %}
 
 {% block breadcrumb_items %}
-    <!-- 1단계: 컨텐츠 상세 (완료) -->
     <li class="custom-breadcrumb-item">
         {% if content_type == 'image' %}
         <a href="{% url 'image_detail' content.id %}">
@@ -15,231 +14,184 @@
         </a>
         {% endif %}
     </li>
-
-    <!-- 2단계: 전처리 (현재 - 활성화) -->
     <li class="custom-breadcrumb-item active">
         <a href="{% url 'preprocess:start_preprocessing' content.id %}">
             <i class="bi bi-layers-half"></i> 전처리
         </a>
     </li>
-
-    <!-- 3단계: 전처리 결과 (비활성화) -->
     <li class="custom-breadcrumb-item disabled">
-        <span class="text-muted">
-            <i class="bi bi-clipboard-data"></i> 전처리 결과
-        </span>
+        <span class="text-muted"><i class="bi bi-clipboard-data"></i> 전처리 결과</span>
     </li>
-
-    <!-- 4단계: 모델 선택 (비활성화) -->
     <li class="custom-breadcrumb-item disabled">
-        <span class="text-muted">
-            <i class="bi bi-cpu-fill"></i> 모델 선택
-        </span>
+        <span class="text-muted"><i class="bi bi-cpu-fill"></i> 모델 선택</span>
     </li>
-
-    <!-- 5단계: 모델 실행 (비활성화) -->
     <li class="custom-breadcrumb-item disabled">
-        <span class="text-muted">
-            <i class="bi bi-play-circle-fill"></i> 모델 실행
-        </span>
+        <span class="text-muted"><i class="bi bi-play-circle-fill"></i> 모델 실행</span>
     </li>
-
-    <!-- 6단계: 탐지 결과 (비활성화) -->
     <li class="custom-breadcrumb-item disabled">
-        <span class="text-muted">
-            <i class="bi bi-clipboard-data"></i> 탐지 결과
-        </span>
+        <span class="text-muted"><i class="bi bi-clipboard-data"></i> 탐지 결과</span>
     </li>
 {% endblock %}
 
 {% block content %}
 <div class="row">
-    <!-- 왼쪽: 미디어 뷰어 -->
     <div class="col-md-7">
-        <div class="card mb-3 shadow-sm">
-            <div class="card-header bg-white py-3">
-                <h5 class="mb-0">
+        <div class="card mb-4 shadow-sm border-0">
+            <div class="card-header bg-white py-3 border-bottom-0">
+                <h6 class="mb-0 fw-bold text-dark">
                     {% if content_type == 'image' %}
-                        <i class="bi bi-image"></i> 원본 이미지
+                        <i class="bi bi-image text-primary me-1"></i> 원본 이미지
                     {% else %}
-                        <i class="bi bi-camera-video"></i> 원본 동영상
+                        <i class="bi bi-camera-video text-primary me-1"></i> 원본 동영상
                     {% endif %}
-                </h5>
+                </h6>
             </div>
-            <div class="card-body">
+            <div class="card-body pt-0">
                 {% if content_type == 'image' %}
-                    <!-- 이미지 -->
-                    <div class="text-center">
-                        <img src="{{ content.file.url }}" 
-                             class="img-fluid rounded shadow-sm" 
-                             alt="{{ content.title }}"
-                             style="max-height: 500px;">
+                    <div class="text-center bg-light rounded p-2">
+                        <img src="{{ content.file.url }}" class="img-fluid rounded shadow-sm" style="max-height: 450px;">
                     </div>
                 {% else %}
-                    <!-- 동영상 -->
-                    <video width="100%" controls>
-                        <source src="{% url 'serve_video' content.pk %}" type="video/mp4">
-                    </video>
+                    <div class="bg-black rounded overflow-hidden shadow-sm">
+                        <video width="100%" controls class="d-block">
+                            <source src="{% url 'serve_video' content.pk %}" type="video/mp4">
+                        </video>
+                    </div>
                 {% endif %}
                 
-                <div class="mt-3">
-                    <h5>{{ content.title }}</h5>
-                    <p class="text-muted mb-0">
+                <div class="mt-3 p-3 bg-light rounded border-start border-4 border-primary">
+                    <h6 class="fw-bold mb-1">{{ content.title }}</h6>
+                    <div class="text-muted small">
                         {% if content_type == 'image' %}
-                            <i class="bi bi-aspect-ratio"></i> {{ content.get_resolution_display }}<br>
+                            <span class="me-3"><i class="bi bi-aspect-ratio"></i> {{ content.get_resolution_display }}</span>
                         {% endif %}
-                        <i class="bi bi-hdd"></i> {{ content.get_file_size_display }}<br>
-                        <i class="bi bi-calendar"></i> {{ content.uploaded_at|date:"Y-m-d H:i" }}
-                    </p>
+                        <span class="me-3"><i class="bi bi-hdd"></i> {{ content.get_file_size_display }}</span>
+                        <span><i class="bi bi-calendar"></i> {{ content.uploaded_at|date:"Y-m-d H:i" }}</span>
+                    </div>
                 </div>
+            </div>
+        </div>
+
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                <h6 class="mb-0 fw-bold text-dark"><i class="bi bi-list-check text-primary me-1"></i> 구성된 시퀀스</h6>
+                <span class="badge bg-primary rounded-pill" id="pipelineCount">{{ current_pipeline|length }}</span>
+            </div>
+            <div class="card-body">
+                <div id="pipelineList" class="p-1" style="min-height: 80px;">
+                    {% if current_pipeline %}
+                        {% for step in current_pipeline %}
+                        <div class="pipeline-step mb-3 py-3 px-3 d-flex justify-content-between align-items-center shadow-sm">
+                            <div class="d-flex align-items-center">
+                                <div class="step-number me-3">{{ forloop.counter }}</div>
+                                <span class="fw-bold text-dark">{{ step }}</span>
+                            </div>
+                            <div class="btn-group btn-group-sm bg-white rounded-pill shadow-sm px-2 py-1">
+                                <button type="button" class="btn btn-link text-primary p-1 me-1" title="편집" 
+                                        onclick="editStep({{ forloop.counter0 }})">
+                                    <i class="bi bi-pencil-square"></i>
+                                </button>
+                                {% if not forloop.first %}
+                                <button type="button" class="btn btn-link text-secondary p-1" onclick="moveStep({{ forloop.counter0 }}, 'up')">
+                                    <i class="bi bi-chevron-up"></i>
+                                </button>
+                                {% endif %}
+                                {% if not forloop.last %}
+                                <button type="button" class="btn btn-link text-secondary p-1" onclick="moveStep({{ forloop.counter0 }}, 'down')">
+                                    <i class="bi bi-chevron-down"></i>
+                                </button>
+                                {% endif %}
+                                <button type="button" class="btn btn-link text-danger p-1 border-start ms-1" onclick="removeStep({{ forloop.counter0 }})">
+                                    <i class="bi bi-trash3"></i>
+                                </button>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div id="emptyPipelineMsg" class="text-center text-muted py-5 bg-light rounded border-dashed">
+                            <i class="bi bi-plus-square-dotted" style="font-size: 2rem;"></i>
+                            <p class="mb-0 mt-2 small">오른쪽 라이브러리에서 전처리 기법을 추가하세요</p>
+                        </div>
+                    {% endif %}
+                </div>
+                
+                {% if current_pipeline %}
+                <div class="text-end mt-2">
+                    <button type="button" class="btn btn-sm text-muted fw-medium" onclick="clearPipeline()">
+                        <i class="bi bi-arrow-counterclockwise"></i> 파이프라인 초기화
+                    </button>
+                </div>
+                {% endif %}
             </div>
         </div>
     </div>
     
-    <!-- 오른쪽: 전처리 선택 -->
     <div class="col-md-5">
-        <div class="card mb-3 shadow-sm">
+        <div class="card shadow-sm border-0 sticky-top" style="top: 1rem;">
             <div class="card-header bg-white py-3">
-                <h5 class="mb-0">
-                    <i class="bi bi-funnel"></i> 전처리 파이프라인 구성
-                </h5>
+                <h6 class="mb-0 fw-bold text-dark"><i class="bi bi-grid-fill text-primary me-1"></i> 기법 라이브러리</h6>
             </div>
-            <div class="card-body">
-                <!-- 전처리 기법 선택 -->
-                <div class="mb-3">
-                    <label class="form-label fw-bold">전처리 기법 선택</label>
-                    
+            <div class="card-body p-0">
+                <div class="accordion accordion-flush" id="methodsAccordion">
                     {% if methods_by_category %}
-                        <div class="accordion" id="methodsAccordion">
-                            {% for category, methods in methods_by_category.items %}
-                            <div class="accordion-item">
-                                <h2 class="accordion-header" id="heading{{ forloop.counter }}">
-                                    <button class="accordion-button {% if not forloop.first %}collapsed{% endif %}" 
-                                            type="button" 
-                                            data-bs-toggle="collapse" 
-                                            data-bs-target="#collapse{{ forloop.counter }}"
-                                            aria-expanded="{% if forloop.first %}true{% else %}false{% endif %}">
-                                        <i class="bi bi-folder me-2"></i> {{ category }}
-                                        <span class="badge bg-secondary ms-2">{{ methods|length }}</span>
-                                    </button>
-                                </h2>
-                                <div id="collapse{{ forloop.counter }}" 
-                                     class="accordion-collapse collapse {% if forloop.first %}show{% endif %}" 
-                                     data-bs-parent="#methodsAccordion">
-                                    <div class="accordion-body p-2">
+                        {% for category, methods in methods_by_category.items %}
+                        <div class="accordion-item border-0">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed py-3 fw-semibold text-dark" type="button" data-bs-toggle="collapse" data-bs-target="#collapse{{ forloop.counter }}">
+                                    {{ category }}
+                                    <span class="badge bg-light text-secondary border rounded-pill ms-2 fw-normal" style="font-size: 0.7rem;">{{ methods|length }}</span>
+                                </button>
+                            </h2>
+                            <div id="collapse{{ forloop.counter }}" class="accordion-collapse collapse" data-bs-parent="#methodsAccordion">
+                                <div class="accordion-body bg-light pt-0">
+                                    <div class="row g-2">
                                         {% for method in methods %}
-                                        <button type="button" 
-                                                class="btn btn-outline-primary btn-sm w-100 mb-2 text-start"
-                                                onclick="showMethodModal({{ method.id }}, '{{ method.name }}', {{ method.parameter_schema|safe }}, {{ method.default_parameters|safe }})">
-                                            <i class="bi bi-plus-circle me-1"></i> {{ method.name }}
-                                            {% if method.is_builtin %}
-                                                <span class="badge bg-info float-end">내장</span>
-                                            {% else %}
-                                                <span class="badge bg-success float-end">커스텀</span>
-                                            {% endif %}
-                                        </button>
+                                        <div class="col-12">
+                                            <button type="button" 
+                                                    class="btn btn-white border w-100 text-start shadow-sm d-flex justify-content-between align-items-center py-2 px-3 method-btn"
+                                                    onclick="showMethodModal({{ method.id }}, '{{ method.name }}', {{ method.parameter_schema|safe }}, {{ method.default_parameters|safe }})">
+                                                <span class="small fw-medium text-dark"><i class="bi bi-plus-lg text-primary me-2"></i>{{ method.name }}</span>
+                                                {% if method.is_builtin %}
+                                                    <span class="badge rounded-pill bg-info-subtle text-info border-0 p-1"><i class="bi bi-gear-fill"></i></span>
+                                                {% else %}
+                                                    <span class="badge rounded-pill bg-success-subtle text-success border-0 p-1"><i class="bi bi-magic"></i></span>
+                                                {% endif %}
+                                            </button>
+                                        </div>
                                         {% endfor %}
                                     </div>
                                 </div>
                             </div>
-                            {% endfor %}
                         </div>
-                    {% else %}
-                        <div class="alert alert-warning">
-                            <i class="bi bi-exclamation-triangle"></i>
-                            활성화된 전처리 기법이 없습니다. 
-                            <a href="{% url 'prephub:method_list' %}" class="alert-link">전처리 기법 관리</a>에서 기법을 활성화하세요.
-                        </div>
+                        {% endfor %}
                     {% endif %}
                 </div>
 
-                <!-- 현재 파이프라인 -->
-                <div class="mb-3">
-                    <label class="form-label fw-bold">
-                        현재 파이프라인
-                        <span class="badge bg-secondary" id="pipelineCount">{{ current_pipeline|length }}</span>
-                    </label>
+                <div class="p-4 bg-white border-top">
+                    <button type="button" class="btn btn-primary w-100 py-3 fw-bold mb-3 shadow-sm" onclick="executePipeline()">
+                        <i class="bi bi-play-fill me-1"></i> 전처리 실행하기
+                    </button>
                     
-                    <div id="pipelineList" class="border rounded p-2" style="min-height: 100px;">
-                        {% if current_pipeline %}
-                            {% for step in current_pipeline %}
-                            <div class="pipeline-step alert alert-light border mb-2 d-flex justify-content-between align-items-center">
-                                <div>
-                                    <strong>{{ forloop.counter }}.</strong> {{ step }}
-                                </div>
-                                <div class="btn-group btn-group-sm">
-                                    {% if not forloop.first %}
-                                    <button type="button" class="btn btn-outline-secondary" 
-                                            onclick="moveStep({{ forloop.counter0 }}, 'up')" 
-                                            title="위로">
-                                        <i class="bi bi-arrow-up"></i>
-                                    </button>
-                                    {% endif %}
-                                    {% if not forloop.last %}
-                                    <button type="button" class="btn btn-outline-secondary" 
-                                            onclick="moveStep({{ forloop.counter0 }}, 'down')" 
-                                            title="아래로">
-                                        <i class="bi bi-arrow-down"></i>
-                                    </button>
-                                    {% endif %}
-                                    <button type="button" class="btn btn-outline-danger" 
-                                            onclick="removeStep({{ forloop.counter0 }})" 
-                                            title="제거">
-                                        <i class="bi bi-x"></i>
-                                    </button>
-                                </div>
-                            </div>
-                            {% endfor %}
-                        {% else %}
-                            <div id="emptyPipelineMsg" class="text-center text-muted py-4">
-                                <i class="bi bi-inbox" style="font-size: 2rem;"></i>
-                                <p class="mb-0 mt-2">전처리 기법을 추가하세요</p>
-                            </div>
-                        {% endif %}
+                    <div class="d-flex gap-2">
+                        <form method="post" class="flex-grow-1">
+                            {% csrf_token %}
+                            <input type="hidden" name="skip_preprocessing" value="true">
+                            <button type="submit" class="btn btn-light w-100 btn-sm text-muted border">건너뛰기</button>
+                        </form>
+                        <a href="{% if content_type == 'video' %}{% url 'video_detail' content.pk %}{% else %}{% url 'image_detail' content.pk %}{% endif %}" 
+                           class="btn btn-light flex-grow-1 btn-sm text-muted border">돌아가기</a>
                     </div>
-                    
-                    {% if current_pipeline %}
-                    <button type="button" class="btn btn-sm btn-outline-danger w-100 mt-2" onclick="clearPipeline()">
-                        <i class="bi bi-trash"></i> 전체 초기화
-                    </button>
-                    {% endif %}
-                </div>
-
-                <!-- 실행 버튼 -->
-                <div class="d-grid gap-2">
-                    <button type="button" class="btn btn-primary btn-lg" onclick="executePipeline()">
-                        <i class="bi bi-play-circle"></i> 전처리 실행
-                    </button>
-                    
-                    <form method="post" style="display: inline;">
-                        {% csrf_token %}
-                        <input type="hidden" name="skip_preprocessing" value="true">
-                        <button type="submit" class="btn btn-outline-secondary w-100">
-                            <i class="bi bi-skip-forward"></i> 전처리 건너뛰기
-                        </button>
-                    </form>
-                    
-                    {% if content_type == 'video' %}
-                        <a href="{% url 'video_detail' content.pk %}" class="btn btn-outline-secondary">
-                            <i class="bi bi-arrow-left"></i> 돌아가기
-                        </a>
-                    {% else %}
-                        <a href="{% url 'image_detail' content.pk %}" class="btn btn-outline-secondary">
-                            <i class="bi bi-arrow-left"></i> 돌아가기
-                        </a>
-                    {% endif %}
                 </div>
             </div>
         </div>
     </div>
 </div>
 
-<!-- 파라미터 입력 모달 -->
 <div class="modal fade" id="paramModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="modalTitle">전처리 기법 추가</h5>
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-light">
+                <h6 class="modal-title fw-bold text-dark" id="modalTitle">매개변수 설정</h6>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
@@ -248,232 +200,224 @@
                     <div id="paramFields"></div>
                 </form>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">취소</button>
-                <button type="button" class="btn btn-primary" onclick="addStepToPipeline()">
-                    <i class="bi bi-plus-circle"></i> 추가
-                </button>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-light border" data-bs-dismiss="modal">취소</button>
+                <button type="button" class="btn btn-primary px-4" id="modalSubmitBtn">단계 추가</button>
             </div>
         </div>
     </div>
 </div>
 
 <script>
-const taskId = {{ task.id }};
-const contentType = '{{ content_type }}';
-let paramModal;
+    const taskId = {{ task.id }};
+    const contentType = '{{ content_type }}';
+    let paramModal;
+    
+    // 데이터 보관용
+    let currentPipelineFull = {{ task.preprocessing_pipeline|safe|default:"[]" }};
+    const methodSchemas = {};
 
-document.addEventListener('DOMContentLoaded', function() {
-    paramModal = new bootstrap.Modal(document.getElementById('paramModal'));
-});
+    document.addEventListener('DOMContentLoaded', function() {
+        paramModal = new bootstrap.Modal(document.getElementById('paramModal'));
+        
+        // 기법 정보 캐싱
+        {% for category, methods in methods_by_category.items %}
+            {% for method in methods %}
+            methodSchemas[{{ method.id }}] = {
+                name: '{{ method.name }}',
+                schema: {{ method.parameter_schema|safe }},
+                defaults: {{ method.default_parameters|safe }}
+            };
+            {% endfor %}
+        {% endfor %}
+    });
 
-function showMethodModal(methodId, methodName, paramSchema, defaultParams) {
-    document.getElementById('modalTitle').textContent = methodName;
-    document.getElementById('methodId').value = methodId;
-    
-    const paramFields = document.getElementById('paramFields');
-    paramFields.innerHTML = '';
-    
-    if (Object.keys(paramSchema).length === 0) {
-        paramFields.innerHTML = '<p class="text-muted">이 기법은 파라미터가 없습니다.</p>';
-    } else {
-        for (const [paramName, paramInfo] of Object.entries(paramSchema)) {
-            const defaultValue = defaultParams[paramName] || paramInfo.default;
-            
-            let inputHtml = '';
-            if (paramInfo.type === 'int') {
-                inputHtml = `
-                    <div class="mb-3">
-                        <label class="form-label">${paramInfo.description || paramName}</label>
-                        <input type="number" class="form-control" name="${paramName}" 
-                               value="${defaultValue}" 
-                               min="${paramInfo.min || ''}" 
-                               max="${paramInfo.max || ''}" 
-                               step="1">
-                        <small class="text-muted">기본값: ${defaultValue}</small>
-                    </div>
-                `;
-            } else if (paramInfo.type === 'float') {
-                inputHtml = `
-                    <div class="mb-3">
-                        <label class="form-label">${paramInfo.description || paramName}</label>
-                        <input type="number" class="form-control" name="${paramName}" 
-                               value="${defaultValue}" 
-                               min="${paramInfo.min || ''}" 
-                               max="${paramInfo.max || ''}" 
-                               step="0.1">
-                        <small class="text-muted">기본값: ${defaultValue}</small>
-                    </div>
-                `;
-            }
-            
-            paramFields.innerHTML += inputHtml;
-        }
-    }
-    
-    paramModal.show();
-}
+    // 1. 공통 폼 생성 함수 (추가/수정 공용)
+    function generateParamForm(methodId, currentParams = null) {
+        const method = methodSchemas[methodId];
+        if (!method) return;
 
-function addStepToPipeline() {
-    const methodId = document.getElementById('methodId').value;
-    const form = document.getElementById('paramForm');
-    const formData = new FormData(form);
-    
-    const params = {};
-    for (const [key, value] of formData.entries()) {
-        params[key] = isNaN(value) ? value : Number(value);
-    }
-    
-    fetch(`/preprocess/${taskId}/add-step/`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': '{{ csrf_token }}'
-        },
-        body: JSON.stringify({
-            method_id: methodId,
-            params: params
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            updatePipelineDisplay(data.pipeline);
-            paramModal.hide();
+        document.getElementById('methodId').value = methodId;
+        const paramFields = document.getElementById('paramFields');
+        paramFields.innerHTML = '';
+
+        if (Object.keys(method.schema).length === 0) {
+            paramFields.innerHTML = '<p class="text-center text-muted my-3">이 기법은 추가 설정이 필요 없습니다.</p>';
         } else {
-            alert('오류: ' + (data.error || '알 수 없는 오류'));
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('전처리 단계 추가 실패');
-    });
-}
+            for (const [paramName, paramInfo] of Object.entries(method.schema)) {
+                // 수정 모드면 현재값(currentParams), 아니면 기본값(defaults) 사용
+                const val = (currentParams && currentParams[paramName] !== undefined) 
+                            ? currentParams[paramName] 
+                            : (method.defaults[paramName] || paramInfo.default);
 
-function removeStep(index) {
-    if (!confirm('이 단계를 제거하시겠습니까?')) return;
-    
-    fetch(`/preprocess/${taskId}/remove-step/`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': '{{ csrf_token }}'
-        },
-        body: JSON.stringify({ index: index })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            updatePipelineDisplay(data.pipeline);
+                paramFields.innerHTML += `
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-dark">${paramInfo.description || paramName}</label>
+                        <input type="number" class="form-control form-control-sm shadow-sm" name="${paramName}" 
+                               value="${val}" step="${paramInfo.type === 'float' ? '0.1' : '1'}">
+                        <div class="form-text x-small text-muted">기본값: ${method.defaults[paramName] || paramInfo.default}</div>
+                    </div>`;
+            }
         }
-    });
-}
-
-function moveStep(fromIndex, direction) {
-    const toIndex = direction === 'up' ? fromIndex - 1 : fromIndex + 1;
-    
-    fetch(`/preprocess/${taskId}/reorder-step/`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': '{{ csrf_token }}'
-        },
-        body: JSON.stringify({
-            from_index: fromIndex,
-            to_index: toIndex
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            updatePipelineDisplay(data.pipeline);
-        }
-    });
-}
-
-function clearPipeline() {
-    if (!confirm('전체 파이프라인을 초기화하시겠습니까?')) return;
-    
-    fetch(`/preprocess/${taskId}/clear-pipeline/`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': '{{ csrf_token }}'
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            updatePipelineDisplay(data.pipeline);
-        }
-    });
-}
-
-function updatePipelineDisplay(pipeline) {
-    const pipelineList = document.getElementById('pipelineList');
-    const pipelineCount = document.getElementById('pipelineCount');
-    
-    pipelineCount.textContent = pipeline.length;
-    
-    if (pipeline.length === 0) {
-        pipelineList.innerHTML = `
-            <div id="emptyPipelineMsg" class="text-center text-muted py-4">
-                <i class="bi bi-inbox" style="font-size: 2rem;"></i>
-                <p class="mb-0 mt-2">전처리 기법을 추가하세요</p>
-            </div>
-        `;
-    } else {
-        let html = '';
-        pipeline.forEach((step, index) => {
-            html += `
-                <div class="pipeline-step alert alert-light border mb-2 d-flex justify-content-between align-items-center">
-                    <div>
-                        <strong>${index + 1}.</strong> ${step}
-                    </div>
-                    <div class="btn-group btn-group-sm">
-                        ${index > 0 ? `
-                            <button type="button" class="btn btn-outline-secondary" 
-                                    onclick="moveStep(${index}, 'up')" title="위로">
-                                <i class="bi bi-arrow-up"></i>
-                            </button>
-                        ` : ''}
-                        ${index < pipeline.length - 1 ? `
-                            <button type="button" class="btn btn-outline-secondary" 
-                                    onclick="moveStep(${index}, 'down')" title="아래로">
-                                <i class="bi bi-arrow-down"></i>
-                            </button>
-                        ` : ''}
-                        <button type="button" class="btn btn-outline-danger" 
-                                onclick="removeStep(${index})" title="제거">
-                            <i class="bi bi-x"></i>
-                        </button>
-                    </div>
-                </div>
-            `;
-        });
-        pipelineList.innerHTML = html;
     }
-    
-    // 페이지 새로고침 (초기화 버튼 표시를 위해)
-    location.reload();
-}
 
-function executePipeline() {
-    if (confirm('전처리를 실행하시겠습니까?')) {
-        fetch(`/preprocess/${taskId}/execute/`, {
+    // 2. 기법 라이브러리에서 추가 버튼 클릭 시
+    function showMethodModal(methodId, methodName, schema, defaults) {
+        document.getElementById('modalTitle').innerHTML = `<i class="bi bi-plus-circle text-primary me-1"></i> ${methodName} 추가`;
+        const submitBtn = document.getElementById('modalSubmitBtn');
+        submitBtn.textContent = "단계 추가";
+        submitBtn.onclick = addStepToPipeline;
+        
+        generateParamForm(methodId);
+        paramModal.show();
+    }
+
+    // 3. 현재 파이프라인에서 편집 버튼 클릭 시
+    function editStep(index) {
+        const stepData = currentPipelineFull[index];
+        if (!stepData) return;
+
+        const method = methodSchemas[stepData.method_id];
+        document.getElementById('modalTitle').innerHTML = `<i class="bi bi-pencil-square text-primary me-1"></i> #${index + 1} ${method.name} 수정`;
+        
+        const submitBtn = document.getElementById('modalSubmitBtn');
+        submitBtn.textContent = "변경사항 저장";
+        submitBtn.onclick = () => updateStepInPipeline(index);
+
+        generateParamForm(stepData.method_id, stepData.params);
+        paramModal.show();
+    }
+
+    // --- 통신 로직 ---
+
+    function addStepToPipeline() {
+        const methodId = document.getElementById('methodId').value;
+        const formData = new FormData(document.getElementById('paramForm'));
+        const params = {};
+        for (const [key, value] of formData.entries()) {
+            params[key] = isNaN(value) ? value : Number(value);
+        }
+        
+        fetch(`/preprocess/${taskId}/add-step/`, {
             method: 'POST',
-            headers: {
-                'X-CSRFToken': '{{ csrf_token }}'
-            }
+            headers: {'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}'},
+            body: JSON.stringify({method_id: methodId, params: params})
         })
-        .then(response => {
-            if (response.redirected) {
-                window.location.href = response.url;
-            } else {
-                window.location.href = `/preprocess/${taskId}/progress/`;
-            }
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) location.reload();
+            else alert('오류: ' + data.error);
         });
     }
-}
+
+    function updateStepInPipeline(index) {
+        const formData = new FormData(document.getElementById('paramForm'));
+        const params = {};
+        for (const [key, value] of formData.entries()) {
+            params[key] = isNaN(value) ? value : Number(value);
+        }
+
+        fetch(`/preprocess/${taskId}/update-step/`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}'},
+            body: JSON.stringify({ index: index, params: params })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) location.reload();
+            else alert('수정 실패: ' + data.error);
+        });
+    }
+
+    function removeStep(index) {
+        if (!confirm('단계를 제거할까요?')) return;
+        fetch(`/preprocess/${taskId}/remove-step/`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}'},
+            body: JSON.stringify({ index: index })
+        })
+        .then(response => response.json())
+        .then(data => { if (data.success) location.reload(); });
+    }
+
+    function moveStep(fromIndex, direction) {
+        const toIndex = direction === 'up' ? fromIndex - 1 : fromIndex + 1;
+        fetch(`/preprocess/${taskId}/reorder-step/`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}'},
+            body: JSON.stringify({from_index: fromIndex, to_index: toIndex})
+        })
+        .then(response => response.json())
+        .then(data => { if (data.success) location.reload(); });
+    }
+
+    function clearPipeline() {
+        if (!confirm('모든 단계를 삭제할까요?')) return;
+        fetch(`/preprocess/${taskId}/clear-pipeline/`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}'}
+        })
+        .then(response => response.json())
+        .then(data => { if (data.success) location.reload(); });
+    }
+
+    function executePipeline() {
+        if (confirm('설정된 시퀀스로 전처리를 시작하시겠습니까?')) {
+            fetch(`/preprocess/${taskId}/execute/`, {
+                method: 'POST',
+                headers: {'X-CSRFToken': '{{ csrf_token }}'}
+            })
+            .then(response => {
+                window.location.href = response.redirected ? response.url : `/preprocess/${taskId}/progress/`;
+            });
+        }
+    }
 </script>
+
+<style>
+
+
+    /* 현재 파이프라인 박스 디자인 (Soft Blue) */
+    .pipeline-step {
+        background-color: #f0f7ff;
+        border-radius: 14px;
+        border: 1px solid #d0e4ff;
+        transition: all 0.25s ease;
+    }
+    
+    .pipeline-step:hover {
+        background-color: #e6f2ff;
+        transform: translateY(-2px);
+        border-color: #0d6efd;
+    }
+
+    .step-number {
+        background: linear-gradient(135deg, #0d6efd, #0a58ca);
+        color: white;
+        width: 26px;
+        height: 26px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.8rem;
+        font-weight: 700;
+        box-shadow: 0 2px 4px rgba(13, 110, 253, 0.2);
+    }
+
+    /* 기법 라이브러리 버튼 */
+    .method-btn {
+        background-color: #fff !important;
+        border-radius: 10px;
+        transition: all 0.2s;
+    }
+    .method-btn:hover {
+        border-color: #0d6efd !important;
+        transform: translateX(4px);
+    }
+
+    .border-dashed { border: 2px dashed #dee2e6 !important; }
+    .btn-link { text-decoration: none; }
+    .accordion-button:not(.collapsed) { background-color: #f8f9fa; color: #0d6efd; box-shadow: none; }
+</style>
 {% endblock %}

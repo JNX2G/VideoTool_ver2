@@ -466,3 +466,28 @@ class ServePreprocessedImageView(View):
         content_type = content_type or "image/jpeg"
 
         return FileResponse(open(image_path, "rb"), content_type=content_type)
+
+
+class UpdatePreprocessingStepView(View):
+    """전처리 단계의 파라미터 수정"""
+    def post(self, request, task_id):
+        try:
+            task = get_object_or_404(PreprocessingTask, id=task_id)
+            data = json.loads(request.body)
+            index = data.get("index")
+            params = data.get("params", {})
+
+            if index is None or not (0 <= index < len(task.preprocessing_pipeline)):
+                return JsonResponse({"success": False, "error": "잘못된 순서입니다."}, status=400)
+
+            # 해당 순서의 파라미터만 교체
+            task.preprocessing_pipeline[index]["params"] = params
+            task.save()
+
+            return JsonResponse({
+                "success": True,
+                "pipeline": task.get_pipeline_display(),
+                "pipeline_full": task.preprocessing_pipeline # JS 갱신용
+            })
+        except Exception as e:
+            return JsonResponse({"success": False, "error": str(e)}, status=500)

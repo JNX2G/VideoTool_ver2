@@ -16,45 +16,41 @@
 
 {% block content %}
 <div class="container-fluid">
-    <!-- 헤더 -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2><i class="bi bi-funnel"></i> 전처리 기법</h2>
-        <div class="d-flex align-items-center"> 
-            <span class="badge bg-success me-2 d-inline-flex align-items-center px-3" 
-                style="font-size: 0.9rem; min-height: 38px; line-height: 1;">
+
+    <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-2">
+        <!-- 탭 -->
+        <ul class="nav nav-pills custom-header-tabs"> <li class="nav-item">
+                <a class="nav-link {% if current_tab == 'all' %}active{% endif %}" href="?tab=all">
+                    <i class="bi bi-list"></i> 전체 
+                    <span class="badge {% if current_tab == 'all' %}bg-white text-primary{% else %}bg-secondary{% endif %}">{{ total_count }}</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {% if current_tab == 'builtin' %}active{% endif %}" href="?tab=builtin">
+                    <i class="bi bi-gear-fill"></i> 빌트인
+                    <span class="badge {% if current_tab == 'builtin' %}bg-white text-info{% else %}bg-info{% endif %}">{{ builtin_count }}</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {% if current_tab == 'custom' %}active{% endif %}" href="?tab=custom">
+                    <i class="bi bi-magic"></i> 커스텀
+                    <span class="badge {% if current_tab == 'custom' %}bg-white text-success{% else %}bg-success{% endif %}">{{ custom_count }}</span>
+                </a>
+            </li>
+        </ul>
+
+        <!-- 헤더 -->
+        <div class="d-flex align-items-center gap-2"> 
+            <span class="badge bg-success d-inline-flex align-items-center px-3" 
+                style="font-size: 0.9rem; min-height: 38px; line-height: 1; border-radius: 8px;">
                 <i class="bi bi-check-circle me-1"></i> 활성화: {{ active_count }}
             </span>
             
-            <a href="{% url 'prephub:method_add' %}" class="btn btn-primary">
-                <i class="bi bi-plus-lg"></i> 새 기법 추가
+            <a href="{% url 'prephub:method_add' %}" class="btn btn-primary d-inline-flex align-items-center" style="min-height: 38px; border-radius: 8px;">
+                <i class="bi bi-plus-lg me-1"></i> 새 기법 추가
             </a>
         </div>
     </div>
-
-    <!-- ⭐ 탭 -->
-    <ul class="nav nav-tabs mb-3">
-        <li class="nav-item">
-            <a class="nav-link {% if current_tab == 'all' %}active{% endif %}" 
-               href="?tab=all">
-                <i class="bi bi-list"></i> 전체 
-                <span class="badge bg-secondary">{{ total_count }}</span>
-            </a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link {% if current_tab == 'builtin' %}active{% endif %}" 
-               href="?tab=builtin">
-                <i class="bi bi-gear-fill"></i> 내장 기법
-                <span class="badge bg-info">{{ builtin_count }}</span>
-            </a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link {% if current_tab == 'custom' %}active{% endif %}" 
-               href="?tab=custom">
-                <i class="bi bi-magic"></i> 커스텀 기법
-                <span class="badge bg-success">{{ custom_count }}</span>
-            </a>
-        </li>
-    </ul>
 
     <!-- 필터 및 일괄 제어 -->
     <div class="card mb-3 border-0 shadow-sm">

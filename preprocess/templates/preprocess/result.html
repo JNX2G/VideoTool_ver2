@@ -3,7 +3,6 @@
 {% block title %}전처리 결과 - {{ content.title }}{% endblock %}
 
 {% block breadcrumb_items %}
-    <!-- 1단계: 컨텐츠 상세 (완료) -->
     <li class="custom-breadcrumb-item">
         {% if content_type == 'image' %}
         <a href="{% url 'image_detail' content.id %}">
@@ -15,128 +14,125 @@
         </a>
         {% endif %}
     </li>
-
-    <!-- 2단계: 전처리 (완료) -->
     <li class="custom-breadcrumb-item">
         <a href="{% url 'preprocess:start_preprocessing' content.id %}">
             <i class="bi bi-layers-half"></i> 전처리
         </a>
     </li>
-
-    <!-- 3단계: 전처리 결과 (현재 - 활성화) -->
     <li class="custom-breadcrumb-item active">
         <a href="{% url 'preprocess:preprocessing_result' task.id %}">
             <i class="bi bi-clipboard-data"></i> 전처리 결과
         </a>
     </li>
-
-    <!-- 4단계: 모델 선택 (비활성화) -->
     <li class="custom-breadcrumb-item disabled">
-        <span class="text-muted">
-            <i class="bi bi-cpu-fill"></i> 모델 선택
-        </span>
+        <span class="text-muted"><i class="bi bi-cpu-fill"></i> 모델 선택</span>
     </li>
-
-    <!-- 5단계: 모델 실행 (비활성화) -->
     <li class="custom-breadcrumb-item disabled">
-        <span class="text-muted">
-            <i class="bi bi-play-circle-fill"></i> 모델 실행
-        </span>
+        <span class="text-muted"><i class="bi bi-play-circle-fill"></i> 모델 실행</span>
     </li>
-
-    <!-- 6단계: 탐지 결과 (비활성화) -->
     <li class="custom-breadcrumb-item disabled">
-        <span class="text-muted">
-            <i class="bi bi-clipboard-data"></i> 탐지 결과
-        </span>
+        <span class="text-muted"><i class="bi bi-clipboard-data"></i> 탐지 결과</span>
     </li>
 {% endblock %}
 
 {% block content %}
-<div class="row">
-    <!-- 왼쪽: 원본 -->
-    <div class="col-md-6">
-        <div class="card mb-3 border-0 shadow-sm">
+<div class="row row-cols-1 row-cols-md-2 g-4 mb-4">
+    <div class="col">
+        <div class="card h-100 border-0 shadow-sm">
             <div class="card-header bg-white py-3">
                 <h6 class="mb-0 fw-bold">
                     <i class="bi bi-file-earmark"></i>
                     원본 {% if content_type == 'video' %}동영상{% else %}이미지{% endif %}
                 </h6>
             </div>
-            <div class="card-body">
-                {% if content_type == 'video' %}
-                    <video width="100%" controls preload="metadata" class="rounded">
-                        <source src="{% url 'serve_video' content.pk %}" type="video/mp4">
-                    </video>
-                {% else %}
-                    <img src="{{ content.file.url }}" class="img-fluid rounded" alt="원본 이미지">
-                {% endif %}
-                <div class="mt-2">
-                    <p class="text-muted mb-1">{{ content.title }}</p>
+            <div class="card-body d-flex flex-column">
+                <div class="flex-grow-1 d-flex align-items-center justify-content-center bg-black rounded overflow-hidden" style="min-height: 300px;">
+                    {% if content_type == 'video' %}
+                        <video id="originalVideo" width="100%" preload="metadata">
+                            <source src="{% url 'serve_video' content.pk %}" type="video/mp4">
+                        </video>
+                    {% else %}
+                        <img src="{{ content.file.url }}" class="img-fluid rounded" alt="원본 이미지">
+                    {% endif %}
+                </div>
+                <div class="mt-3">
+                    <p class="text-muted mb-1 small">{{ content.title }}</p>
                     <small class="text-secondary">
                         <i class="bi bi-hdd"></i> {{ content.get_file_size_display }}
-                        {% if content_type == 'image' %}
-                            | <i class="bi bi-aspect-ratio"></i> {{ content.get_resolution_display }}
-                        {% endif %}
                     </small>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- 오른쪽: 전처리 결과 -->
-    <div class="col-md-6">
-        <div class="card mb-3 border-0 shadow-sm">
+    <div class="col">
+        <div class="card h-100 border-0 shadow-sm">
             <div class="card-header bg-white py-3 text-primary">
                 <h6 class="mb-0 fw-bold">
-                    <i class="bi bi-check-circle"></i>
-                    전처리 결과
+                    <i class="bi bi-check-circle"></i> 전처리 결과
                 </h6>
             </div>
-            <div class="card-body">
-                {% if content_type == 'video' %}
-                    <video id="processedVideo" width="100%" controls preload="metadata" class="rounded">
-                        <source src="{% url 'preprocess:serve_preprocessed_video' task.id %}" type="video/mp4">
-                        브라우저가 동영상을 지원하지 않습니다.
-                    </video>
-                {% else %}
-                    <img src="{% url 'preprocess:serve_preprocessed_image' task.id %}" 
-                         class="img-fluid rounded shadow-sm" 
-                         alt="전처리된 이미지">
-                {% endif %}
-                
-                <div class="d-flex justify-content-between align-items-center mt-3">
+            <div class="card-body d-flex flex-column">
+                <div class="flex-grow-1 d-flex align-items-center justify-content-center bg-black rounded overflow-hidden" style="min-height: 300px;">
+                    {% if content_type == 'video' %}
+                        <video id="processedVideo" width="100%" preload="metadata">
+                            <source src="{% url 'preprocess:serve_preprocessed_video' task.id %}" type="video/mp4">
+                        </video>
+                    {% else %}
+                        <img src="{% url 'preprocess:serve_preprocessed_image' task.id %}" class="img-fluid rounded shadow-sm" alt="전처리 결과">
+                    {% endif %}
+                </div>
+                <div class="mt-3 d-flex justify-content-between align-items-center">
                     <div>
-                        <p class="text-muted mb-1">
+                        <p class="text-muted mb-1 small">
                             <i class="bi bi-check-circle text-success"></i> 전처리 완료
                         </p>
                         {% if content_type == 'video' %}
-                            <small class="text-secondary">
-                                <i class="bi bi-film"></i> 프레임: {{ task.processed_frames }}
-                            </small>
+                            <small class="text-secondary"><i class="bi bi-film"></i> 프레임: {{ task.processed_frames }}</small>
                         {% endif %}
                     </div>
-                    <div>
-                        <a href="{% if content_type == 'video' %}{% url 'preprocess:serve_preprocessed_video' task.id %}{% else %}{% url 'preprocess:serve_preprocessed_image' task.id %}{% endif %}" 
-                           download="processed_{{ content.file.name }}" 
-                           class="btn btn-success btn-sm">
-                            <i class="bi bi-download"></i> 다운로드
-                        </a>
-                    </div>
+                    <a href="{% if content_type == 'video' %}{% url 'preprocess:serve_preprocessed_video' task.id %}{% else %}{% url 'preprocess:serve_preprocessed_image' task.id %}{% endif %}" 
+                       download="processed_{{ content.file.name }}" class="btn btn-success btn-sm">
+                        <i class="bi bi-download"></i> 다운로드
+                    </a>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
-<!-- 전처리 정보 -->
+{% if content_type == 'video' %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card border-0 shadow-sm bg-light" style="border-radius: 10px;">
+            <div class="card-body py-2 px-3">
+                <div class="d-flex align-items-center gap-3">
+                    <button id="masterPlayBtn" class="btn btn-sm d-flex align-items-center justify-content-center shadow-sm" 
+                            style="width: 36px; height: 36px; border-radius: 50%; background-color: #fff; border: 1px solid #dee2e6; color: #495057;">
+                        <i class="bi bi-play-fill"></i>
+                    </button>
+                    
+                    <input type="range" id="masterSeekBar" class="form-range flex-grow-1 custom-range" value="0" step="0.01">
+                    
+                    <div class="text-secondary small fw-light" style="font-variant-numeric: tabular-nums; min-width: 90px; text-align: center;">
+                        <span id="currentTime">0:00</span> / <span id="totalTime">0:00</span>
+                    </div>
+                    
+                    <button id="syncVideosBtn" class="btn btn-link btn-sm text-secondary p-0" title="싱크 강제 맞춤">
+                        <i class="bi bi-arrow-repeat" style="font-size: 1.1rem;"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
 <div class="row">
     <div class="col-md-12">
         <div class="card mb-3 border-0 shadow-sm">
             <div class="card-header bg-white py-3">
-                <h6 class="mb-0 fw-bold">
-                    <i class="bi bi-funnel"></i> 적용된 전처리 파이프라인
-                </h6>
+                <h6 class="mb-0 fw-bold"><i class="bi bi-funnel"></i> 적용된 전처리 파이프라인</h6>
             </div>
             <div class="card-body">
                 {% if task.get_pipeline_display %}
@@ -146,28 +142,17 @@
                         {% endfor %}
                     </ol>
                 {% else %}
-                    <p class="text-muted mb-3">
-                        <i class="bi bi-info-circle"></i> 전처리를 적용하지 않았습니다 (원본 사용)
-                    </p>
+                    <p class="text-muted mb-3"><i class="bi bi-info-circle"></i> 전처리를 적용하지 않았습니다</p>
                 {% endif %}
                 
                 <div class="pt-3 border-top">
                     <div class="row">
                         <div class="col-md-4">
-                            <p class="mb-1">
-                                <i class="bi bi-clock"></i> <strong>처리 시간:</strong>
-                                {% if task.started_at and task.completed_at %}
-                                    {{ task.get_duration|floatformat:1 }}초
-                                {% else %}
-                                    -
-                                {% endif %}
-                            </p>
+                            <p class="mb-1"><i class="bi bi-clock"></i> <strong>처리 시간:</strong> 
+                                {% if task.started_at and task.completed_at %}{{ task.get_duration|floatformat:1 }}초{% else %}-{% endif %}</p>
                         </div>
                         <div class="col-md-4">
-                            <p class="mb-1">
-                                <i class="bi bi-calendar"></i> <strong>완료 시각:</strong>
-                                {{ task.completed_at|date:"Y-m-d H:i:s" }}
-                            </p>
+                            <p class="mb-1"><i class="bi bi-calendar"></i> <strong>완료 시각:</strong> {{ task.completed_at|date:"Y-m-d H:i:s" }}</p>
                         </div>
                         <div class="col-md-4">
                             <p class="mb-1">
@@ -185,116 +170,98 @@
     </div>
 </div>
 
-<!-- 작업 버튼 -->
 <div class="card mb-4 border-0 shadow-sm">
     <div class="card-body">
         <div class="d-grid gap-2 d-md-flex justify-content-md-center">
             {% if task.status == 'completed' %}
-            <a href="{#{% url 'vision_engine:select_model' task.id %}#}" 
-               class="btn btn-primary px-4" 
-               style="border-radius: 8px;">
+            <a href="#" class="btn btn-primary px-4" style="border-radius: 8px;">
                 <i class="bi bi-cpu-fill"></i> 객체 탐지 시작
             </a>
-            {% else %}
-            <button class="btn btn-secondary px-4" 
-                    disabled 
-                    title="전처리가 완료되어야 합니다" 
-                    style="border-radius: 8px;">
-                <i class="bi bi-cpu-fill"></i> 객체 탐지 시작
-            </button>
             {% endif %}
-            
-            <a href="{% url 'preprocess:start_preprocessing' content.id %}?type={{ content_type }}" 
-               class="btn btn-warning px-4" 
-               style="border-radius: 8px;">
+            <a href="{% url 'preprocess:start_preprocessing' content.id %}?type={{ content_type }}" class="btn btn-warning px-4" style="border-radius: 8px;">
                 <i class="bi bi-arrow-counterclockwise"></i> 다시 전처리하기
             </a>
-            
             <a href="{% if content_type == 'video' %}{% url 'video_detail' content.id %}{% else %}{% url 'image_detail' content.id %}{% endif %}" 
-               class="btn btn-outline-secondary px-4" 
-               style="border-radius: 8px;">
+               class="btn btn-outline-secondary px-4" style="border-radius: 8px;">
                 <i class="bi bi-arrow-left"></i> 상세로 돌아가기
             </a>
         </div>
     </div>
 </div>
 
-<script>
-const contentType = "{{ content_type }}";
-
-if (contentType === 'video') {
-    const processedVideo = document.getElementById('processedVideo');
-
-    if (processedVideo) {
-        console.log('🎬 동영상 요소:', processedVideo);
-        console.log('🎬 소스 URL:', processedVideo.querySelector('source')?.src);
-        
-        // 강제로 로드 시도
-        processedVideo.load();
-        
-        processedVideo.addEventListener('loadstart', function() {
-            console.log('🔥 loadstart');
-        });
-        
-        processedVideo.addEventListener('loadedmetadata', function() {
-            console.log('✅ loadedmetadata');
-            console.log('Duration:', processedVideo.duration);
-            console.log('ReadyState:', processedVideo.readyState);
-        });
-        
-        processedVideo.addEventListener('loadeddata', function() {
-            console.log('✅ loadeddata');
-        });
-        
-        processedVideo.addEventListener('canplay', function() {
-            console.log('✅ canplay - 재생 가능!');
-        });
-        
-        processedVideo.addEventListener('canplaythrough', function() {
-            console.log('✅ canplaythrough - 전체 재생 가능!');
-        });
-        
-        processedVideo.addEventListener('progress', function() {
-            if (processedVideo.buffered.length > 0) {
-                const bufferedEnd = processedVideo.buffered.end(0);
-                const duration = processedVideo.duration;
-                const percent = (bufferedEnd / duration * 100).toFixed(2);
-                console.log(`📊 버퍼링: ${percent}% (${bufferedEnd.toFixed(2)}s / ${duration.toFixed(2)}s)`);
-            }
-        });
-        
-        processedVideo.addEventListener('waiting', function() {
-            console.log('⏳ waiting - 버퍼링 중');
-        });
-        
-        processedVideo.addEventListener('stalled', function() {
-            console.warn('⚠️ stalled - 로딩 멈춤');
-        });
-        
-        processedVideo.addEventListener('suspend', function() {
-            console.log('⏸️ suspend - 로딩 일시중단');
-        });
-        
-        processedVideo.addEventListener('error', function(e) {
-            console.error('❌ 에러!');
-            console.error('Error code:', processedVideo.error?.code);
-            console.error('Error message:', processedVideo.error?.message);
-            console.error('Network state:', processedVideo.networkState);
-            console.error('Ready state:', processedVideo.readyState);
-            
-            alert('동영상 로드 실패! 콘솔을 확인하세요.');
-        });
-    }
-}
-</script>
-
 <style>
-.card {
-    transition: transform 0.2s;
+/* 슬라이더 커스텀 스타일 */
+.custom-range { height: 4px; padding: 0; }
+.custom-range::-webkit-slider-runnable-track { background-color: #dee2e6; height: 4px; border-radius: 2px; }
+.custom-range::-webkit-slider-thumb { 
+    width: 14px; height: 14px; margin-top: -5px; 
+    background-color: #0d6efd; border: 2px solid #fff; 
+    border-radius: 50%; box-shadow: 0 1px 3px rgba(0,0,0,0.2); appearance: none;
 }
-
-.card:hover {
-    transform: translateY(-2px);
-}
+.card { transition: transform 0.2s; }
+/* .card:hover { transform: translateY(-2px); } */
 </style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const contentType = "{{ content_type }}";
+    if (contentType !== 'video') return;
+
+    // 비디오 요소 및 컨트롤 요소 가져오기
+    const originalVideo = document.getElementById('originalVideo');
+    const processedVideo = document.getElementById('processedVideo');
+    const masterSeekBar = document.getElementById('masterSeekBar');
+    const masterPlayBtn = document.getElementById('masterPlayBtn');
+    const currentTimeText = document.getElementById('currentTime');
+    const totalTimeText = document.getElementById('totalTime');
+    const syncBtn = document.getElementById('syncVideosBtn');
+
+    function formatTime(seconds) {
+        const min = Math.floor(seconds / 60);
+        const sec = Math.floor(seconds % 60);
+        return `${min}:${sec < 10 ? '0' + sec : sec}`;
+    }
+
+    // 1. 메타데이터 로드 시 전체 시간 및 슬라이더 설정
+    processedVideo.addEventListener('loadedmetadata', () => {
+        masterSeekBar.max = processedVideo.duration;
+        totalTimeText.innerText = formatTime(processedVideo.duration);
+    });
+
+    // 2. 통합 재생/일시정지 제어
+    masterPlayBtn.addEventListener('click', () => {
+        if (processedVideo.paused) {
+            originalVideo.play();
+            processedVideo.play();
+            masterPlayBtn.innerHTML = '<i class="bi bi-pause-fill"></i>';
+        } else {
+            originalVideo.pause();
+            processedVideo.pause();
+            masterPlayBtn.innerHTML = '<i class="bi bi-play-fill"></i>';
+        }
+    });
+
+    // 3. 통합 플레이바 조작 (Seek)
+    masterSeekBar.addEventListener('input', () => {
+        originalVideo.currentTime = masterSeekBar.value;
+        processedVideo.currentTime = masterSeekBar.value;
+    });
+
+    // 4. 재생 중 진행바 업데이트 및 자동 싱크 유지
+    processedVideo.addEventListener('timeupdate', () => {
+        masterSeekBar.value = processedVideo.currentTime;
+        currentTimeText.innerText = formatTime(processedVideo.currentTime);
+        
+        // 두 영상의 시간 차이가 0.3초 이상 나면 강제 동기화
+        if (Math.abs(originalVideo.currentTime - processedVideo.currentTime) > 0.3) {
+            originalVideo.currentTime = processedVideo.currentTime;
+        }
+    });
+
+    // 5. 싱크 강제 맞춤 버튼
+    syncBtn.addEventListener('click', () => {
+        originalVideo.currentTime = processedVideo.currentTime;
+    });
+});
+</script>
 {% endblock %}
