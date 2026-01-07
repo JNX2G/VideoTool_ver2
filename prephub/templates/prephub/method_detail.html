@@ -1,0 +1,185 @@
+{% extends 'contents/base.html' %}
+
+{% block title %}{{ method.name }} - 상세{% endblock %}
+
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="custom-breadcrumb-item">
+            <a href="{% url 'prephub:method_list' %}">
+                <i class="bi bi-funnel"></i> 전처리 기법
+            </a>
+        </li>
+        <li class="custom-breadcrumb-item active">
+            <a href="#">
+                <i class="bi bi-eye"></i> {{ method.name }}
+            </a>
+        </li>
+    </ol>
+</nav>
+{% endblock breadcrumb %}
+
+{% block content %}
+<div class="container" style="max-width: 900px;">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>
+            <i class="bi bi-eye"></i> {{ method.name }}
+            {% if method.is_builtin %}
+            <span class="badge bg-info">내장</span>
+            {% else %}
+            <span class="badge bg-success">커스텀</span>
+            {% endif %}
+        </h2>
+        <div>
+            {% if not method.is_builtin %}
+            <!-- 커스텀 기법만 수정/삭제 가능 -->
+            <a href="{% url 'prephub:method_edit' method.pk %}" class="btn btn-outline-secondary">
+                <i class="bi bi-pencil"></i> 수정
+            </a>
+            <a href="{% url 'prephub:method_delete' method.pk %}" class="btn btn-outline-danger">
+                <i class="bi bi-trash"></i> 삭제
+            </a>
+            {% else %}
+            <!-- 내장 기법은 수정/삭제 불가 -->
+            <button class="btn btn-outline-secondary" disabled title="내장 기법은 수정할 수 없습니다">
+                <i class="bi bi-lock"></i> 수정 불가
+            </button>
+            <button class="btn btn-outline-secondary" disabled title="내장 기법은 삭제할 수 없습니다">
+                <i class="bi bi-lock"></i> 삭제 불가
+            </button>
+            {% endif %}
+            <a href="{% url 'prephub:method_list' %}" class="btn btn-outline-primary">
+                <i class="bi bi-list"></i> 목록
+            </a>
+        </div>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <!-- 기본 정보 -->
+            <div class="mb-4">
+                <h5 class="border-bottom pb-2 mb-3">
+                    <i class="bi bi-info-circle"></i> 기본 정보
+                </h5>
+                
+                <div class="row mb-3">
+                    <div class="col-md-3 fw-bold">기법 코드:</div>
+                    <div class="col-md-9">
+                        <code>{{ method.code }}</code>
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-3 fw-bold">카테고리:</div>
+                    <div class="col-md-9">
+                        <span class="badge bg-light text-dark border">
+                            {{ method.get_category_display }}
+                        </span>
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-3 fw-bold">상태:</div>
+                    <div class="col-md-9">
+                        {% if method.is_active %}
+                        <span class="badge bg-success">
+                            <i class="bi bi-check-circle"></i> 활성화
+                        </span>
+                        {% else %}
+                        <span class="badge bg-secondary">
+                            <i class="bi bi-x-circle"></i> 비활성화
+                        </span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-3 fw-bold">설명:</div>
+                    <div class="col-md-9">
+                        {{ method.description|default:"설명 없음" }}
+                    </div>
+                </div>
+            </div>
+
+            <!-- 함수 정보 -->
+            <div class="mb-4">
+                <h5 class="border-bottom pb-2 mb-3">
+                    <i class="bi bi-code-square"></i> 함수 정보
+                </h5>
+
+                <div class="row mb-3">
+                    <div class="col-md-3 fw-bold">함수 이름:</div>
+                    <div class="col-md-9">
+                        <code>{{ method.function_name }}</code>
+                    </div>
+                </div>
+
+                {% if not method.is_builtin and method.python_file %}
+                <div class="row mb-3">
+                    <div class="col-md-3 fw-bold">Python 파일:</div>
+                    <div class="col-md-9">
+                        {{ method.python_file.name }}
+                    </div>
+                </div>
+                {% endif %}
+
+            </div>
+
+            <!-- 파라미터 -->
+            {% if method.parameter_schema %}
+            <div class="mb-4">
+                <h5 class="border-bottom pb-2 mb-3">
+                    <i class="bi bi-sliders"></i> 파라미터
+                </h5>
+
+                <table class="table table-bordered">
+                    <thead class="table-light">
+                        <tr>
+                            <th width="20%">이름</th>
+                            <th width="15%">타입</th>
+                            <th width="15%">기본값</th>
+                            <th width="20%">범위</th>
+                            <th>설명</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for param_name, param_info in method.parameter_schema.items %}
+                        <tr>
+                            <td><code>{{ param_name }}</code></td>
+                            <td>{{ param_info.type }}</td>
+                            <td>{{ param_info.default }}</td>
+                            <td>
+                                {% if param_info.min is not None and param_info.max is not None %}
+                                {{ param_info.min }} ~ {{ param_info.max }}
+                                {% else %}
+                                -
+                                {% endif %}
+                            </td>
+                            <td>{{ param_info.description|default:"-" }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endif %}
+
+            <!-- 메타데이터 -->
+            <div>
+                <h5 class="border-bottom pb-2 mb-3">
+                    <i class="bi bi-calendar"></i> 메타데이터
+                </h5>
+
+                <div class="row mb-2">
+                    <div class="col-md-3 fw-bold">생성일:</div>
+                    <div class="col-md-9">{{ method.created_at|date:"Y-m-d H:i:s" }}</div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-3 fw-bold">수정일:</div>
+                    <div class="col-md-9">{{ method.updated_at|date:"Y-m-d H:i:s" }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,27 @@
+{% extends 'contents/base.html' %}
+
+{% block title %}동영상 삭제{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-danger text-white">
+                <h4>동영상 삭제</h4>
+            </div>
+            <div class="card-body">
+                <p>정말로 "<strong>{{ video.title }}</strong>" 동영상을 삭제하시겠습니까?</p>
+                <p class="text-danger">이 작업은 되돌릴 수 없습니다!</p>
+                
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-danger">삭제</button>
+                        <a href="{% url 'video_detail' video.pk %}" class="btn btn-secondary">취소</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

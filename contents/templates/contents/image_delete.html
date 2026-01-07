@@ -1,0 +1,44 @@
+{% extends 'contents/base.html' %}
+
+{% block title %}이미지 삭제 - {{ image.title }}{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 600px;">
+    <h1 class="mb-4 text-center">
+        <i class="bi bi-trash text-danger"></i> 이미지 삭제
+    </h1>
+
+    <div class="card border-danger shadow-sm">
+        <div class="card-body p-4">
+            <div class="text-center mb-4">
+                {% if image.file %}
+                    <img src="{{ image.file.url }}" class="img-fluid rounded" 
+                         style="max-height: 300px;" alt="{{ image.title }}">
+                {% endif %}
+            </div>
+
+            <div class="alert alert-danger">
+                <h5 class="alert-heading">
+                    <i class="bi bi-exclamation-triangle"></i> 경고
+                </h5>
+                <p class="mb-0">
+                    <strong>{{ image.title }}</strong>을(를) 삭제하시겠습니까?<br>
+                    삭제된 이미지는 복구할 수 없습니다.
+                </p>
+            </div>
+
+            <form method="post">
+                {% csrf_token %}
+                <div class="d-grid gap-2">
+                    <button type="submit" class="btn btn-danger btn-lg">
+                        <i class="bi bi-trash"></i> 삭제
+                    </button>
+                    <a href="{% url 'image_detail' image.pk %}" class="btn btn-outline-secondary">
+                        <i class="bi bi-x-circle"></i> 취소
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

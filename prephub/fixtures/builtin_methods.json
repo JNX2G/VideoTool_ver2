@@ -1,0 +1,464 @@
+[
+  {
+    "model": "prephub.preprocessingmethod",
+    "pk": 1,
+    "fields": {
+      "name": "가우시안 블러",
+      "code": "gaussian_blur",
+      "description": "이미지를 부드럽게 만들어 작은 노이즈(잡티)를 줄여줍니다.",
+      "category": "blur",
+      "python_file": "",
+      "function_name": "process",
+      "parameter_schema": {
+        "ksize": {
+          "type": "int",
+          "default": 5,
+          "min": 1,
+          "max": 31,
+          "description": "블러 강도 (값이 클수록 더 흐려짐)"
+        }
+      },
+      "default_parameters": {
+        "ksize": 5
+      },
+      "is_active": true,
+      "is_builtin": true,
+      "created_at": "2025-01-01T00:00:00Z",
+      "updated_at": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "prephub.preprocessingmethod",
+    "pk": 2,
+    "fields": {
+      "name": "중앙값 블러",
+      "code": "median_blur",
+      "description": "중앙값 필터를 사용하여 salt-and-pepper 노이즈를 효과적으로 제거합니다.",
+      "category": "blur",
+      "python_file": "",
+      "function_name": "process",
+      "parameter_schema": {
+        "ksize": {
+          "type": "int",
+          "default": 5,
+          "min": 3,
+          "max": 31,
+          "description": "노이즈 제거 범위 (값이 클수록 강해짐)"
+        }
+      },
+      "default_parameters": {
+        "ksize": 5
+      },
+      "is_active": true,
+      "is_builtin": true,
+      "created_at": "2025-01-01T00:00:00Z",
+      "updated_at": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "prephub.preprocessingmethod",
+    "pk": 3,
+    "fields": {
+      "name": "Canny 엣지 검출",
+      "code": "canny_edge",
+      "description": "이미지에서 물체의 윤곽선(경계)을 찾아줍니다.",
+      "category": "edge",
+      "python_file": "",
+      "function_name": "process",
+      "parameter_schema": {
+        "threshold1": {
+          "type": "int",
+          "default": 100,
+          "min": 0,
+          "max": 255,
+          "description": "낮은 임계값"
+        },
+        "threshold2": {
+          "type": "int",
+          "default": 200,
+          "min": 0,
+          "max": 255,
+          "description": "높은 임계값"
+        }
+      },
+      "default_parameters": {
+        "threshold1": 100,
+        "threshold2": 200
+      },
+      "is_active": true,
+      "is_builtin": true,
+      "created_at": "2025-01-01T00:00:00Z",
+      "updated_at": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "prephub.preprocessingmethod",
+    "pk": 4,
+    "fields": {
+      "name": "Sobel 엣지 검출",
+      "code": "sobel_edge",
+      "description": "밝기 변화가 큰 영역을 기준으로 윤곽선을 검출합니다.",
+      "category": "edge",
+      "python_file": "",
+      "function_name": "process",
+      "parameter_schema": {},
+      "default_parameters": {},
+      "is_active": true,
+      "is_builtin": true,
+      "created_at": "2025-01-01T00:00:00Z",
+      "updated_at": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "prephub.preprocessingmethod",
+    "pk": 5,
+    "fields": {
+      "name": "그레이스케일 변환",
+      "code": "grayscale",
+      "description": "컬러 이미지를 흑백 이미지로 변환합니다.",
+      "category": "color",
+      "python_file": "",
+      "function_name": "process",
+      "parameter_schema": {},
+      "default_parameters": {},
+      "is_active": true,
+      "is_builtin": true,
+      "created_at": "2025-01-01T00:00:00Z",
+      "updated_at": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "prephub.preprocessingmethod",
+    "pk": 6,
+    "fields": {
+      "name": "이진화 필터",
+      "code": "binary_threshold",
+      "description": "이미지를 흑색과 백색 두 가지 색으로만 표현합니다.",
+      "category": "threshold",
+      "python_file": "",
+      "function_name": "process",
+      "parameter_schema": {
+        "threshold": {
+          "type": "int",
+          "default": 127,
+          "min": 0,
+          "max": 255,
+          "description": "임계값(흑백을 나누는 기준 밝기 값)"
+        }
+      },
+      "default_parameters": {
+        "threshold": 127
+      },
+      "is_active": true,
+      "is_builtin": true,
+      "created_at": "2025-01-01T00:00:00Z",
+      "updated_at": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "prephub.preprocessingmethod",
+    "pk": 7,
+    "fields": {
+      "name": "적응형 이진화",
+      "code": "adaptive_threshold",
+      "description": "이미지 영역마다 자동으로 기준값을 조정하여 이진화합니다.",
+      "category": "threshold",
+      "python_file": "",
+      "function_name": "process",
+      "parameter_schema": {
+        "block_size": {
+          "type": "int",
+          "default": 11,
+          "min": 3,
+          "max": 99,
+          "description": "주변을 참고하는 영역 크기 (홀수)"
+        },
+        "c": {
+          "type": "int",
+          "default": 2,
+          "min": -10,
+          "max": 10,
+          "description": "이진화 기준을 미세 조정하는 값"
+        }
+      },
+      "default_parameters": {
+        "block_size": 11,
+        "c": 2
+      },
+      "is_active": true,
+      "is_builtin": true,
+      "created_at": "2025-01-01T00:00:00Z",
+      "updated_at": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "prephub.preprocessingmethod",
+    "pk": 8,
+    "fields": {
+      "name": "모폴로지 열기",
+      "code": "morphology_open",
+      "description": "작은 점 형태의 노이즈를 제거하여 이미지가 깔끔해집니다.",
+      "category": "morphology",
+      "python_file": "",
+      "function_name": "process",
+      "parameter_schema": {
+        "kernel_size": {
+          "type": "int",
+          "default": 5,
+          "min": 3,
+          "max": 21,
+          "description": "처리 범위 크기"
+        }
+      },
+      "default_parameters": {
+        "kernel_size": 5
+      },
+      "is_active": true,
+      "is_builtin": true,
+      "created_at": "2025-01-01T00:00:00Z",
+      "updated_at": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "prephub.preprocessingmethod",
+    "pk": 9,
+    "fields": {
+      "name": "모폴로지 닫기",
+      "code": "morphology_close",
+      "description": "이미지 안의 작은 구멍이나 끊어진 부분을 메워 형태를 또렷하게 합니다.",
+      "category": "morphology",
+      "python_file": "",
+      "function_name": "process",
+      "parameter_schema": {
+        "kernel_size": {
+          "type": "int",
+          "default": 5,
+          "min": 3,
+          "max": 21,
+          "description": "처리 범위 크기"
+        }
+      },
+      "default_parameters": {
+        "kernel_size": 5
+      },
+      "is_active": true,
+      "is_builtin": true,
+      "created_at": "2025-01-01T00:00:00Z",
+      "updated_at": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "prephub.preprocessingmethod",
+    "pk": 10,
+    "fields": {
+      "name": "히스토그램 평활화",
+      "code": "histogram_equalization",
+      "description": "이미지의 밝기 대비를 자동으로 개선합니다.",
+      "category": "enhancement",
+      "python_file": "",
+      "function_name": "process",
+      "parameter_schema": {},
+      "default_parameters": {},
+      "is_active": true,
+      "is_builtin": true,
+      "created_at": "2025-01-01T00:00:00Z",
+      "updated_at": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "prephub.preprocessingmethod",
+    "pk": 11,
+    "fields": {
+      "name": "CLAHE",
+      "code": "clahe",
+      "description": "이미지를 구역별로 나누어 명암비를 조절함으로써, 너무 밝거나 어두운 부분의 세부 묘사를 살려줍니다.",
+      "category": "enhancement",
+      "python_file": "",
+      "function_name": "process",
+      "parameter_schema": {
+        "clip_limit": {
+          "type": "float",
+          "default": 2.0,
+          "min": 0.1,
+          "max": 10.0,
+          "description": "대비 제한 임계값 (높을수록 대비가 강해짐)"
+        },
+        "tile_grid_size": {
+          "type": "int",
+          "default": 8,
+          "min": 1,
+          "max": 32,
+          "description": "영역 분할 크기"
+        }
+      },
+      "default_parameters": {
+        "clip_limit": 2.0,
+        "tile_grid_size": 8
+      },
+      "is_active": true,
+      "is_builtin": true,
+      "created_at": "2025-01-01T00:00:00Z",
+      "updated_at": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "prephub.preprocessingmethod",
+    "pk": 12,
+    "fields": {
+      "name": "양방향 필터",
+      "code": "bilateral_filter",
+      "description": "사물의 윤곽선(엣지)은 뚜렷하게 유지하면서 배경의 노이즈만 효과적으로 제거합니다.",
+      "category": "blur",
+      "python_file": "",
+      "function_name": "process",
+      "parameter_schema": {
+        "d": {
+          "type": "int",
+          "default": 9,
+          "min": 1,
+          "max": 50,
+          "description": "필터 직경"
+        },
+        "sigma_color": {
+          "type": "int",
+          "default": 75,
+          "min": 1,
+          "max": 200,
+          "description": "색상 유사도 범위"
+        },
+        "sigma_space": {
+          "type": "int",
+          "default": 75,
+          "min": 1,
+          "max": 200,
+          "description": "거리 유사도 범위"
+        }
+      },
+      "default_parameters": {
+        "d": 9,
+        "sigma_color": 75,
+        "sigma_space": 75
+      },
+      "is_active": true,
+      "is_builtin": true,
+      "created_at": "2025-01-01T00:00:00Z",
+      "updated_at": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "prephub.preprocessingmethod",
+    "pk": 13,
+    "fields": {
+      "name": "해리스 코너 검출",
+      "code": "harris_corner",
+      "description": "이미지에서 밝기 변화가 사방으로 급격한 코너(모서리) 지점을 검출합니다.",
+      "category": "feature",
+      "python_file": "",
+      "function_name": "process",
+      "parameter_schema": {
+        "block_size": {
+          "type": "int",
+          "default": 2,
+          "min": 1,
+          "max": 10,
+          "description": "코너 검출을 위한 이웃 영역 크기"
+        },
+        "ksize": {
+          "type": "int",
+          "default": 3,
+          "min": 1,
+          "max": 31,
+          "description": "소벨 미분 커널 크기 (홀수)"
+        },
+        "k": {
+          "type": "float",
+          "default": 0.04,
+          "min": 0.01,
+          "max": 0.1,
+          "description": "해리스 코너 검출 상수"
+        }
+      },
+      "default_parameters": {
+        "block_size": 2,
+        "ksize": 3,
+        "k": 0.04
+      },
+      "is_active": true,
+      "is_builtin": true,
+      "created_at": "2025-01-01T00:00:00Z",
+      "updated_at": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "prephub.preprocessingmethod",
+    "pk": 14,
+    "fields": {
+      "name": "Shi-Tomasi 코너 검출",
+      "code": "shi_tomasi",
+      "description": "해리스 코너 검출을 개선한 방식으로, 추적하기 좋은 특징점(Good Features to Track)을 찾아냅니다.",
+      "category": "feature",
+      "python_file": "",
+      "function_name": "process",
+      "parameter_schema": {
+        "max_corners": {
+          "type": "int",
+          "default": 100,
+          "min": 1,
+          "max": 1000,
+          "description": "검출할 최대 코너 개수"
+        },
+        "quality_level": {
+          "type": "float",
+          "default": 0.01,
+          "min": 0.001,
+          "max": 0.5,
+          "description": "최소 코너 품질 (0~1)"
+        },
+        "min_distance": {
+          "type": "int",
+          "default": 10,
+          "min": 1,
+          "max": 100,
+          "description": "코너 간 최소 거리"
+        }
+      },
+      "default_parameters": {
+        "max_corners": 100,
+        "quality_level": 0.01,
+        "min_distance": 10
+      },
+      "is_active": true,
+      "is_builtin": true,
+      "created_at": "2025-01-01T00:00:00Z",
+      "updated_at": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "prephub.preprocessingmethod",
+    "pk": 15,
+    "fields": {
+      "name": "ORB 특징점 검출",
+      "code": "orb_feature",
+      "description": "이미지의 특징점을 찾아 벡터로 설명하며, 물체 인식 및 매칭에 매우 빠르고 효율적입니다.",
+      "category": "feature",
+      "python_file": "",
+      "function_name": "process",
+      "parameter_schema": {
+        "n_features": {
+          "type": "int",
+          "default": 500,
+          "min": 10,
+          "max": 5000,
+          "description": "최대 특징점 개수"
+        }
+      },
+      "default_parameters": {
+        "n_features": 500
+      },
+      "is_active": true,
+      "is_builtin": true,
+      "created_at": "2025-01-01T00:00:00Z",
+      "updated_at": "2025-01-01T00:00:00Z"
+    }
+  }
+]

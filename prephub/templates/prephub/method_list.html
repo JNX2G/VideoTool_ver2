@@ -1,0 +1,380 @@
+{% extends 'contents/base.html' %}
+
+{% block title %}전처리 기법{% endblock %}
+
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="custom-breadcrumb-item active">
+            <a href="{% url 'prephub:method_list' %}">
+                <i class="bi bi-funnel"></i> 전처리 기법
+            </a>
+        </li>
+    </ol>
+</nav>
+{% endblock breadcrumb %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- 헤더 -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="bi bi-funnel"></i> 전처리 기법</h2>
+        <div class="d-flex align-items-center"> 
+            <span class="badge bg-success me-2 d-inline-flex align-items-center px-3" 
+                style="font-size: 0.9rem; min-height: 38px; line-height: 1;">
+                <i class="bi bi-check-circle me-1"></i> 활성화: {{ active_count }}
+            </span>
+            
+            <a href="{% url 'prephub:method_add' %}" class="btn btn-primary">
+                <i class="bi bi-plus-lg"></i> 새 기법 추가
+            </a>
+        </div>
+    </div>
+
+    <!-- ⭐ 탭 -->
+    <ul class="nav nav-tabs mb-3">
+        <li class="nav-item">
+            <a class="nav-link {% if current_tab == 'all' %}active{% endif %}" 
+               href="?tab=all">
+                <i class="bi bi-list"></i> 전체 
+                <span class="badge bg-secondary">{{ total_count }}</span>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link {% if current_tab == 'builtin' %}active{% endif %}" 
+               href="?tab=builtin">
+                <i class="bi bi-gear-fill"></i> 내장 기법
+                <span class="badge bg-info">{{ builtin_count }}</span>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link {% if current_tab == 'custom' %}active{% endif %}" 
+               href="?tab=custom">
+                <i class="bi bi-magic"></i> 커스텀 기법
+                <span class="badge bg-success">{{ custom_count }}</span>
+            </a>
+        </li>
+    </ul>
+
+    <!-- 필터 및 일괄 제어 -->
+    <div class="card mb-3 border-0 shadow-sm">
+        <div class="card-body p-2 p-md-3">
+            <div class="row g-2 align-items-end">
+                <!-- 필터 -->
+                <div class="col-md-3">
+                    <label class="form-label small mb-1">카테고리</label>
+                    <select name="category" class="form-select form-select-sm" onchange="applyFilter()">
+                        <option value="">전체</option>
+                        {% for code, name in categories %}
+                        <option value="{{ code }}" {% if current_category == code %}selected{% endif %}>
+                            {{ name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="col-md-2">
+                    <label class="form-label small mb-1">상태</label>
+                    <select name="status" class="form-select form-select-sm" onchange="applyFilter()">
+                        <option value="">전체</option>
+                        <option value="active" {% if current_status == 'active' %}selected{% endif %}>활성화</option>
+                        <option value="inactive" {% if current_status == 'inactive' %}selected{% endif %}>비활성화</option>
+                    </select>
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label small mb-1">검색</label>
+                    <input type="text" name="search" class="form-control form-control-sm" 
+                           placeholder="기법명, 코드, 설명 검색..." value="{{ search_query }}"
+                           onkeypress="if(event.key==='Enter') applyFilter()">
+                </div>
+
+                <div class="col-md-3">
+                    <!-- ⭐ 일괄 제어 버튼 -->
+                    <!-- <label class="form-label small mb-1">일괄 제어</label> -->
+                    <div class="btn-group w-100">
+                        <button type="button" class="btn btn-sm btn-outline-success" 
+                                onclick="bulkToggle('activate')"
+                                title="현재 탭의 모든 기법 활성화">
+                            <i class="bi bi-check-circle"></i> 전체 활성화
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-danger" 
+                                onclick="bulkToggle('deactivate')"
+                                title="현재 탭의 모든 기법 비활성화">
+                            <i class="bi bi-x-circle"></i> 전체 비활성화
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 기법 목록 -->
+    {% if methods %}
+    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 row-cols-xl-4 g-3">
+        {% for method in methods %}
+        <div class="col">
+            <div class="card h-100 shadow-sm hover-card {% if not method.is_active %}opacity-75{% endif %}">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <h5 class="card-title mb-0">{{ method.name }}</h5>
+                        <div class="d-flex gap-1">
+                            <!-- 활성화 토글 버튼 -->
+                            <button type="button" 
+                                    class="btn btn-sm {% if method.is_active %}btn-success{% else %}btn-secondary{% endif %}"
+                                    onclick="toggleActive({{ method.pk }}, this)"
+                                    title="{% if method.is_active %}활성화됨{% else %}비활성화됨{% endif %}">
+                                <i class="bi bi-{% if method.is_active %}check{% else %}x{% endif %}-circle"></i>
+                            </button>
+                            {% if method.is_builtin %}
+                                <span class="badge bg-info d-inline-flex align-items-center justify-content-center">
+                                    <i class="bi bi-gear-fill" style="font-size: 1rem;"></i>
+                                </span>
+                            {% else %}
+                                <span class="badge bg-success d-inline-flex align-items-center justify-content-center">
+                                    <i class="bi bi-magic" style="font-size: 1rem;"></i>
+                                </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <p class="text-muted small mb-2">
+                        <code>{{ method.code }}</code>
+                    </p>
+                    
+                    <span class="badge bg-light text-dark border mb-2">
+                        {{ method.get_category_display }}
+                    </span>
+                    
+                    <p class="card-text small text-muted mb-2" style="min-height: 40px;">
+                        {{ method.description|truncatewords:15|default:"설명 없음" }}
+                    </p>
+                    
+                    {% if method.default_parameters %}
+                    <div class="small text-muted mb-2">
+                        <i class="bi bi-sliders"></i> {{ method.get_parameter_display }}
+                    </div>
+                    {% endif %}
+                    
+                    <div class="text-muted small">
+                        <i class="bi bi-calendar"></i> {{ method.created_at|date:"Y-m-d" }}
+                    </div>
+                </div>
+                
+                <div class="card-footer bg-white border-0 pt-0">
+                    <div class="d-flex gap-1">
+                        <a href="{% url 'prephub:method_detail' method.pk %}" 
+                           class="btn btn-sm btn-outline-primary flex-fill">
+                            <i class="bi bi-eye"></i> 상세
+                        </a>
+                        {% if not method.is_builtin %}
+                        <a href="{% url 'prephub:method_edit' method.pk %}" 
+                           class="btn btn-sm btn-outline-secondary"
+                           title="수정">
+                            <i class="bi bi-pencil"></i>
+                        </a>
+                        <a href="{% url 'prephub:method_delete' method.pk %}" 
+                           class="btn btn-sm btn-outline-danger"
+                           title="삭제">
+                            <i class="bi bi-trash"></i>
+                        </a>
+                        {% else %}
+                        <button class="btn btn-sm btn-outline-secondary" 
+                                disabled 
+                                title="내장 기법은 수정할 수 없습니다">
+                            <i class="bi bi-lock"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-secondary" 
+                                disabled 
+                                title="내장 기법은 삭제할 수 없습니다">
+                            <i class="bi bi-lock"></i>
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- 페이지네이션 -->
+    {% if is_paginated %}
+    <nav class="mt-4">
+        <ul class="pagination justify-content-center">
+            {% if page_obj.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?tab={{ current_tab }}&page=1">처음</a>
+            </li>
+            <li class="page-item">
+                <a class="page-link" href="?tab={{ current_tab }}&page={{ page_obj.previous_page_number }}">이전</a>
+            </li>
+            {% endif %}
+            
+            <li class="page-item active">
+                <span class="page-link">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+            </li>
+            
+            {% if page_obj.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?tab={{ current_tab }}&page={{ page_obj.next_page_number }}">다음</a>
+            </li>
+            <li class="page-item">
+                <a class="page-link" href="?tab={{ current_tab }}&page={{ page_obj.paginator.num_pages }}">마지막</a>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+    
+    {% else %}
+    <div class="alert alert-light border text-center py-5">
+        <i class="bi bi-inbox" style="font-size: 4rem; color: #dee2e6;"></i>
+        <h4 class="mt-3">
+            {% if current_tab == 'builtin' %}
+            내장 기법이 없습니다
+            {% elif current_tab == 'custom' %}
+            커스텀 기법이 없습니다
+            {% else %}
+            전처리 기법이 없습니다
+            {% endif %}
+        </h4>
+        <p class="text-muted">
+            {% if current_tab == 'builtin' %}
+            <code>python manage.py loaddata builtin_methods</code> 명령어로 내장 기법을 로드하세요.
+            {% elif current_tab == 'custom' %}
+            새로운 전처리 기법을 추가하여 시작하세요.
+            {% else %}
+            새로운 전처리 기법을 추가하여 시작하세요.
+            {% endif %}
+        </p>
+        {% if current_tab != 'builtin' %}
+        <div class="mt-4">
+            <a href="{% url 'prephub:method_add' %}" class="btn btn-primary btn-lg">
+                <i class="bi bi-plus-lg"></i> 첫 기법 추가하기
+            </a>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+
+<script>
+// 필터 적용
+function applyFilter() {
+    const category = document.querySelector('select[name="category"]').value;
+    const status = document.querySelector('select[name="status"]').value;
+    const search = document.querySelector('input[name="search"]').value;
+    const tab = '{{ current_tab }}';
+    
+    let url = '?tab=' + tab;
+    if (category) url += '&category=' + encodeURIComponent(category);
+    if (status) url += '&status=' + encodeURIComponent(status);
+    if (search) url += '&search=' + encodeURIComponent(search);
+    
+    window.location.href = url;
+}
+
+// 일괄 활성화/비활성화
+function bulkToggle(action) {
+    const tab = '{{ current_tab }}';
+    const category = document.querySelector('select[name="category"]').value;
+    const status = document.querySelector('select[name="status"]').value;
+    const search = document.querySelector('input[name="search"]').value;
+    
+    const actionText = action === 'activate' ? '활성화' : '비활성화';
+    const tabText = tab === 'all' ? '전체' : (tab === 'builtin' ? '내장' : '커스텀');
+    const filterText = (category || status || search) ? " (현재 필터 조건 포함)" : "";
+    
+    if (!confirm(`${tabText} 기법 중 조건에 맞는 항목을 모두 ${actionText}하시겠습니까?${filterText}`)) {
+        return;
+    }
+    
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '{% url "prephub:bulk_toggle" %}';
+    
+    // CSRF 토큰
+    const csrfInput = document.createElement('input');
+    csrfInput.type = 'hidden';
+    csrfInput.name = 'csrfmiddlewaretoken';
+    csrfInput.value = '{{ csrf_token }}';
+    form.appendChild(csrfInput);
+    
+    // 동작 및 탭 정보
+    const inputs = {
+        'action': action,
+        'tab': tab,
+        'category': category,
+        'status': status,
+        'search': search
+    };
+
+    // 모든 필터 조건을 hidden input으로 추가
+    for (const [key, value] of Object.entries(inputs)) {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = key;
+        input.value = value;
+        form.appendChild(input);
+    }
+    
+    document.body.appendChild(form);
+    form.submit();
+}
+
+// 개별 토글 (AJAX)
+function toggleActive(methodId, button) {
+    fetch('/prephub/' + methodId + '/toggle/', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+        },
+    })
+    .then(response => {
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            const card = button.closest('.card');
+            const activeBadge = document.querySelector('.badge.bg-success'); // 상단 활성화 개수 뱃지
+
+            if (data.is_active) {
+                button.className = 'btn btn-sm btn-success';
+                button.innerHTML = '<i class="bi bi-check-circle"></i>'; 
+                button.title = '활성화됨';
+                card.classList.remove('opacity-75');
+            } else {
+                button.className = 'btn btn-sm btn-secondary';
+                button.innerHTML = '<i class="bi bi-x-circle"></i>';
+                button.title = '비활성화됨';
+                card.classList.add('opacity-75');
+            }
+            
+            // 상단 활성화 개수 뱃지 업데이트 (문자열과 아이콘 사이 공백 유지)
+            if (activeBadge && data.active_count !== undefined) {
+                activeBadge.innerHTML = `<i class="bi bi-check-circle me-1"></i> 활성화: ${data.active_count}`;
+            }
+        } else {
+            alert('상태 변경에 실패했습니다: ' + (data.error || '알 수 없는 오류'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('상태 변경 중 오류가 발생했습니다: ' + error.message);
+    });
+}
+</script>
+
+<style>
+.hover-card {
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+.hover-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 16px rgba(0,0,0,0.15) !important;
+}
+.opacity-75 {
+    opacity: 0.6;
+}
+</style>
+{% endblock %}

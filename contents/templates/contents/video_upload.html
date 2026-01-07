@@ -1,0 +1,86 @@
+{% extends 'contents/base.html' %}
+
+{% block title %}동영상 업로드{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="custom-breadcrumb-item active">
+    <a href="{% url 'upload_content' %}">
+        <i class="bi bi-camera-video"></i> 동영상 업로드
+    </a>
+</li>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h3>동영상 업로드</h3>
+            </div>
+            <div class="card-body">
+                <form method="post" enctype="multipart/form-data" id="uploadForm">
+                    {% csrf_token %}
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.title.id_for_label }}" class="form-label">제목 *</label>
+                        {{ form.title }}
+                        {% if form.title.errors %}
+                            <div class="text-danger">{{ form.title.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="{{ form.description.id_for_label }}" class="form-label">설명</label>
+                        {{ form.description }}
+                        {% if form.description.errors %}
+                            <div class="text-danger">{{ form.description.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="{{ form.file.id_for_label }}" class="form-label">동영상 파일 *</label>
+                        {{ form.file }}
+                        <div class="form-text">지원 형식: MP4, AVI, MOV, MKV, WMV (최대 1GB)<br>썸네일은 영상의 첫 번째 프레임으로 자동 생성됩니다.</div>
+                        {% if form.file.errors %}
+                            <div class="text-danger">{{ form.file.errors }}</div>
+                        {% endif %}
+                        <div class="progress mt-2" style="display: none;" id="uploadProgress">
+                            <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%">0%</div>
+                        </div>
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary btn-lg" id="submitBtn">
+                            업로드
+                        </button>
+                        <a href="{% url 'content_list' %}" class="btn btn-secondary">취소</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.getElementById('uploadForm').addEventListener('submit', function(e) {
+        const submitBtn = document.getElementById('submitBtn');
+        const progress = document.getElementById('uploadProgress');
+        
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> 업로드 중...';
+        progress.style.display = 'block';
+        
+        // 진행률 시뮬레이션 (실제로는 AJAX를 사용해야 정확함)
+        let percent = 0;
+        const interval = setInterval(function() {
+            percent += 5;
+            if (percent <= 90) {
+                progress.querySelector('.progress-bar').style.width = percent + '%';
+                progress.querySelector('.progress-bar').textContent = percent + '%';
+            } else {
+                clearInterval(interval);
+            }
+        }, 100);
+    });
+</script>
+{% endblock %}

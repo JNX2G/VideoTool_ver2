@@ -1,0 +1,79 @@
+{% extends 'contents/base.html' %}
+
+{% block title %}기법 삭제 확인{% endblock %}
+
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="custom-breadcrumb-item">
+            <a href="{% url 'prephub:method_list' %}">
+                <i class="bi bi-funnel"></i> 전처리 기법
+            </a>
+        </li>
+        <li class="custom-breadcrumb-item active">
+            <a href="#">
+                <i class="bi bi-trash"></i> 삭제 확인
+            </a>
+        </li>
+    </ol>
+</nav>
+{% endblock breadcrumb %}
+
+{% block content %}
+<div class="container" style="max-width: 600px;">
+    <h2 class="mb-4 text-center text-danger">
+        <i class="bi bi-exclamation-triangle"></i> 기법 삭제
+    </h2>
+
+    <div class="card border-danger shadow-sm">
+        <div class="card-body p-4">
+            <div class="alert alert-danger">
+                <h5 class="alert-heading">
+                    <i class="bi bi-exclamation-triangle"></i> 경고
+                </h5>
+                <p class="mb-0">
+                    정말로 이 전처리 기법을 삭제하시겠습니까?<br>
+                    삭제된 기법은 복구할 수 없습니다.
+                </p>
+            </div>
+
+            <div class="card mb-3">
+                <div class="card-body">
+                    <h6 class="mb-3">기법 정보</h6>
+                    <table class="table table-sm mb-0">
+                        <tr>
+                            <th width="40%">기법 이름:</th>
+                            <td>{{ method.name }}</td>
+                        </tr>
+                        <tr>
+                            <th>기법 코드:</th>
+                            <td><code>{{ method.code }}</code></td>
+                        </tr>
+                        <tr>
+                            <th>카테고리:</th>
+                            <td>{{ method.get_category_display }}</td>
+                        </tr>
+                        <tr>
+                            <th>생성일:</th>
+                            <td>{{ method.created_at|date:"Y-m-d" }}</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+
+            <form method="post">
+                {% csrf_token %}
+                
+                <div class="d-grid gap-2">
+                    <button type="submit" class="btn btn-danger btn-lg">
+                        <i class="bi bi-trash"></i> 삭제
+                    </button>
+                    <a href="{% url 'prephub:method_detail' method.pk %}" class="btn btn-outline-secondary">
+                        <i class="bi bi-x-circle"></i> 취소
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

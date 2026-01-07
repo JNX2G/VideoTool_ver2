@@ -1,0 +1,432 @@
+{% extends 'contents/base.html' %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="custom-breadcrumb-item">
+            <a href="{% url 'prephub:method_list' %}">
+                <i class="bi bi-funnel"></i> 전처리 기법
+            </a>
+        </li>
+        <li class="custom-breadcrumb-item active">
+            <a href="#">
+                <i class="bi bi-pencil"></i> {{ title }}
+            </a>
+        </li>
+    </ol>
+</nav>
+{% endblock breadcrumb %}
+
+{% block content %}
+<div class="container" style="max-width: 1200px;">
+    <div class="row">
+        <!-- 왼쪽: 입력 폼 -->
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-body p-4">
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        
+                        <!-- 기본 정보 -->
+                        <div class="mb-4">
+                            <h5 class="border-bottom pb-2 mb-3">
+                                <i class="bi bi-info-circle"></i> 기본 정보
+                            </h5>
+                            
+                            <div class="mb-3">
+                                <label for="{{ form.name.id_for_label }}" class="form-label fw-bold">
+                                    기법 이름 <span class="text-danger">*</span>
+                                </label>
+                                {{ form.name }}
+                                {% if form.name.errors %}
+                                    <div class="text-danger small">{{ form.name.errors }}</div>
+                                {% endif %}
+                                <div class="form-text">
+                                    <i class="bi bi-arrow-right"></i> 
+                                    전처리 선택 화면에 표시될 이름
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="{{ form.code.id_for_label }}" class="form-label fw-bold">
+                                    기법 코드 <span class="text-danger">*</span>
+                                </label>
+                                {{ form.code }}
+                                {% if form.code.errors %}
+                                    <div class="text-danger small">{{ form.code.errors }}</div>
+                                {% endif %}
+                                <div class="form-text">
+                                    <i class="bi bi-arrow-right"></i> 
+                                    영문 소문자, 숫자, 언더스코어(_)만 사용 (예: my_blur)
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="{{ form.category.id_for_label }}" class="form-label fw-bold">
+                                    카테고리 <span class="text-danger">*</span>
+                                </label>
+                                {{ form.category }}
+                                <div class="form-text">
+                                    <i class="bi bi-arrow-right"></i> 
+                                    기법을 분류할 카테고리 선택
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="{{ form.description.id_for_label }}" class="form-label fw-bold">
+                                    설명
+                                </label>
+                                {{ form.description }}
+                            </div>
+                        </div>
+
+                        <!-- Python 파일 -->
+                        <div class="mb-4">
+                            <h5 class="border-bottom pb-2 mb-3">
+                                <i class="bi bi-file-earmark-code"></i> Python 파일
+                            </h5>
+                            
+                            <div class="mb-3">
+                                <label for="{{ form.python_file.id_for_label }}" class="form-label fw-bold">
+                                    Python 파일 (.py) <span class="text-danger">*</span>
+                                </label>
+                                {{ form.python_file }}
+                                {% if form.python_file.errors %}
+                                    <div class="text-danger small">{{ form.python_file.errors }}</div>
+                                {% endif %}
+                                <div class="form-text">
+                                    <i class="bi bi-arrow-right"></i> 
+                                    <strong>오른쪽 템플릿을 복사</strong>하여 코드 작성 후, .py 파일로 저장 후 업로드하세요
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="{{ form.function_name.id_for_label }}" class="form-label fw-bold">
+                                    함수 이름
+                                </label>
+                                {{ form.function_name }}
+                                {% if form.function_name.errors %}
+                                    <div class="text-danger small">{{ form.function_name.errors }}</div>
+                                {% endif %}
+                                <div class="form-text">
+                                    <i class="bi bi-arrow-right"></i> 
+                                    Python 파일 내에서 실행할 함수 이름 (기본값: process)
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 파라미터 설정 -->
+                        <div class="mb-4">
+                            <h5 class="border-bottom pb-2 mb-3">
+                                <i class="bi bi-sliders"></i> 파라미터 설정
+                            </h5>
+
+                            <!-- 파라미터 스키마 -->
+                            <div class="mb-3">
+                                <label for="{{ form.parameter_schema.id_for_label }}" class="form-label fw-bold">
+                                    파라미터 스키마 (JSON)
+                                    <button type="button" class="btn btn-sm btn-outline-primary ms-2" 
+                                            onclick="copyToFieldHandler('schema_example', 'id_parameter_schema', this)">
+                                        <i class="bi bi-clipboard"></i> 예시 사용
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-outline-danger" 
+                                            onclick="clearFieldHandler('id_parameter_schema', this)">
+                                        <i class="bi bi-x-circle"></i> 초기화
+                                    </button>
+                                </label>
+                                {{ form.parameter_schema }}
+                                <div class="form-text">
+                                    <i class="bi bi-arrow-right"></i> 
+                                    각 파라미터의 <strong>타입, 범위, 설명</strong>을 정의 → 전처리 화면에서 입력 폼 생성
+                                </div>
+                            </div>
+
+                            <!-- 기본 파라미터 값 -->
+                            <div class="mb-3">
+                                <label for="{{ form.default_parameters.id_for_label }}" class="form-label fw-bold">
+                                    기본 파라미터 값 (JSON)
+                                    <button type="button" class="btn btn-sm btn-outline-primary ms-2" 
+                                            onclick="copyToFieldHandler('default_example', 'id_default_parameters', this)">
+                                        <i class="bi bi-clipboard"></i> 예시 사용
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-outline-danger" 
+                                            onclick="clearFieldHandler('id_default_parameters', this)">
+                                        <i class="bi bi-x-circle"></i> 초기화
+                                    </button>
+                                </label>
+                                {{ form.default_parameters }}
+                                <div class="form-text">
+                                    <i class="bi bi-arrow-right"></i> 
+                                    사용자가 값을 입력하지 않았을 때 사용할 <strong>초기값</strong>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 상태 -->
+                        <div class="mb-4">
+                            <div class="form-check">
+                                {{ form.is_active }}
+                                <label class="form-check-label fw-bold" for="{{ form.is_active.id_for_label }}">
+                                    활성화
+                                </label>
+                                <div class="form-text">
+                                    <i class="bi bi-arrow-right"></i> 
+                                    비활성화하면 전처리 선택 시 표시되지 않음
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 버튼 -->
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a href="{% url 'prephub:method_list' %}" class="btn btn-outline-secondary">
+                                <i class="bi bi-x-circle"></i> 취소
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-circle"></i> {{ button_text }}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 오른쪽: 템플릿 및 가이드 -->
+        <div class="col-md-6">
+            <div class="card bg-light border-0 sticky-top" style="top: 80px;">
+                <div class="card-body">
+                    
+                    <!-- 입출력 명세 -->
+                    <div class="card mb-3 bg-white">
+                        <div class="card-header bg-primary text-white">
+                            <strong>📋 입출력 명세 (필수 준수!)</strong>
+                        </div>
+                        <div class="card-body">
+                            <h6 class="text-primary">📥 입력 (Input)</h6>
+                            <table class="table table-sm table-bordered mb-3">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th width="30%">이름</th>
+                                        <th width="30%">타입</th>
+                                        <th>설명</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td><code>frame</code></td>
+                                        <td>numpy.ndarray</td>
+                                        <td>BGR 이미지 (H×W×3)</td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>**params</code></td>
+                                        <td>dict</td>
+                                        <td>사용자 입력 파라미터</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+
+                            <h6 class="text-success">📤 출력 (Output)</h6>
+                            <table class="table table-sm table-bordered">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th width="30%">타입</th>
+                                        <th>설명</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>numpy.ndarray</td>
+                                        <td>처리된 이미지</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- 사용 흐름 -->
+                    <div class="alert alert-success">
+                        <h6><i class="bi bi-check-circle"></i> 사용 흐름</h6>
+                        <ol class="mb-0 small">
+                            <li>아래 <strong>Python 템플릿 복사</strong></li>
+                            <li>텍스트 에디터에 붙여넣고 <strong>수정</strong></li>
+                            <li><code>.py</code> 파일로 <strong>저장</strong></li>
+                            <li>왼쪽 폼에서 파일 <strong>업로드</strong></li>
+                            <li>아래 <strong>파라미터 예시 사용</strong> 버튼 클릭 후 저장</li>
+                        </ol>
+                    </div>
+
+                    <!-- Python 템플릿 -->
+                    <div class="card mb-3 bg-white">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <strong>📄 Python 템플릿</strong>
+                            <button type="button" class="btn btn-sm btn-primary" onclick="copyTemplateHandler('template1', this)">
+                                <i class="bi bi-clipboard"></i> 복사
+                            </button>
+                        </div>
+                        <div class="card-body p-0">
+<pre id="template1" class="mb-0 p-3" style="font-size: 0.85rem;"><code>"""
+전처리 기법: [기법 이름을 여기에 입력]
+작성자: [작성자 이름]
+설명: [이 기법이 무엇을 하는지 설명]
+"""
+import cv2
+import numpy as np
+
+
+def process(frame, **params):
+    """
+    전처리 함수 (이 함수명은 변경하지 마세요)
+    
+    Args:
+        frame (numpy.ndarray): BGR 이미지 (H×W×3)
+        **params (dict): 파라미터 딕셔너리
+    
+    Returns:
+        numpy.ndarray: 처리된 이미지
+    """
+    # ========================================
+    # 1단계: 파라미터 가져오기
+    # ========================================
+    # params.get('파라미터명', 기본값) 형식으로 가져오기
+    # 예: ksize = params.get('ksize', 5)
+    
+    # [여기에 파라미터 코드 작성]
+    
+    
+    # ========================================
+    # 2단계: 이미지 처리 로직 작성
+    # ========================================
+    # frame을 처리하여 result에 저장
+    # 예: result = cv2.GaussianBlur(frame, (ksize, ksize), 0)
+    
+    # [여기에 처리 코드 작성]
+    result = frame.copy()  # 이 줄을 실제 처리 코드로 변경
+    
+    
+    # ========================================
+    # 3단계: 결과 반환 (반드시 numpy.ndarray)
+    # ========================================
+    return result</code></pre>
+                        </div>
+                    </div>
+
+                    <!-- 파라미터 스키마 예시 -->
+                    <div class="card mb-3 bg-white">
+                        <div class="card-header">
+                            <strong>📌 파라미터 스키마 예시</strong>
+                        </div>
+                        <div class="card-body p-0">
+<pre id="schema_example" class="mb-0 p-3" style="font-size: 0.8rem;"><code>{
+  "ksize": {  
+    "type": "int",
+    "default": 5,
+    "min": 1,
+    "max": 31,
+    "description": "커널 크기"
+  }
+}</code></pre>
+                        </div>
+                    </div>
+
+                    <!-- 기본 파라미터 값 예시 -->
+                    <div class="card bg-white">
+                        <div class="card-header">
+                            <strong>📌 기본 파라미터 값 예시</strong>
+                        </div>
+                        <div class="card-body p-0">
+<pre id="default_example" class="mb-0 p-3" style="font-size: 0.8rem;"><code>{
+  "ksize": 5
+}</code></pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+    </div>
+</div>
+
+<script>
+// 템플릿 복사 (클립보드)
+function copyTemplateHandler(elementId, button) {
+    const element = document.getElementById(elementId);
+    const text = element.textContent;
+    
+    navigator.clipboard.writeText(text).then(() => {
+        const originalHTML = button.innerHTML;
+        
+        button.innerHTML = '<i class="bi bi-check"></i> 복사됨!';
+        
+        setTimeout(() => {
+            button.innerHTML = originalHTML;
+        }, 800);
+    }).catch(err => {
+        console.error('복사 실패:', err);
+        alert('복사 실패: ' + err.message);
+    });
+}
+
+// 입력 필드에 직접 복사
+function copyToFieldHandler(sourceId, targetId, button) {
+    const sourceElement = document.getElementById(sourceId);
+    const text = sourceElement.textContent.trim();
+    
+    const targetElement = document.getElementById(targetId);
+    if (!targetElement) {
+        alert('입력 필드를 찾을 수 없습니다: ' + targetId);
+        return;
+    }
+    
+    targetElement.value = text;
+    
+    const originalHTML = button.innerHTML;
+    button.innerHTML = '<i class="bi bi-check"></i> 복사 완료';
+    
+    setTimeout(() => {
+        button.innerHTML = originalHTML;
+    }, 800);
+}
+
+// 입력 필드 초기화
+function clearFieldHandler(targetId, button) {
+    const targetElement = document.getElementById(targetId);
+    if (!targetElement) {
+        alert('입력 필드를 찾을 수 없습니다: ' + targetId);
+        return;
+    }
+    
+    targetElement.value = '';
+    
+    const originalHTML = button.innerHTML;
+    button.innerHTML = '<i class="bi bi-check"></i> 초기화 완료';
+    
+    setTimeout(() => {
+        button.innerHTML = originalHTML;
+    }, 800);
+}
+</script>
+
+<style>
+/* 버튼 크기 고정 */
+.btn-sm {
+    min-width: 120px;
+}
+
+pre {
+    max-height: 400px;
+    overflow-y: auto;
+    background-color: #f8f9fa;
+    border-radius: 4px;
+}
+
+pre code {
+    font-family: 'Courier New', monospace;
+    font-size: 0.85rem;
+}
+
+.sticky-top {
+    max-height: calc(100vh - 100px);
+    overflow-y: auto;
+}
+</style>
+{% endblock %}
