@@ -1,0 +1,127 @@
+{% extends 'contents/base.html' %}
+
+{% block title %}전처리 작업 삭제{% endblock %}
+
+{% block breadcrumb %}{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 600px;">
+    <h1 class="mb-4 text-center">
+        <i class="bi bi-trash text-danger"></i> 전처리 작업 삭제
+    </h1>
+
+    <div class="card border-danger shadow-sm">
+        <div class="card-body p-4">
+            <div class="alert alert-danger">
+                <h5 class="alert-heading">
+                    <i class="bi bi-exclamation-triangle"></i> 경고
+                </h5>
+                <p class="mb-0">
+                    정말로 이 전처리 작업을 삭제하시겠습니까?<br>
+                    <strong>삭제된 작업과 관련된 모든 탐지 결과도 함께 삭제됩니다.</strong>
+                </p>
+            </div>
+
+            <div class="card mb-3">
+                <div class="card-body">
+                    <h6 class="mb-3">전처리 작업 정보</h6>
+                    <table class="table table-sm mb-0">
+                        <tr>
+                            <th width="40%">작업 ID:</th>
+                            <td><span class="badge bg-primary">#{{ task.id }}</span></td>
+                        </tr>
+                        <tr>
+                            <th>컨텐츠:</th>
+                            <td>
+                                {% if content_type == 'video' %}
+                                    <i class="bi bi-camera-video text-primary"></i> {{ content.title }}
+                                {% else %}
+                                    <i class="bi bi-image text-success"></i> {{ content.title }}
+                                {% endif %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>상태:</th>
+                            <td>
+                                <span class="badge bg-{{ task.get_status_display_badge }}">
+                                    {{ task.get_status_display }}
+                                </span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>전처리 파이프라인:</th>
+                            <td>
+                                {% if task.preprocessing_pipeline %}
+                                    <span class="badge bg-secondary">{{ task.preprocessing_pipeline|length }}개 단계</span>
+                                {% else %}
+                                    <span class="text-muted">전처리 생략 (원본 사용)</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>탐지 작업:</th>
+                            <td>
+                                <span class="badge bg-warning text-dark">
+                                    {{ task.detections.count|default:0 }}개
+                                </span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>생성일:</th>
+                            <td>{{ task.created_at|date:"Y-m-d H:i:s" }}</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 전처리 파이프라인 상세 -->
+            {% if task.get_pipeline_display %}
+            <div class="card mb-3 bg-light">
+                <div class="card-body">
+                    <h6 class="mb-2">
+                        <i class="bi bi-funnel"></i> 적용된 전처리 기법
+                    </h6>
+                    <ol class="mb-0 small">
+                        {% for step in task.get_pipeline_display %}
+                            <li>{{ step }}</li>
+                        {% endfor %}
+                    </ol>
+                </div>
+            </div>
+            {% endif %}
+
+            <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="redirect" value="{{ content_type }}_detail">
+                
+                <div class="d-grid gap-2">
+                    <button type="submit" class="btn btn-danger btn-lg">
+                        <i class="bi bi-trash"></i> 삭제
+                    </button>
+                    
+                    {% if content_type == 'video' %}
+                        <a href="{% url 'video_detail' content.pk %}" class="btn btn-outline-secondary">
+                            <i class="bi bi-x-circle"></i> 취소
+                        </a>
+                    {% else %}
+                        <a href="{% url 'image_detail' content.pk %}" class="btn btn-outline-secondary">
+                            <i class="bi bi-x-circle"></i> 취소
+                        </a>
+                    {% endif %}
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- 안내 메시지 -->
+    <div class="alert alert-info mt-3">
+        <i class="bi bi-info-circle"></i>
+        <strong>참고:</strong> 전처리 작업을 삭제하면 다음 항목들이 함께 삭제됩니다:
+        <ul class="mb-0 mt-2">
+            <li>전처리 결과 파일</li>
+            <li>관련된 모든 탐지 작업 및 결과</li>
+            <li>작업 기록 및 메타데이터</li>
+        </ul>
+    </div>
+</div>
+{% endblock %}

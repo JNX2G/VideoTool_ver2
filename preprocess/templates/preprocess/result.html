@@ -1,0 +1,300 @@
+{% extends 'contents/base.html' %}
+
+{% block title %}전처리 결과 - {{ content.title }}{% endblock %}
+
+{% block breadcrumb_items %}
+    <!-- 1단계: 컨텐츠 상세 (완료) -->
+    <li class="custom-breadcrumb-item">
+        {% if content_type == 'image' %}
+        <a href="{% url 'image_detail' content.id %}">
+            <i class="bi bi-image"></i> 이미지 상세
+        </a>
+        {% else %}
+        <a href="{% url 'video_detail' content.id %}">
+            <i class="bi bi-camera-video"></i> 동영상 상세
+        </a>
+        {% endif %}
+    </li>
+
+    <!-- 2단계: 전처리 (완료) -->
+    <li class="custom-breadcrumb-item">
+        <a href="{% url 'preprocess:start_preprocessing' content.id %}">
+            <i class="bi bi-layers-half"></i> 전처리
+        </a>
+    </li>
+
+    <!-- 3단계: 전처리 결과 (현재 - 활성화) -->
+    <li class="custom-breadcrumb-item active">
+        <a href="{% url 'preprocess:preprocessing_result' task.id %}">
+            <i class="bi bi-clipboard-data"></i> 전처리 결과
+        </a>
+    </li>
+
+    <!-- 4단계: 모델 선택 (비활성화) -->
+    <li class="custom-breadcrumb-item disabled">
+        <span class="text-muted">
+            <i class="bi bi-cpu-fill"></i> 모델 선택
+        </span>
+    </li>
+
+    <!-- 5단계: 모델 실행 (비활성화) -->
+    <li class="custom-breadcrumb-item disabled">
+        <span class="text-muted">
+            <i class="bi bi-play-circle-fill"></i> 모델 실행
+        </span>
+    </li>
+
+    <!-- 6단계: 탐지 결과 (비활성화) -->
+    <li class="custom-breadcrumb-item disabled">
+        <span class="text-muted">
+            <i class="bi bi-clipboard-data"></i> 탐지 결과
+        </span>
+    </li>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- 왼쪽: 원본 -->
+    <div class="col-md-6">
+        <div class="card mb-3 border-0 shadow-sm">
+            <div class="card-header bg-white py-3">
+                <h6 class="mb-0 fw-bold">
+                    <i class="bi bi-file-earmark"></i>
+                    원본 {% if content_type == 'video' %}동영상{% else %}이미지{% endif %}
+                </h6>
+            </div>
+            <div class="card-body">
+                {% if content_type == 'video' %}
+                    <video width="100%" controls preload="metadata" class="rounded">
+                        <source src="{% url 'serve_video' content.pk %}" type="video/mp4">
+                    </video>
+                {% else %}
+                    <img src="{{ content.file.url }}" class="img-fluid rounded" alt="원본 이미지">
+                {% endif %}
+                <div class="mt-2">
+                    <p class="text-muted mb-1">{{ content.title }}</p>
+                    <small class="text-secondary">
+                        <i class="bi bi-hdd"></i> {{ content.get_file_size_display }}
+                        {% if content_type == 'image' %}
+                            | <i class="bi bi-aspect-ratio"></i> {{ content.get_resolution_display }}
+                        {% endif %}
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 오른쪽: 전처리 결과 -->
+    <div class="col-md-6">
+        <div class="card mb-3 border-0 shadow-sm">
+            <div class="card-header bg-white py-3 text-primary">
+                <h6 class="mb-0 fw-bold">
+                    <i class="bi bi-check-circle"></i>
+                    전처리 결과
+                </h6>
+            </div>
+            <div class="card-body">
+                {% if content_type == 'video' %}
+                    <video id="processedVideo" width="100%" controls preload="metadata" class="rounded">
+                        <source src="{% url 'preprocess:serve_preprocessed_video' task.id %}" type="video/mp4">
+                        브라우저가 동영상을 지원하지 않습니다.
+                    </video>
+                {% else %}
+                    <img src="{% url 'preprocess:serve_preprocessed_image' task.id %}" 
+                         class="img-fluid rounded shadow-sm" 
+                         alt="전처리된 이미지">
+                {% endif %}
+                
+                <div class="d-flex justify-content-between align-items-center mt-3">
+                    <div>
+                        <p class="text-muted mb-1">
+                            <i class="bi bi-check-circle text-success"></i> 전처리 완료
+                        </p>
+                        {% if content_type == 'video' %}
+                            <small class="text-secondary">
+                                <i class="bi bi-film"></i> 프레임: {{ task.processed_frames }}
+                            </small>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <a href="{% if content_type == 'video' %}{% url 'preprocess:serve_preprocessed_video' task.id %}{% else %}{% url 'preprocess:serve_preprocessed_image' task.id %}{% endif %}" 
+                           download="processed_{{ content.file.name }}" 
+                           class="btn btn-success btn-sm">
+                            <i class="bi bi-download"></i> 다운로드
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 전처리 정보 -->
+<div class="row">
+    <div class="col-md-12">
+        <div class="card mb-3 border-0 shadow-sm">
+            <div class="card-header bg-white py-3">
+                <h6 class="mb-0 fw-bold">
+                    <i class="bi bi-funnel"></i> 적용된 전처리 파이프라인
+                </h6>
+            </div>
+            <div class="card-body">
+                {% if task.get_pipeline_display %}
+                    <ol class="mb-3">
+                        {% for step in task.get_pipeline_display %}
+                            <li>{{ step }}</li>
+                        {% endfor %}
+                    </ol>
+                {% else %}
+                    <p class="text-muted mb-3">
+                        <i class="bi bi-info-circle"></i> 전처리를 적용하지 않았습니다 (원본 사용)
+                    </p>
+                {% endif %}
+                
+                <div class="pt-3 border-top">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <p class="mb-1">
+                                <i class="bi bi-clock"></i> <strong>처리 시간:</strong>
+                                {% if task.started_at and task.completed_at %}
+                                    {{ task.get_duration|floatformat:1 }}초
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </p>
+                        </div>
+                        <div class="col-md-4">
+                            <p class="mb-1">
+                                <i class="bi bi-calendar"></i> <strong>완료 시각:</strong>
+                                {{ task.completed_at|date:"Y-m-d H:i:s" }}
+                            </p>
+                        </div>
+                        <div class="col-md-4">
+                            <p class="mb-1">
+                                {% if content_type == 'video' %}
+                                    <i class="bi bi-film"></i> <strong>총 프레임:</strong> {{ task.total_frames }}
+                                {% else %}
+                                    <i class="bi bi-aspect-ratio"></i> <strong>해상도:</strong> {{ content.get_resolution_display }}
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 작업 버튼 -->
+<div class="card mb-4 border-0 shadow-sm">
+    <div class="card-body">
+        <div class="d-grid gap-2 d-md-flex justify-content-md-center">
+            {% if task.status == 'completed' %}
+            <a href="{#{% url 'vision_engine:select_model' task.id %}#}" 
+               class="btn btn-primary px-4" 
+               style="border-radius: 8px;">
+                <i class="bi bi-cpu-fill"></i> 객체 탐지 시작
+            </a>
+            {% else %}
+            <button class="btn btn-secondary px-4" 
+                    disabled 
+                    title="전처리가 완료되어야 합니다" 
+                    style="border-radius: 8px;">
+                <i class="bi bi-cpu-fill"></i> 객체 탐지 시작
+            </button>
+            {% endif %}
+            
+            <a href="{% url 'preprocess:start_preprocessing' content.id %}?type={{ content_type }}" 
+               class="btn btn-warning px-4" 
+               style="border-radius: 8px;">
+                <i class="bi bi-arrow-counterclockwise"></i> 다시 전처리하기
+            </a>
+            
+            <a href="{% if content_type == 'video' %}{% url 'video_detail' content.id %}{% else %}{% url 'image_detail' content.id %}{% endif %}" 
+               class="btn btn-outline-secondary px-4" 
+               style="border-radius: 8px;">
+                <i class="bi bi-arrow-left"></i> 상세로 돌아가기
+            </a>
+        </div>
+    </div>
+</div>
+
+<script>
+const contentType = "{{ content_type }}";
+
+if (contentType === 'video') {
+    const processedVideo = document.getElementById('processedVideo');
+
+    if (processedVideo) {
+        console.log('🎬 동영상 요소:', processedVideo);
+        console.log('🎬 소스 URL:', processedVideo.querySelector('source')?.src);
+        
+        // 강제로 로드 시도
+        processedVideo.load();
+        
+        processedVideo.addEventListener('loadstart', function() {
+            console.log('🔥 loadstart');
+        });
+        
+        processedVideo.addEventListener('loadedmetadata', function() {
+            console.log('✅ loadedmetadata');
+            console.log('Duration:', processedVideo.duration);
+            console.log('ReadyState:', processedVideo.readyState);
+        });
+        
+        processedVideo.addEventListener('loadeddata', function() {
+            console.log('✅ loadeddata');
+        });
+        
+        processedVideo.addEventListener('canplay', function() {
+            console.log('✅ canplay - 재생 가능!');
+        });
+        
+        processedVideo.addEventListener('canplaythrough', function() {
+            console.log('✅ canplaythrough - 전체 재생 가능!');
+        });
+        
+        processedVideo.addEventListener('progress', function() {
+            if (processedVideo.buffered.length > 0) {
+                const bufferedEnd = processedVideo.buffered.end(0);
+                const duration = processedVideo.duration;
+                const percent = (bufferedEnd / duration * 100).toFixed(2);
+                console.log(`📊 버퍼링: ${percent}% (${bufferedEnd.toFixed(2)}s / ${duration.toFixed(2)}s)`);
+            }
+        });
+        
+        processedVideo.addEventListener('waiting', function() {
+            console.log('⏳ waiting - 버퍼링 중');
+        });
+        
+        processedVideo.addEventListener('stalled', function() {
+            console.warn('⚠️ stalled - 로딩 멈춤');
+        });
+        
+        processedVideo.addEventListener('suspend', function() {
+            console.log('⏸️ suspend - 로딩 일시중단');
+        });
+        
+        processedVideo.addEventListener('error', function(e) {
+            console.error('❌ 에러!');
+            console.error('Error code:', processedVideo.error?.code);
+            console.error('Error message:', processedVideo.error?.message);
+            console.error('Network state:', processedVideo.networkState);
+            console.error('Ready state:', processedVideo.readyState);
+            
+            alert('동영상 로드 실패! 콘솔을 확인하세요.');
+        });
+    }
+}
+</script>
+
+<style>
+.card {
+    transition: transform 0.2s;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+}
+</style>
+{% endblock %}

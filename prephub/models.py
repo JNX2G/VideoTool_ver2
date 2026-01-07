@@ -99,6 +99,72 @@ class PreprocessingMethod(models.Model):
         items = [f"{k}={v}" for k, v in self.default_parameters.items()]
         return ", ".join(items)
     
+    def execute(self, frame, params=None):
+        """
+        전처리 기법 실행
+        
+        Args:
+            frame: numpy array (입력 이미지) - BGR 형식
+            params: dict (파라미터)
+            
+        Returns:
+            numpy array (처리된 이미지)
+        """
+        import cv2
+        import numpy as np
+        
+        # 파라미터 병합
+        merged_params = {**self.default_parameters}
+        if params:
+            merged_params.update(params)
+        
+        # 내장 기법
+        if self.is_builtin:
+            try:
+                from . import builtin_methods
+                func = getattr(builtin_methods, self.code)
+                return func(frame, **merged_params)
+            except Exception as e:
+                print(f"❌ 내장 기법 실행 오류 ({self.code}): {e}")
+                import traceback
+                traceback.print_exc()
+                return frame
+        
+        # 커스텀 기법
+        else:
+            if not self.python_file:
+                print(f"⚠️ 커스텀 기법 '{self.code}'에 Python 파일이 없습니다.")
+                return frame
+                
+            try:
+                import importlib.util
+                import sys
+                
+                file_path = self.python_file.path
+                spec = importlib.util.spec_from_file_location(
+                    f"prephub_method_{self.code}", 
+                    file_path
+                )
+                module = importlib.util.module_from_spec(spec)
+                sys.modules[spec.name] = module
+                spec.loader.exec_module(module)
+                
+                if hasattr(module, self.function_name):
+                    func = getattr(module, self.function_name)
+                    return func(frame, **merged_params)
+                else:
+                    print(f"❌ 함수 '{self.function_name}'를 찾을 수 없습니다.")
+                    return frame
+                    
+            except Exception as e:
+                print(f"❌ 커스텀 기법 실행 오류: {e}")
+                import traceback
+                traceback.print_exc()
+                return frame
+
+
+
+    
 def execute(self, frame, params=None):
     """
     전처리 기법 실행

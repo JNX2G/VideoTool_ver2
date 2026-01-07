@@ -1,0 +1,250 @@
+{% extends 'contents/base.html' %}
+
+{% block title %}전처리 진행 중{% endblock %}
+
+{% block breadcrumb_items %}
+    <!-- 1단계: 컨텐츠 상세 (완료) -->
+    <li class="custom-breadcrumb-item">
+        {% if content_type == 'image' %}
+        <a href="{% url 'image_detail' content.id %}">
+            <i class="bi bi-image"></i> 이미지 상세
+        </a>
+        {% else %}
+        <a href="{% url 'video_detail' content.id %}">
+            <i class="bi bi-camera-video"></i> 동영상 상세
+        </a>
+        {% endif %}
+    </li>
+
+    <!-- 2단계: 전처리 (완료) -->
+    <li class="custom-breadcrumb-item">
+        <a href="{% url 'preprocess:start_preprocessing' content.id %}">
+            <i class="bi bi-layers-half"></i> 전처리
+        </a>
+    </li>
+
+    <!-- 3단계: 전처리 진행 중 (현재 - 활성화) -->
+    <li class="custom-breadcrumb-item active">
+        <a href="#">
+            <i class="bi bi-hourglass-split"></i> 전처리 중
+        </a>
+    </li>
+
+    <!-- 4단계: 전처리 결과 (비활성화) -->
+    <li class="custom-breadcrumb-item disabled">
+        <span class="text-muted">
+            <i class="bi bi-clipboard-data"></i> 전처리 결과
+        </span>
+    </li>
+
+    <!-- 5단계: 모델 선택 (비활성화) -->
+    <li class="custom-breadcrumb-item disabled">
+        <span class="text-muted">
+            <i class="bi bi-cpu-fill"></i> 모델 선택
+        </span>
+    </li>
+
+    <!-- 6단계: 모델 실행 (비활성화) -->
+    <li class="custom-breadcrumb-item disabled">
+        <span class="text-muted">
+            <i class="bi bi-play-circle-fill"></i> 모델 실행
+        </span>
+    </li>
+
+    <!-- 7단계: 탐지 결과 (비활성화) -->
+    <li class="custom-breadcrumb-item disabled">
+        <span class="text-muted">
+            <i class="bi bi-clipboard-data"></i> 탐지 결과
+        </span>
+    </li>
+{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 800px;">
+    <div class="card shadow-sm">
+        <div class="card-body p-4">
+            <!-- 컨텐츠 정보 -->
+            <div class="text-center mb-4">
+                <h5>
+                    {% if content_type == 'video' %}
+                        <i class="bi bi-camera-video text-primary"></i>
+                    {% else %}
+                        <i class="bi bi-image text-success"></i>
+                    {% endif %}
+                    {{ content.title }}
+                </h5>
+            </div>
+
+            <!-- 진행률 바 -->
+            <div class="mb-4">
+                <div class="d-flex justify-content-between mb-2">
+                    <span><strong>진행률</strong></span>
+                    <span id="progressText">{{ task.progress }}%</span>
+                </div>
+                <div class="progress" style="height: 30px;">
+                    <div id="progressBar" 
+                         class="progress-bar progress-bar-striped progress-bar-animated" 
+                         role="progressbar" 
+                         style="width: {{ task.progress }}%"
+                         aria-valuenow="{{ task.progress }}" 
+                         aria-valuemin="0" 
+                         aria-valuemax="100">
+                        <span id="progressPercent">{{ task.progress }}%</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 상태 정보 -->
+            <div class="card bg-light mb-3">
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-md-4">
+                            <h6 class="text-muted">상태</h6>
+                            <span class="badge bg-{{ task.get_status_display_badge }}" id="statusBadge">
+                                {{ task.get_status_display }}
+                            </span>
+                        </div>
+                        {% if content_type == 'video' %}
+                        <div class="col-md-4">
+                            <h6 class="text-muted">처리 프레임</h6>
+                            <p class="mb-0">
+                                <span id="processedFrames">{{ task.processed_frames }}</span> / 
+                                <span id="totalFrames">{{ task.total_frames }}</span>
+                            </p>
+                        </div>
+                        {% endif %}
+                        <div class="col-md-4">
+                            <h6 class="text-muted">전처리 단계</h6>
+                            <p class="mb-0">{{ task.preprocessing_pipeline|length }}개</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 전처리 파이프라인 -->
+            <div class="mb-3">
+                <h6><i class="bi bi-list-ol"></i> 전처리 파이프라인</h6>
+                <div>
+                    {% if task.get_pipeline_display %}
+                        {% for step in task.get_pipeline_display %}
+                            <span class="badge bg-secondary me-1 mb-1">{{ forloop.counter }}. {{ step }}</span>
+                        {% endfor %}
+                    {% else %}
+                        <span class="text-muted">전처리 없음 (원본 사용)</span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- 현재 단계 표시 -->
+            {% if task.current_step %}
+            <div class="alert alert-info mb-3">
+                <i class="bi bi-arrow-right-circle"></i> <strong>현재:</strong> {{ task.current_step }}
+            </div>
+            {% endif %}
+
+            <!-- 에러 메시지 -->
+            <div id="errorContainer" style="display: {% if task.status == 'failed' %}block{% else %}none{% endif %};">
+                <div class="alert alert-danger">
+                    <h6><i class="bi bi-exclamation-triangle"></i> 오류 발생</h6>
+                    <p id="errorMessage" class="mb-0">{{ task.error_message|default:"알 수 없는 오류가 발생했습니다." }}</p>
+                </div>
+            </div>
+
+            <!-- 버튼 -->
+            <div class="d-grid gap-2 mt-4">
+                <button id="completeBtn" class="btn btn-success btn-lg" 
+                        {% if task.status != 'completed' %}disabled{% endif %}>
+                    <i class="bi bi-check-circle"></i> 결과 보기
+                </button>
+                
+                {% if content_type == 'video' %}
+                    <a href="{% url 'video_detail' content.pk %}" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-left"></i> 돌아가기
+                    </a>
+                {% else %}
+                    <a href="{% url 'image_detail' content.pk %}" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-left"></i> 돌아가기
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+const taskId = {{ task.id }};
+const contentType = '{{ content_type }}';
+const contentId = {{ content.id }};
+
+let pollInterval;
+
+function updateProgress() {
+    fetch(`/preprocess/${taskId}/status/`)
+        .then(response => response.json())
+        .then(data => {
+            // 진행률 업데이트
+            document.getElementById('progressBar').style.width = data.progress + '%';
+            document.getElementById('progressBar').setAttribute('aria-valuenow', data.progress);
+            document.getElementById('progressPercent').textContent = data.progress + '%';
+            document.getElementById('progressText').textContent = data.progress + '%';
+            
+            // 상태 업데이트
+            document.getElementById('statusBadge').textContent = data.status_display;
+            document.getElementById('statusBadge').className = 'badge bg-' + data.status_badge;
+            
+            {% if content_type == 'video' %}
+            // 프레임 정보 업데이트
+            if (data.processed_frames !== undefined) {
+                document.getElementById('processedFrames').textContent = data.processed_frames;
+            }
+            if (data.total_frames !== undefined) {
+                document.getElementById('totalFrames').textContent = data.total_frames;
+            }
+            {% endif %}
+            
+            // 완료 또는 실패 시 처리
+            if (data.status === 'completed') {
+                clearInterval(pollInterval);
+                
+                const completeBtn = document.getElementById('completeBtn');
+                completeBtn.disabled = false;
+                
+                completeBtn.onclick = function() {
+                    window.location.href = `/preprocess/${taskId}/result/`;
+                };
+                
+                document.getElementById('progressBar').classList.remove('progress-bar-animated');
+                
+                // 자동으로 결과 페이지로 이동 (3초 후)
+                setTimeout(() => {
+                    window.location.href = `/preprocess/${taskId}/result/`;
+                }, 3000);
+                
+            } else if (data.status === 'failed') {
+                clearInterval(pollInterval);
+                
+                document.getElementById('progressBar').classList.remove('progress-bar-animated');
+                document.getElementById('progressBar').classList.remove('progress-bar-striped');
+                document.getElementById('progressBar').classList.add('bg-danger');
+                
+                const errorContainer = document.getElementById('errorContainer');
+                const errorMessage = document.getElementById('errorMessage');
+                errorMessage.textContent = data.error_message || '알 수 없는 오류가 발생했습니다.';
+                errorContainer.style.display = 'block';
+            }
+        })
+        .catch(error => {
+            console.error('진행 상황 업데이트 실패:', error);
+        });
+}
+
+// 초기 업데이트 및 주기적 폴링
+updateProgress();
+pollInterval = setInterval(updateProgress, 1000);
+
+// 페이지 언로드 시 정리
+window.addEventListener('beforeunload', function() {
+    clearInterval(pollInterval);
+});
+</script>
+{% endblock %}

@@ -16,7 +16,7 @@
         {% endif %}
     </li>
 
-    <!-- 2단계: 전처리 (비활성화 - 아직 안 감) -->
+    <!-- 2단계: 전처리 (비활성화) -->
     <li class="custom-breadcrumb-item disabled">
         <span class="text-muted">
             <i class="bi bi-layers-half"></i> 전처리
@@ -51,6 +51,7 @@
         </span>
     </li>
 {% endblock %}
+
 
 {% block content %}
 <div class="container">
@@ -112,92 +113,96 @@
     <div class="card mb-4">
         <div class="card-header d-flex justify-content-between align-items-center">
             <h5 class="mb-0">
-                <i class="bi bi-graph-up"></i> 분석 이력
+                <i class="bi bi-layers-half"></i> 전처리 이력
             </h5>
-            <span class="badge bg-secondary">{{ video.analyses.count }}개</span>
+            <span class="badge bg-secondary">{{ video.preprocessing_tasks.count }}개</span>
         </div>
         <div class="card-body"> 
-            {% if video.analyses.all %}
-            <div class="accordion" id="analysisAccordion">
-                {% for analysis in video.analyses.all %}
+            {% if video.preprocessing_tasks.all %}
+            <div class="accordion" id="preprocessingAccordion">
+                {% for task in video.preprocessing_tasks.all %} 
                 <div class="accordion-item">
-                    <h2 class="accordion-header" id="heading{{ analysis.id }}">
+                    <h2 class="accordion-header" id="heading{{ task.id }}">
                         <button class="accordion-button {% if not forloop.first %}collapsed{% endif %}" 
                                 type="button" 
                                 data-bs-toggle="collapse" 
-                                data-bs-target="#collapse{{ analysis.id }}"
+                                data-bs-target="#collapse{{ task.id }}"
                                 aria-expanded="{% if forloop.first %}true{% else %}false{% endif %}" 
-                                aria-controls="collapse{{ analysis.id }}">
+                                aria-controls="collapse{{ task.id }}">
                             <div class="d-flex w-100 justify-content-between align-items-center">
                                 <div>
-                                    <strong>분석 #{{ analysis.id }}</strong>
-                                    {% if analysis.status == 'completed' %}
+                                    <strong>전처리 #{{ task.id }}</strong>
+                                    {% if task.status == 'completed' %}
                                         <span class="badge bg-success ms-2">완료</span>
-                                    {% elif analysis.status == 'processing' %}
+                                    {% elif task.status == 'processing' %}
                                         <span class="badge bg-primary ms-2">처리 중</span>
-                                    {% elif analysis.status == 'failed' %}
+                                    {% elif task.status == 'failed' %}
                                         <span class="badge bg-danger ms-2">실패</span>
                                     {% else %}
                                         <span class="badge bg-secondary ms-2">대기 중</span>
                                     {% endif %}
                                     
-                                    <!-- 감지 이력 개수 표시 -->
-                                    {% if analysis.detections.count > 0 %}
+                                    <!-- 탐지 이력 개수 표시 -->
+                                    {% if task.detections.count > 0 %}
                                         <span class="badge bg-info ms-2">
-                                            <i class="bi bi-cpu"></i> {{ analysis.detections.count }}
+                                            <i class="bi bi-cpu"></i> {{ task.detections.count }}
                                         </span>
                                     {% endif %}
                                 </div>
                                 <div class="me-3">
-                                    <small class="text-muted">{{ analysis.created_at|date:"Y-m-d H:i" }}</small>
+                                    <small class="text-muted">{{ task.created_at|date:"Y-m-d H:i" }}</small>
                                 </div>
                             </div>
                         </button>
                     </h2>
-                    <div id="collapse{{ analysis.id }}" 
+                    <div id="collapse{{ task.id }}" 
                         class="accordion-collapse collapse {% if forloop.first %}show{% endif %}" 
-                        aria-labelledby="heading{{ analysis.id }}" 
-                        data-bs-parent="#analysisAccordion">
+                        aria-labelledby="heading{{ task.id }}" 
+                        data-bs-parent="#preprocessingAccordion">
                         <div class="accordion-body">
                             <!-- 분석 정보 -->
                             <div class="row mb-3">
                                 <div class="col-md-6">
                                     <p class="mb-1"><strong>전처리 파이프라인:</strong></p>
                                     <div>
-                                        {% for step in analysis.get_pipeline_display %}
-                                            <span class="badge bg-secondary">{{ step }}</span>
-                                        {% endfor %}
+                                        {% if task.get_pipeline_display %}
+                                            {% for step in task.get_pipeline_display %}
+                                                <span class="badge bg-secondary">{{ step }}</span>
+                                            {% endfor %}
+                                        {% else %}
+                                            <span class="badge bg-info">전처리 생략 (원본 사용)</span>
+                                        {% endif %}
                                     </div>
                                 </div>
                                 <div class="col-md-6">
-                                    <p class="mb-1"><strong>처리 프레임:</strong> {{ analysis.processed_frames }} / {{ analysis.total_frames }}</p>
-                                    {% if analysis.completed_at %}
-                                    <p class="mb-1"><strong>완료 시간:</strong> {{ analysis.completed_at|date:"Y-m-d H:i" }}</p>
+                                    <p class="mb-1"><strong>처리 프레임:</strong> {{ task.processed_frames }} / {{ task.total_frames }}</p>
+                                    {% if task.completed_at %}
+                                    <p class="mb-1"><strong>완료 시간:</strong> {{ task.completed_at|date:"Y-m-d H:i" }}</p>
                                     {% endif %}
                                 </div>
                             </div>
 
-                            <!-- 분석 작업 버튼 -->
+                            <!-- 전처리 작업 버튼 -->
                             <div class="mb-3">
                                 <div class="btn-group" role="group">
-                                    {% if analysis.status == 'completed' %}
-                                        <a href="{% url 'analysis_result' analysis.id %}" class="btn btn-outline-primary btn-sm">
+                                    {% if task.status == 'completed' %}
+                                        <a href="{% url 'preprocess:preprocessing_result' task.id %}" class="btn btn-outline-primary btn-sm">
                                             <i class="bi bi-eye"></i> 결과 보기
                                         </a>
-                                        <a href="{% url 'vision_engine:select_model' analysis.id %}" class="btn btn-outline-success btn-sm">
+                                        <a href="{#{% url 'vision_engine:select_model' task.id %}#}" class="btn btn-outline-success btn-sm">
                                             <i class="bi bi-cpu"></i> 모델 적용
                                         </a>
-                                    {% elif analysis.status == 'processing' %}
-                                        <a href="{% url 'analysis_progress' analysis.id %}" class="btn btn-outline-primary btn-sm">
+                                    {% elif task.status == 'processing' %}
+                                        <a href="{% url 'preprocess:preprocessing_progress' task.id %}" class="btn btn-outline-primary btn-sm">
                                             <i class="bi bi-hourglass-split"></i> 진행 상황
                                         </a>
                                     {% endif %}
                                     
                                     <button type="button" 
                                             class="btn btn-danger btn-sm"
-                                            data-analysis-id="{{ analysis.id }}"
-                                            data-analysis-status="{{ analysis.status }}"
-                                            onclick="deleteAnalysis(this)">
+                                            data-task-id="{{ task.id }}"
+                                            data-task-status="{{ task.status }}"
+                                            onclick="deleteTask(this)">
                                         <i class="bi bi-trash"></i> 삭제
                                     </button>
                                 </div>
@@ -205,19 +210,19 @@
 
                             <hr>
 
-                            <!-- 감지 이력 섹션 -->
+                            <!-- 탐지 이력 섹션 -->
                             <div class="border-start border-3 border-info ps-3 ms-2">
                                 <h6 class="mb-3">
-                                    <i class="bi bi-cpu"></i> 감지 이력
-                                    {% if analysis.detections.count > 0 %}
-                                        <span class="badge bg-info">{{ analysis.detections.count }}개</span>
+                                    <i class="bi bi-cpu"></i> 탐지 이력
+                                    {% if task.detections.count > 0 %}
+                                        <span class="badge bg-info">{{ task.detections.count }}개</span>
                                     {% else %}
                                         <span class="badge bg-secondary">0개</span>
                                     {% endif %}
                                 </h6>
                                 
-                                {% if analysis.detections.exists %}
-                                    <!-- 감지 이력이 있을 때 -->
+                                {% if task.detections.exists %}
+                                    <!-- 탐지 이력이 있을 때 -->
                                     <div class="table-responsive">
                                         <table class="table table-sm table-hover">
                                             <thead>
@@ -231,7 +236,7 @@
                                                 </tr>
                                             </thead>
                                             <tbody>
-                                                {% for detection in analysis.detections.all %}
+                                                {% for detection in task.detections.all %}
                                                 <tr>
                                                     <td><strong>#{{ detection.id }}</strong></td>
                                                     <td>
@@ -262,13 +267,13 @@
                                                     <td>
                                                         <div class="btn-group btn-group-sm" role="group">
                                                             {% if detection.status == 'completed' %}
-                                                                <a href="{% url 'vision_engine:detection_result' detection.id %}" 
-                                                                class="btn btn-outline-primary">
+                                                                <a href="{#{% url 'vision_engine:detection_result' detection.id %}#}" 
+                                                                    class="btn btn-outline-primary">
                                                                     <i class="bi bi-eye"></i> 결과
                                                                 </a>
                                                             {% elif detection.status == 'processing' %}
-                                                                <a href="{% url 'vision_engine:detection_progress' detection.id %}" 
-                                                                class="btn btn-outline-primary">
+                                                                <a href="{#{% url 'vision_engine:detection_progress' detection.id %}#}" 
+                                                                    class="btn btn-outline-primary">
                                                                     <i class="bi bi-hourglass-split"></i> 진행
                                                                 </a>
                                                             {% endif %}
@@ -287,27 +292,27 @@
                                         </table>
                                     </div>
                                 {% else %}
-                                    <!-- 감지 이력이 없을 때 -->
+                                    <!-- 탐지 이력이 없을 때 -->
                                     <div class="alert alert-light border">
                                         <div class="text-center py-3">
                                             <i class="bi bi-inbox text-muted" style="font-size: 2rem;"></i>
-                                            <p class="mb-2 text-muted">아직 감지 이력이 없습니다.</p>
-                                            {% if analysis.status == 'completed' %}
-                                                <a href="{% url 'vision_engine:select_model' analysis.id %}" class="btn btn-sm btn-success">
-                                                    <i class="bi bi-plus-circle"></i> 첫 감지 작업 시작하기
+                                            <p class="mb-2 text-muted">아직 탐지 이력이 없습니다.</p>
+                                            {% if task.status == 'completed' %}
+                                                <a href="{#{% url 'vision_engine:select_model' task.id %}#}" class="btn btn-sm btn-success">
+                                                    <i class="bi bi-plus-circle"></i> 첫 탐지 작업 시작하기
                                                 </a>
                                             {% else %}
-                                                <small class="text-muted">분석이 완료되면 모델을 적용할 수 있습니다.</small>
+                                                <small class="text-muted">전처리가 완료되면 모델을 적용할 수 있습니다.</small>
                                             {% endif %}
                                         </div>
                                     </div>
                                 {% endif %}
                                 
-                                <!-- 새 감지 작업 추가 버튼 -->
-                                {% if analysis.status == 'completed' and analysis.detections.exists %}
+                                <!-- 새 탐지 작업 추가 버튼 -->
+                                {% if task.status == 'completed' and task.detections.exists %}
                                 <div class="text-center mt-3">
-                                    <a href="{% url 'vision_engine:select_model' analysis.id %}" class="btn btn-sm btn-outline-success">
-                                        <i class="bi bi-plus-circle"></i> 새 감지 작업 추가
+                                    <a href="{#{% url 'vision_engine:select_model' task.id %}#}" class="btn btn-sm btn-outline-success">
+                                        <i class="bi bi-plus-circle"></i> 새 탐지 작업 추가
                                     </a>
                                 </div>
                                 {% endif %}
@@ -320,8 +325,8 @@
             {% else %}
             <div class="alert alert-info">
                 <i class="bi bi-info-circle"></i>
-                아직 분석 이력이 없습니다. 
-                <a href="{#{% url 'start_analysis' video.id %}#}" class="alert-link">새 분석을 시작</a>하세요.
+                아직 전처리 이력이 없습니다. 
+                <a href="{% url 'preprocess:start_preprocessing' video.id %}" class="alert-link">새 전처리를 시작</a>하세요.
             </div>
             {% endif %}
         </div>
@@ -331,12 +336,9 @@
     <div class="card mb-4">
         <div class="card-body">
             <div class="d-flex gap-2">
-                <a href="{#{% url 'start_analysis' video.id %}#}" class="btn btn-primary">
-                    <i class="bi bi-play-circle"></i> 새 분석 시작
+                <a href="{% url 'preprocess:start_preprocessing' video.id %}" class="btn btn-primary">
+                    <i class="bi bi-play-circle"></i> 새 전처리 시작
                 </a>
-                <!-- <a href="{{ video.file.url }}" download class="btn btn-outline-success">
-                    <i class="bi bi-download"></i> 다운로드
-                </a> -->
                 <a href="{% url 'content_list' %}" class="btn btn-outline-secondary">
                     <i class="bi bi-list"></i> 목록으로
                 </a>
@@ -368,12 +370,12 @@
     </div>
 </div>
 
-<!-- 분석 삭제 확인 모달 -->
-<div class="modal fade" id="deleteAnalysisModal" tabindex="-1">
+<!-- 전처리 작업 삭제 확인 모달 -->
+<div class="modal fade" id="deleteTaskModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">분석 삭제</h5>
+                <h5 class="modal-title">전처리 작업 삭제</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
@@ -385,25 +387,25 @@
                 
                 <div class="alert alert-light">
                     <div class="row">
-                        <div class="col-4 text-end"><strong>분석 ID:</strong></div>
-                        <div class="col-8"><span id="deleteAnalysisId"></span></div>
+                        <div class="col-4 text-end"><strong>전처리 ID:</strong></div>
+                        <div class="col-8"><span id="deleteTaskId"></span></div>
                     </div>
                     <div class="row">
                         <div class="col-4 text-end"><strong>상태:</strong></div>
-                        <div class="col-8"><span id="deleteAnalysisStatus"></span></div>
+                        <div class="col-8"><span id="deleteTaskStatus"></span></div>
                     </div>
                 </div>
                 
                 <div class="alert alert-danger mb-0">
                     <i class="bi bi-exclamation-triangle"></i> 
-                    삭제된 데이터는 복구할 수 없습니다. 관련된 모든 감지 결과도 함께 삭제됩니다.
+                    삭제된 데이터는 복구할 수 없습니다. 관련된 모든 탐지 결과도 함께 삭제됩니다.
                 </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
                     <i class="bi bi-x-circle"></i> 취소
                 </button>
-                <form id="deleteAnalysisForm" method="post" style="display: inline;">
+                <form id="deleteTaskForm" method="post" style="display: inline;">
                     {% csrf_token %}
                     <input type="hidden" name="redirect" value="video_detail">
                     <button type="submit" class="btn btn-danger">
@@ -420,7 +422,7 @@
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">감지 작업 삭제</h5>
+                <h5 class="modal-title">탐지 작업 삭제</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
@@ -432,7 +434,7 @@
                 
                 <div class="alert alert-light">
                     <div class="row">
-                        <div class="col-4 text-end"><strong>감지 ID:</strong></div>
+                        <div class="col-4 text-end"><strong>탐지 ID:</strong></div>
                         <div class="col-8"><span id="deleteDetectionId"></span></div>
                     </div>
                 </div>
@@ -459,36 +461,38 @@
 </div>
 
 <script>
-let deleteAnalysisModal;
+
+let deleteTaskModal;
 let deleteDetectionModal;
 
 document.addEventListener('DOMContentLoaded', function() {
-    const analysisModalElement = document.getElementById('deleteAnalysisModal');
-    const detectionModalElement = document.getElementById('deleteDetectionModal');
+    const taskModalElement = document.getElementById('deleteTaskModal');
     
-    if (analysisModalElement) {
-        deleteAnalysisModal = new bootstrap.Modal(analysisModalElement);
+    if (taskModalElement) {
+        deleteTaskModal = new bootstrap.Modal(taskModalElement);
     }
+    
+    const detectionModalElement = document.getElementById('deleteDetectionModal');
     
     if (detectionModalElement) {
         deleteDetectionModal = new bootstrap.Modal(detectionModalElement);
     }
 });
 
-function deleteAnalysis(button) {
-    const analysisId = button.getAttribute('data-analysis-id');
-    const analysisStatus = button.getAttribute('data-analysis-status');
+function deleteTask(button) {
+    const taskId = button.getAttribute('data-task-id');
+    const taskStatus = button.getAttribute('data-task-status');
     
-    document.getElementById('deleteAnalysisId').textContent = analysisId;
-    document.getElementById('deleteAnalysisStatus').textContent = analysisStatus;
+    document.getElementById('deleteTaskId').textContent = taskId;
+    document.getElementById('deleteTaskStatus').textContent = taskStatus;
     
-    const form = document.getElementById('deleteAnalysisForm');
+    const form = document.getElementById('deleteTaskForm');
     if (form) {
-        form.action = `/analysis/${analysisId}/delete/`;
+        form.action = `/preprocess/${taskId}/delete/`;
     }
     
-    if (deleteAnalysisModal) {
-        deleteAnalysisModal.show();
+    if (deleteTaskModal) {
+        deleteTaskModal.show();
     }
     
     return false;

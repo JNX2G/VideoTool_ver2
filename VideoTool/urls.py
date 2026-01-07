@@ -26,7 +26,7 @@ urlpatterns = [
     # 앱 경로
     path("contents/", include("contents.urls")),
     path("prephub/", include("prephub.urls")),
-    # path("preprocess/", include("preprocess.urls")),
+    path("preprocess/", include("preprocess.urls")),
 ]
 
 if settings.DEBUG:
