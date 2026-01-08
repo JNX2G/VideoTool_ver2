@@ -1,154 +1,161 @@
-from django.utils import timezone
-from .models import PreprocessingTask
-import os
+"""
+전처리 작업 실행 (취소 확인 로직 포함)
+기존 tasks.py의 process_preprocessing_task 함수를 수정하세요.
+"""
+import logging
 from pathlib import Path
-import traceback
+from django.utils import timezone
+from django.conf import settings
+
+logger = logging.getLogger(__name__)
 
 
 def process_preprocessing_task(task_id):
-    """전처리 작업 실행"""
-    task = None
+    """전처리 작업 실행 (백그라운드)"""
+    from .models import PreprocessingTask
+    from preprocess.preprocessing import PreprocessingEngine
+    
     try:
-        print(f"\n{'='*50}")
-        print(f"🎬 전처리 작업 시작: ID={task_id}")
-
+        # 작업 조회
         task = PreprocessingTask.objects.get(id=task_id)
-
-        # 컨텐츠 가져오기 (video 또는 image)
+        
+        # ⭐ 이미 취소되었는지 확인
+        if task.status == 'cancelled':
+            logger.info(f"작업이 이미 취소됨: task_id={task_id}")
+            return
+        
+        # 상태 업데이트
+        task.status = 'processing'
+        task.started_at = timezone.now()
+        task.save()
+        
+        logger.info(f"전처리 작업 시작: task_id={task_id}")
+        
+        # 컨텐츠 가져오기
         content = task.get_content()
         content_type = task.get_content_type()
-
+        
         if not content:
-            raise ValueError("컨텐츠를 찾을 수 없습니다")
-
-        print(f"📦 컨텐츠 타입: {content_type}")
-        print(f"📄 파일명: {content.title}")
-
-        # 상태 업데이트
-        task.status = "processing"
-        task.started_at = timezone.now()
-        task.current_step = "전처리 시작"
-        task.save()
-
+            raise ValueError("컨텐츠를 찾을 수 없습니다.")
+        
         # 입력 파일 경로
         input_path = content.file.path
-
-        if not os.path.exists(input_path):
-            raise FileNotFoundError(f"파일을 찾을 수 없습니다: {input_path}")
-
-        # 출력 경로 설정 (results/preprocessing/{task_id}/)
-        from django.conf import settings
-        output_dir = Path(settings.RESULTS_ROOT) / "preprocessing" / str(task.id)
+        
+        # 출력 파일 경로 생성
+        output_dir = Path(settings.RESULTS_ROOT) / content_type / str(content.id)
         output_dir.mkdir(parents=True, exist_ok=True)
-
-        # 파일 이름 정리 (특수문자 제거)
-        original_name = content.file.name.split("/")[-1]
-        clean_name = "".join(c for c in original_name if c.isalnum() or c in ".-_")
-
-        # 컨텐츠 타입에 따라 확장자 결정
-        if content_type == "image":
-            output_filename = Path(clean_name).stem + "_processed.jpg"
-        else:
-            output_filename = Path(clean_name).stem + "_processed.mp4"
-
+        
+        input_filename = Path(input_path).stem
+        output_filename = f"{input_filename}_preprocessed{Path(input_path).suffix}"
         output_path = output_dir / output_filename
-
-        print(f"📤 출력 경로: {output_path}")
-
-        # 전처리 엔진 생성
-        from .preprocessing import PreprocessingEngine
-
-        engine = PreprocessingEngine()
-
-        # 진행률 콜백
-        def progress_callback(current, total, progress):
+        
+        # 전처리 파이프라인
+        pipeline = task.preprocessing_pipeline or []
+        
+        # ⭐ 진행률 콜백 (취소 확인 포함)
+        def progress_callback(current, total, percent):
+            # DB에서 최신 상태 확인
+            task.refresh_from_db()
+            
+            # ⭐ 취소되었으면 예외 발생
+            if task.status == 'cancelled':
+                logger.info(f"작업 취소 감지: task_id={task_id}")
+                raise InterruptedError("작업이 취소되었습니다.")
+            
+            # 진행률 업데이트
             task.processed_frames = current
             task.total_frames = total
-            task.progress = progress
-
-            if content_type == "image":
-                if progress < 90:
-                    task.current_step = f"이미지 처리 중: {current}/{total}"
-                else:
-                    task.current_step = "완료 중..."
-            else:
-                if progress < 85:
-                    task.current_step = f"프레임 처리 중: {current}/{total}"
-                elif progress < 95:
-                    task.current_step = "ffmpeg 재인코딩 중..."
-                else:
-                    task.current_step = "완료 중..."
-
-            task.save()
-
-            if current % 30 == 0 or content_type == "image":
-                print(f"⏳ 진행률: {progress}%")
-
-        # 파이프라인 실행
-        pipeline = task.preprocessing_pipeline or []
-
-        if not pipeline:
-            # 파이프라인이 비어있으면 원본 복사
-            import shutil
-
-            shutil.copy(input_path, output_path)
-            task.total_frames = 1
-            task.processed_frames = 1
+            task.progress = percent
+            task.save(update_fields=['processed_frames', 'total_frames', 'progress'])
+            
+            if percent % 10 == 0:
+                logger.info(f"⏳ 진행률: {percent}%")
+        
+        # 전처리 엔진 실행
+        engine = PreprocessingEngine()
+        
+        if content_type == 'image':
+            engine.process_image(
+                input_path=input_path,
+                pipeline=pipeline,
+                output_path=output_path,
+                progress_callback=progress_callback
+            )
         else:
-            # 컨텐츠 타입에 따라 다른 처리
-            if content_type == "image":
-                # 이미지 전처리
-                engine.process_image(
-                    input_path, pipeline, str(output_path), progress_callback
-                )
-            else:
-                # 동영상 전처리
-                engine.process_video(
-                    input_path, pipeline, str(output_path), progress_callback
-                )
-
-        # 출력 파일 확인
-        if not output_path.exists():
-            raise FileNotFoundError(f"출력 파일이 생성되지 않았습니다: {output_path}")
-
-        file_size = output_path.stat().st_size
-        print(f"✅ 출력 파일: {file_size:,} bytes")
-
-        # 상대 경로로 저장 (preprocessing/{task_id}/파일명)
-        relative_path = output_path.relative_to(settings.RESULTS_ROOT)
-        relative_path_str = str(relative_path).replace("\\", "/")
-
-        print(f"💾 저장 경로: {relative_path_str}")
-
-        # 완료 처리
-        task.status = "completed"
-        task.completed_at = timezone.now()
+            # 동영상 총 프레임 수 미리 계산
+            import cv2
+            cap = cv2.VideoCapture(str(input_path))
+            total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+            cap.release()
+            
+            task.total_frames = total_frames
+            task.save(update_fields=['total_frames'])
+            
+            engine.process_video(
+                input_path=input_path,
+                pipeline=pipeline,
+                output_path=output_path,
+                progress_callback=progress_callback,
+                task_id=task_id  # ⭐ task_id 전달
+            )
+        
+        # ⭐ 완료 전 마지막 취소 확인
+        task.refresh_from_db()
+        if task.status == 'cancelled':
+            logger.info(f"작업 완료 직전 취소 감지: task_id={task_id}")
+            # 출력 파일 삭제
+            if output_path.exists():
+                output_path.unlink()
+            return
+        
+        # 작업 완료
+        task.output_file_path = str(output_path.relative_to(settings.RESULTS_ROOT))
+        task.status = 'completed'
         task.progress = 100
-        task.output_file_path = relative_path_str
-        task.current_step = "완료"
+        task.completed_at = timezone.now()
         task.save()
-
-        print(f"✨ 전처리 작업 완료!")
-
-        return True
-
+        
+        logger.info(f"✅ 전처리 작업 완료: task_id={task_id}")
+    
+    except InterruptedError as e:
+        # 취소로 인한 중단
+        logger.info(f"🛑 작업 취소: task_id={task_id}, {e}")
+        
+        # 출력 파일 삭제
+        if 'output_path' in locals() and Path(output_path).exists():
+            try:
+                Path(output_path).unlink()
+                logger.info(f"임시 출력 파일 삭제: {output_path}")
+            except Exception as delete_error:
+                logger.warning(f"임시 파일 삭제 실패: {delete_error}")
+        
+        # 작업 상태는 이미 'cancelled'로 설정되어 있음
+    
     except Exception as e:
-        print(f"❌ 에러: {e}")
-        traceback.print_exc()
-
-        if task:
-            task.status = "failed"
-            task.error_message = str(e)
-            task.current_step = "실패"
-            task.save()
-
-        return False
+        logger.exception(f"❌ 전처리 작업 실패: task_id={task_id}, {e}")
+        
+        try:
+            task = PreprocessingTask.objects.get(id=task_id)
+            
+            # 취소가 아닌 진짜 오류인 경우만 failed로 설정
+            if task.status != 'cancelled':
+                task.status = 'failed'
+                task.error_message = str(e)
+                task.save()
+        except Exception as save_error:
+            logger.error(f"작업 상태 저장 실패: {save_error}")
 
 
 def start_preprocessing_task(task_id):
-    """전처리 작업을 백그라운드에서 시작"""
+    """전처리 작업을 백그라운드 스레드로 시작"""
     import threading
-
-    thread = threading.Thread(target=process_preprocessing_task, args=(task_id,))
+    
+    thread = threading.Thread(
+        target=process_preprocessing_task,
+        args=(task_id,),
+        name=f"Preprocessing-{task_id}"
+    )
     thread.daemon = True
     thread.start()
+    
+    logger.info(f"전처리 작업 스레드 시작: task_id={task_id}, thread={thread.name}")

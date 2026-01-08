@@ -185,19 +185,47 @@
                             <!-- 전처리 작업 버튼 -->
                             <div class="mb-3">
                                 <div class="btn-group" role="group">
-                                    {% if task.status == 'completed' %}
-                                        <a href="{% url 'preprocess:preprocessing_result' task.id %}" class="btn btn-outline-primary btn-sm">
+                                    {% if task.status == "completed" %}
+                                        <!-- 완료된 작업 (completed) -->
+                                        <a href="{% url 'preprocess:preprocessing_result' task.id %}" 
+                                        class="btn btn-outline-primary btn-sm">
                                             <i class="bi bi-eye"></i> 결과 보기
                                         </a>
-                                        <a href="{#{% url 'vision_engine:select_model' task.id %}#}" class="btn btn-outline-success btn-sm">
+                                        <!-- ⭐ 탐지 이력이 없을 때만 편집 버튼 표시 -->
+                                        {% if task.detections.count == 0 %}
+                                        <a href="{% url 'preprocess:start_preprocessing' video.id %}?type=video" 
+                                        class="btn btn-outline-info btn-sm">
+                                            <i class="bi bi-pencil-square"></i> 편집
+                                        </a>
+                                        {% endif %}
+                                        <a href="{#{% url 'vision_engine:select_model' task.id %}#}" 
+                                        class="btn btn-outline-success btn-sm">
                                             <i class="bi bi-cpu"></i> 모델 적용
                                         </a>
-                                    {% elif task.status == 'processing' %}
-                                        <a href="{% url 'preprocess:preprocessing_progress' task.id %}" class="btn btn-outline-primary btn-sm">
+                                        
+                                    {% elif task.status == "processing" %}
+                                        <!-- 처리 중 (processing) -->
+                                        <a href="{% url 'preprocess:preprocessing_progress' task.id %}" 
+                                        class="btn btn-outline-primary btn-sm">
                                             <i class="bi bi-hourglass-split"></i> 진행 상황
+                                        </a>
+                                        
+                                    {% elif task.status == "ready" %}
+                                        <!-- ⭐ 준비 상태 (ready) - 편집 가능 -->
+                                        <a href="{% url 'preprocess:start_preprocessing' video.id %}?type=video" 
+                                        class="btn btn-outline-primary btn-sm">
+                                            <i class="bi bi-pencil-square"></i> 파이프라인 편집
+                                        </a>
+                                        
+                                    {% else %}
+                                        <!-- 대기/실패/취소 상태 (pending, failed, cancelled) -->
+                                        <a href="{% url 'preprocess:preprocessing_progress' task.id %}" 
+                                        class="btn btn-outline-warning btn-sm">
+                                            <i class="bi bi-arrow-clockwise"></i> 재시작
                                         </a>
                                     {% endif %}
                                     
+                                    <!-- 삭제 버튼 (항상 표시) -->
                                     <button type="button" 
                                             class="btn btn-danger btn-sm"
                                             data-task-id="{{ task.id }}"
@@ -326,7 +354,7 @@
             <div class="alert alert-info">
                 <i class="bi bi-info-circle"></i>
                 아직 전처리 이력이 없습니다. 
-                <a href="{% url 'preprocess:start_preprocessing' video.id %}" class="alert-link">새 전처리를 시작</a>하세요.
+                <a href="{% url 'preprocess:start_preprocessing' video.id %}?type=video&new=true" class="alert-link">새 전처리를 시작</a>하세요.
             </div>
             {% endif %}
         </div>
@@ -336,7 +364,7 @@
     <div class="card mb-4">
         <div class="card-body">
             <div class="d-flex gap-2">
-                <a href="{% url 'preprocess:start_preprocessing' video.id %}" class="btn btn-primary">
+                <a href="{% url 'preprocess:start_preprocessing' video.id %}?type=video&new=true" class="btn btn-primary">
                     <i class="bi bi-play-circle"></i> 새 전처리 시작
                 </a>
                 <a href="{% url 'content_list' %}" class="btn btn-outline-secondary">

@@ -8,9 +8,11 @@ class PreprocessingTask(models.Model):
     
     STATUS_CHOICES = [
         ("ready", "준비"),
+        ("pending", "대기 중"),
         ("processing", "처리 중"),
         ("completed", "완료"),
         ("failed", "실패"),
+        ("cancelled", "취소됨"), 
     ]
 
     # video 또는 image 중 하나만 필수
@@ -44,7 +46,7 @@ class PreprocessingTask(models.Model):
     status = models.CharField(
         max_length=20, 
         choices=STATUS_CHOICES, 
-        default="ready", 
+        default="pending", 
         verbose_name="상태"
     )
 
@@ -56,6 +58,7 @@ class PreprocessingTask(models.Model):
     current_step = models.CharField(
         max_length=200, 
         blank=True, 
+        null=True,
         default="", 
         verbose_name="현재 단계"
     )
@@ -93,6 +96,8 @@ class PreprocessingTask(models.Model):
     # 에러
     error_message = models.TextField(
         blank=True, 
+        null=True,
+        default="",
         verbose_name="에러 메시지"
     )
 
@@ -203,10 +208,12 @@ class PreprocessingTask(models.Model):
     def get_status_display_badge(self):
         """상태 배지 색상 반환"""
         status_colors = {
-            "ready": "secondary",
+            "ready": "info",
+            "pending": "secondary",
             "processing": "primary",
             "completed": "success",
             "failed": "danger",
+            "cancelled": "warning",  # ⭐ 추가
         }
         return status_colors.get(self.status, "secondary")
 

@@ -12,6 +12,12 @@ urlpatterns = [
     ),
     
     # 전처리 파이프라인 관리
+    # ⭐ 새 작업 생성 및 첫 단계 추가
+    path(
+        "create-and-add-step/",
+        views.CreateTaskAndAddStepView.as_view(),
+        name="create_and_add_step",
+    ),
     path(
         "<int:task_id>/add-step/",
         views.AddPreprocessingStepView.as_view(),
@@ -85,5 +91,18 @@ urlpatterns = [
         name="update_step",
     ),
 
-]
+    # 전처리 작업 재시작
+    path(
+        "<int:task_id>/restart/",
+        views.RestartTaskView.as_view(),
+        name="restart_task",
+    ),
+    
+    # 전처리 작업 취소
+    path(
+        "<int:task_id>/cancel/",
+        views.CancelTaskView.as_view(),
+        name="cancel_task",
+    ),
 
+]

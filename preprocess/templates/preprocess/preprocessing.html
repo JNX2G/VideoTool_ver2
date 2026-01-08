@@ -178,8 +178,10 @@
                             <input type="hidden" name="skip_preprocessing" value="true">
                             <button type="submit" class="btn btn-light w-100 btn-sm text-muted border">건너뛰기</button>
                         </form>
-                        <a href="{% if content_type == 'video' %}{% url 'video_detail' content.pk %}{% else %}{% url 'image_detail' content.pk %}{% endif %}" 
-                           class="btn btn-light flex-grow-1 btn-sm text-muted border">돌아가기</a>
+                        <button type="button" onclick="history.back()" 
+                                class="btn btn-light flex-grow-1 btn-sm text-muted border">
+                            <i class="bi bi-arrow-left"></i> 돌아가기
+                        </button>
                     </div>
                 </div>
             </div>
@@ -209,12 +211,13 @@
 </div>
 
 <script>
-    const taskId = {{ task.id }};
+    let taskId = {% if task %}{{ task.id }}{% else %}null{% endif %};
+    const contentId = {{ content.id }};
     const contentType = '{{ content_type }}';
     let paramModal;
     
     // 데이터 보관용
-    let currentPipelineFull = {{ task.preprocessing_pipeline|safe|default:"[]" }};
+    let currentPipelineFull = {% if task %}{{ task.preprocessing_pipeline|safe }}{% else %}[]{% endif %};
     const methodSchemas = {};
 
     document.addEventListener('DOMContentLoaded', function() {
@@ -298,15 +301,43 @@
             params[key] = isNaN(value) ? value : Number(value);
         }
         
-        fetch(`/preprocess/${taskId}/add-step/`, {
+        // ⭐ task가 없으면 생성 요청 (별도 URL 사용)
+        const url = taskId 
+            ? `/preprocess/${taskId}/add-step/`
+            : `/preprocess/create-and-add-step/`;
+        
+        const body = taskId 
+            ? {method_id: methodId, params: params}
+            : {content_id: contentId, content_type: contentType, method_id: methodId, params: params};
+        
+        fetch(url, {
             method: 'POST',
             headers: {'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}'},
-            body: JSON.stringify({method_id: methodId, params: params})
+            body: JSON.stringify(body)
         })
         .then(response => response.json())
         .then(data => {
-            if (data.success) location.reload();
-            else alert('오류: ' + data.error);
+            if (data.success) {
+                // ⭐ 새로 생성된 task_id 저장
+                if (data.task_id && !taskId) {
+                    taskId = data.task_id;
+                }
+                
+                // ⭐ URL에서 new=true 파라미터 제거하고 reload
+                const currentUrl = new URL(window.location.href);
+                if (currentUrl.searchParams.has('new')) {
+                    currentUrl.searchParams.delete('new');
+                    window.location.href = currentUrl.toString();
+                } else {
+                    location.reload();
+                }
+            } else {
+                alert('오류: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('요청 중 오류가 발생했습니다: ' + error);
         });
     }
 
@@ -362,6 +393,12 @@
     }
 
     function executePipeline() {
+        // ⭐ task가 없으면 파이프라인이 비어있음
+        if (!taskId) {
+            alert('전처리 파이프라인에 단계를 추가해주세요.');
+            return;
+        }
+        
         if (confirm('설정된 시퀀스로 전처리를 시작하시겠습니까?')) {
             fetch(`/preprocess/${taskId}/execute/`, {
                 method: 'POST',
