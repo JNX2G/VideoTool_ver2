@@ -6,7 +6,7 @@
 <nav aria-label="breadcrumb">
     <ol class="breadcrumb">
         <!-- 완료된 단계 (클릭 가능) -->
-        <li class="custom-breadcrumb-item">
+        <li class="custom-breadcrumb-item active">
             <a href="{% url 'content_list' %}">
                 <i class="bi bi-collection-play"></i> 콘텐츠 목록
             </a>
@@ -14,7 +14,7 @@
 
         <!-- 비활성화된 단계들 -->
         <li class="custom-breadcrumb-item disabled">
-            <span><i class="bi bi-camera-video"></i> 미디어 상세</span>
+            <span><i class="bi bi-camera-video"></i> 콘텐츠 상세</span>
         </li>
 
         <li class="custom-breadcrumb-item disabled">
@@ -34,7 +34,7 @@
         </li>
 
         <li class="custom-breadcrumb-item disabled">
-            <span><i class="bi bi-clipboard-data"></i> 탐지 결과</span>
+            <span><i class="bi bi-clipboard-data"></i> 모델 결과</span>
         </li>
     </ol>
 </nav>
@@ -69,8 +69,8 @@
                         <a class="nav-link py-1 py-md-2 px-2 px-md-3 {% if tab == 'image' %}active{% endif %}" 
                         href="?tab=image{% if search %}&search={{ search }}{% endif %}{% if sort %}&sort={{ sort }}{% endif %}"
                         title="이미지">
-                            <i class="bi bi-image"></i>
-                            <span class="d-none d-lg-inline ms-1">이미지</span>
+                            <i class="bi bi-image text-success"></i>
+                            <span class="d-none d-lg-inline ms-1 text-success">이미지</span>
                             <span class="badge bg-success ms-1" style="font-size: 0.65rem;">{{ image_count }}</span>
                         </a>
                     </li>
@@ -89,17 +89,6 @@
                     </select>
                 </div>
 
-                <!-- 검색 -->
-                <!-- <form method="get" class="d-flex gap-1 flex-shrink-0 me-2" style="width: 250px;">
-                    <input type="hidden" name="tab" value="{{ tab }}">
-                    <input type="hidden" name="sort" value="{{ sort }}">
-                    <input type="text" name="search" class="form-control form-control-sm" 
-                        placeholder="검색..." value="{{ search }}">
-                    <button type="submit" class="btn btn-sm btn-outline-dark flex-shrink-0">
-                        <i class="bi bi-search"></i>
-                    </button>
-                </form> -->
-
                 <!-- 업로드 버튼 -->
                 <div class="btn-group d-flex gap-2" role="group">
                     <a href="{% url 'upload_content' %}?type=video" class="btn btn-primary" title="동영상 업로드">
@@ -117,7 +106,7 @@
         </div>
     </div>
 
-    <!-- 미디어 그리드 -->
+    <!-- 콘텐츠 그리드 -->
     {% if content_items %}
     <div class="row row-cols-1 row-cols-md-3 row-cols-lg-4 g-4">
         {% for item in content_items %}
@@ -221,7 +210,7 @@
             {% if search %}
                 검색 결과가 없습니다
             {% else %}
-                미디어가 없습니다
+                콘텐츠가 없습니다
             {% endif %}
         </h4>
         <p class="text-muted">
@@ -247,18 +236,6 @@
 
 
 <style>
-/* 탭 크기 조절 */
-.nav-pills .nav-link {
-    font-size: 0.85rem;
-    white-space: nowrap;
-}
-
-@media (min-width: 992px) {
-    .nav-pills .nav-link {
-        font-size: 0.9rem;
-    }
-}
-
 .hover-card {
     transition: transform 0.2s, box-shadow 0.2s;
 }

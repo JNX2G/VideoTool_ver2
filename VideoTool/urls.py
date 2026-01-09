@@ -27,7 +27,8 @@ urlpatterns = [
     path("contents/", include("contents.urls")),
     path("prephub/", include("prephub.urls")),
     path("preprocess/", include("preprocess.urls")),
-    # path("modelhub/", include("modelhub.urls")),
+    path("modelhub/", include("modelhub.urls")),
+    path("vision_engine/", include("vision_engine.urls")), 
 ]
 
 if settings.DEBUG:

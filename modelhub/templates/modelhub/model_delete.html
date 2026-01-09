@@ -1,0 +1,172 @@
+{% extends 'contents/base.html' %}
+
+{% block title %}
+    {% if model_type == 'base' %}
+        {{ model.display_name }} 삭제 확인
+    {% else %}
+        {{ model.name }} 삭제 확인
+    {% endif %}
+{% endblock %}
+
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="custom-breadcrumb-item">
+            <a href="{% url 'modelhub:model_list' %}">
+                <i class="bi bi-box-seam"></i> 모델 허브
+            </a>
+        </li>
+        <li class="custom-breadcrumb-item">
+            <a href="{% url 'modelhub:model_detail' model_type model.id %}">
+                <i class="bi bi-info-circle"></i> {{ model.display_name|default:model.name }}
+            </a>
+        </li>
+        <li class="custom-breadcrumb-item active">
+            <a href="#">
+                <i class="bi bi-trash"></i> 모델 삭제
+            </a>
+        </li>
+    </ol>
+</nav>
+{% endblock breadcrumb %}
+
+{% block content %}
+<div class="container" style="max-width: 600px;">
+    <div class="card border-danger shadow-sm">
+        <div class="card-header bg-danger text-white">
+            <h5 class="mb-0">
+                <i class="bi bi-exclamation-triangle"></i> 모델 삭제 확인
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="alert alert-danger">
+                <h5><i class="bi bi-exclamation-triangle-fill"></i> 경고</h5>
+                <p class="mb-0">정말로 이 모델을 삭제하시겠습니까?</p>
+            </div>
+
+            <ul class="list-unstyled mb-4">
+                <li class="mb-2">
+                    <i class="bi bi-x-circle text-danger"></i>
+                    {% if model_type == 'base' %}
+                        기본 모델 <strong>{{ model.display_name }}</strong>
+                    {% else %}
+                        커스텀 모델 <strong>{{ model.name }}</strong>
+                    {% endif %}
+                    이(가) 영구적으로 삭제됩니다
+                </li>
+                <li class="mb-2">
+                    <i class="bi bi-x-circle text-danger"></i>
+                    모델 파일도 함께 삭제됩니다
+                </li>
+                <li class="mb-2">
+                    <i class="bi bi-x-circle text-danger"></i>
+                    이 작업은 되돌릴 수 없습니다
+                </li>
+            </ul>
+
+            <!-- 모델 정보 -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6 class="mb-0">삭제될 모델 정보</h6>
+                </div>
+                <div class="card-body">
+                    <table class="table table-borderless mb-0">
+                        <tbody>
+                            <tr>
+                                <th width="35%">구분</th>
+                                <td>
+                                    {% if model_type == 'base' %}
+                                        <span class="badge bg-success">기본 모델</span>
+                                    {% else %}
+                                        <span class="badge bg-info">커스텀 모델</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>모델명</th>
+                                <td>
+                                    {% if model_type == 'base' %}
+                                        {{ model.display_name }}
+                                    {% else %}
+                                        {{ model.name }}
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% if model_type == 'base' and model.yolo_version %}
+                            <tr>
+                                <th>YOLO 버전</th>
+                                <td><code>{{ model.yolo_version }}</code></td>
+                            </tr>
+                            {% endif %}
+                            {% if model_type == 'custom' %}
+                                {% if model.framework %}
+                                <tr>
+                                    <th>프레임워크</th>
+                                    <td>{{ model.framework }}</td>
+                                </tr>
+                                {% endif %}
+                                {% if model.dataset_name %}
+                                <tr>
+                                    <th>데이터셋</th>
+                                    <td>{{ model.dataset_name }}</td>
+                                </tr>
+                                {% endif %}
+                                {% if model.accuracy %}
+                                <tr>
+                                    <th>정확도</th>
+                                    <td>{{ model.accuracy }}%</td>
+                                </tr>
+                                {% endif %}
+                            {% endif %}
+                            <tr>
+                                <th>파일 크기</th>
+                                <td>{{ model.get_file_size_display }}</td>
+                            </tr>
+                            <tr>
+                                <th>사용 횟수</th>
+                                <td>{{ model.usage_count }}회</td>
+                            </tr>
+                            <tr>
+                                <th>생성일</th>
+                                <td>{{ model.created_at|date:"Y-m-d H:i" }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 삭제 확인 폼 -->
+            <form method="post">
+                {% csrf_token %}
+                
+                <div class="d-grid gap-2">
+                    <button type="submit" class="btn btn-danger btn-lg">
+                        <i class="bi bi-trash"></i> 삭제하기
+                    </button>
+                    <a href="{% url 'modelhub:model_detail' model_type model.id %}" 
+                       class="btn btn-outline-secondary">
+                        <i class="bi bi-x-circle"></i> 취소
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- 안내 메시지 -->
+    <div class="alert alert-info mt-3">
+        <i class="bi bi-info-circle"></i>
+        <strong>참고:</strong> 모델을 삭제해도 이 모델을 사용한 탐지 작업 기록은 유지됩니다. 
+        다만, 같은 모델로 다시 탐지를 수행할 수는 없습니다.
+    </div>
+</div>
+
+<!-- 삭제 확인 JavaScript -->
+<script>
+document.querySelector('form').addEventListener('submit', function(e) {
+    const modelName = '{% if model_type == "base" %}{{ model.display_name }}{% else %}{{ model.name }}{% endif %}';
+    if (!confirm(`정말로 "${modelName}" 모델을 삭제하시겠습니까?\n\n이 작업은 되돌릴 수 없습니다!`)) {
+        e.preventDefault();
+    }
+});
+</script>
+{% endblock %}

@@ -1,8 +1,15 @@
 from django.db import models
 from django.utils import timezone
 from django.conf import settings
+from django.core.files.storage import FileSystemStorage
 import os
 import re
+from pathlib import Path
+import shutil
+
+
+# 모델 전용 스토리지 (MODELS_ROOT 사용)
+model_storage = FileSystemStorage(location=settings.MODELS_ROOT)
 
 
 def sanitize_model_filename(filename):
@@ -20,11 +27,11 @@ def sanitize_model_filename(filename):
 
 
 def default_model_upload_path(instance, filename):
-    """기본 모델 업로드 경로: models/default/파일명.확장자"""
+    """⭐ 기본 모델 업로드 경로: models/builtin/파일명.확장자"""
     name, ext = sanitize_model_filename(filename)
     new_filename = f"{name}{ext}"
 
-    return os.path.join("default", new_filename)
+    return os.path.join("builtin", new_filename)  # default → builtin
 
 
 def custom_model_upload_path(instance, filename):
@@ -53,6 +60,7 @@ class BaseModel(models.Model):
     # 파일 정보 (선택적 - 자동 다운로드 모델은 파일 없음)
     model_file = models.FileField(
         upload_to=default_model_upload_path,
+        storage=model_storage,
         blank=True,
         null=True,
         verbose_name="모델 파일",
@@ -123,6 +131,20 @@ class BaseModel(models.Model):
         self.usage_count += 1
         self.save(update_fields=["usage_count", "updated_at"])
 
+    def delete(self, *args, **kwargs):
+        """⭐ 삭제 시 모델 파일도 함께 삭제"""
+        # 모델 파일 삭제
+        if self.model_file:
+            try:
+                if os.path.exists(self.model_file.path):
+                    os.remove(self.model_file.path)
+                    print(f"✅ 모델 파일 삭제: {self.model_file.path}")
+            except Exception as e:
+                print(f"⚠️ 모델 파일 삭제 실패: {e}")
+        
+        # ⭐ CASCADE로 설정했으므로 관련 Detection은 자동 삭제됨
+        super().delete(*args, **kwargs)
+
 
 class CustomModel(models.Model):
     """커스텀 모델 (사용자가 학습시킨 모델)"""
@@ -131,52 +153,34 @@ class CustomModel(models.Model):
     name = models.CharField(max_length=200, verbose_name="모델 이름")
     description = models.TextField(blank=True, verbose_name="설명")
 
-    # 파일 정보 (필수)
+    # 모델 정보
+    model_type = models.CharField(
+        max_length=50, default="yolo", verbose_name="모델 타입"
+    )
+
+    # 파일 정보
     model_file = models.FileField(
-        upload_to=custom_model_upload_path, verbose_name="모델 파일"
+        upload_to=custom_model_upload_path,
+        storage=model_storage,
+        verbose_name="모델 파일",
     )
     file_size = models.BigIntegerField(default=0, verbose_name="파일 크기 (bytes)")
     file_format = models.CharField(max_length=10, blank=True, verbose_name="파일 형식")
 
-    # 모델 정보
-    model_type = models.CharField(
-        max_length=50,
-        default="custom",
-        verbose_name="모델 타입",
-        help_text="예: yolo, resnet, custom",
-    )
-    framework = models.CharField(
-        max_length=50,
-        blank=True,
-        verbose_name="프레임워크",
-        help_text="예: PyTorch, TensorFlow, ONNX",
-    )
-    version = models.CharField(max_length=50, blank=True, verbose_name="버전")
-
     # 학습 정보
-    dataset_name = models.CharField(
-        max_length=200, blank=True, verbose_name="데이터셋 이름"
+    training_dataset = models.CharField(
+        max_length=200, blank=True, verbose_name="학습 데이터셋"
     )
-    classes = models.JSONField(default=list, blank=True, verbose_name="탐지 클래스")
-    num_classes = models.IntegerField(null=True, blank=True, verbose_name="클래스 수")
-
-    # 성능 정보
-    accuracy = models.FloatField(null=True, blank=True, verbose_name="정확도 (%)")
-    precision = models.FloatField(null=True, blank=True, verbose_name="정밀도 (%)")
-    recall = models.FloatField(null=True, blank=True, verbose_name="재현율 (%)")
-    map_score = models.FloatField(null=True, blank=True, verbose_name="mAP 점수")
-    inference_time = models.FloatField(
-        null=True, blank=True, verbose_name="추론 시간 (ms)"
+    training_epochs = models.IntegerField(default=0, verbose_name="학습 에포크")
+    performance_metrics = models.JSONField(
+        default=dict, blank=True, verbose_name="성능 지표"
     )
 
-    # 메타데이터
-    author = models.CharField(max_length=100, blank=True, verbose_name="작성자")
-    tags = models.JSONField(default=list, blank=True, verbose_name="태그")
+    # 추가 설정
     config = models.JSONField(default=dict, blank=True, verbose_name="설정")
 
     # 상태
     is_active = models.BooleanField(default=True, verbose_name="활성화")
-    is_validated = models.BooleanField(default=False, verbose_name="검증됨")
 
     # 통계
     usage_count = models.IntegerField(default=0, verbose_name="사용 횟수")
@@ -194,7 +198,7 @@ class CustomModel(models.Model):
         return self.name
 
     def get_model_path(self):
-        """실제 모델 파일 경로 반환"""
+        """실제 모델 경로 반환"""
         if self.model_file:
             return self.model_file.path
         return None
@@ -213,37 +217,16 @@ class CustomModel(models.Model):
         self.usage_count += 1
         self.save(update_fields=["usage_count", "updated_at"])
 
-    def validate_model(self):
-        """모델 검증"""
-        try:
-            # 파일 존재 확인
-            if not os.path.exists(self.get_model_path()):
-                return False, "모델 파일을 찾을 수 없습니다"
-
-            # 파일 크기 확인
-            if self.file_size == 0:
-                return False, "모델 파일이 비어있습니다"
-
-            # 추가 검증 로직...
-
-            self.is_validated = True
-            self.save(update_fields=["is_validated", "updated_at"])
-            return True, "모델 검증 완료"
-
-        except Exception as e:
-            return False, f"검증 실패: {str(e)}"
-
-
-class ModelCategory(models.Model):
-    """모델 카테고리 (선택적)"""
-
-    name = models.CharField(max_length=100, unique=True, verbose_name="카테고리 이름")
-    description = models.TextField(blank=True, verbose_name="설명")
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name="생성일")
-
-    class Meta:
-        verbose_name = "모델 카테고리"
-        verbose_name_plural = "모델 카테고리들"
-
-    def __str__(self):
-        return self.name
+    def delete(self, *args, **kwargs):
+        """삭제 시 모델 파일도 함께 삭제"""
+        # 모델 파일 삭제
+        if self.model_file:
+            try:
+                if os.path.exists(self.model_file.path):
+                    os.remove(self.model_file.path)
+                    print(f"✅ 모델 파일 삭제: {self.model_file.path}")
+            except Exception as e:
+                print(f"⚠️ 모델 파일 삭제 실패: {e}")
+        
+        # CASCADE로 설정했으므로 관련 Detection은 자동 삭제됨
+        super().delete(*args, **kwargs)

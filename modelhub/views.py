@@ -13,6 +13,9 @@ import os
 
 def model_list(request):
     """전체 모델 목록 (통합 - 탭으로 구분)"""
+    # 탭 파라미터 가져오기 (기본값: all)
+    tab = request.GET.get("tab", "all")
+    
     base_models = BaseModel.objects.filter(is_active=True).order_by(
         "-is_default", "-created_at"
     )
@@ -28,6 +31,7 @@ def model_list(request):
         "total_models": total_models,
         "total_base": total_base,
         "total_custom": total_custom,
+        "tab": tab,  # 탭 상태 전달
     }
     return render(request, "modelhub/model_list.html", context)
 

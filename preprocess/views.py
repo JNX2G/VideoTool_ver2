@@ -632,7 +632,7 @@ class CancelTaskView(View):
         content_type = task.get_content_type()
         content_id = content.id if content else None
         
-        # ⭐ 일시적으로 'cancelled'로 변경 (백그라운드 스레드 중단용)
+        # 일시적으로 'cancelled'로 변경 (백그라운드 스레드 중단용)
         task.status = 'cancelled'
         task.save()
         
@@ -642,7 +642,7 @@ class CancelTaskView(View):
         import time
         time.sleep(0.5)
         
-        # ⭐ 'ready' 상태로 변경 (편집 가능하도록)
+        # 'ready' 상태로 변경 (편집 가능하도록)
         task.refresh_from_db()
         task.status = 'ready'
         task.progress = 0
@@ -675,7 +675,7 @@ class CancelTaskView(View):
         
         # AJAX 응답
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            # ⭐ preprocessing.html로 리다이렉트 (편집 가능)
+            # preprocessing.html로 리다이렉트 (편집 가능)
             return JsonResponse({
                 'success': True,
                 'message': '작업이 취소되었습니다. 파이프라인을 수정하고 다시 시작할 수 있습니다.',
@@ -685,5 +685,5 @@ class CancelTaskView(View):
         
         messages.warning(request, '작업이 취소되었습니다. 파이프라인을 수정하고 다시 시작할 수 있습니다.')
         
-        # ⭐ preprocessing.html로 리다이렉트 (편집 가능)
+        # preprocessing.html로 리다이렉트 (편집 가능)
         return redirect(f'/preprocess/start/{content_id}/?type={content_type}')

@@ -68,7 +68,7 @@ class BaseModelForm(forms.ModelForm):
 
 
 class CustomModelForm(forms.ModelForm):
-    """커스텀 모델 폼"""
+    """커스텀 모델 폼 - CustomModel의 실제 필드에 맞춰 수정"""
 
     class Meta:
         model = CustomModel
@@ -77,18 +77,11 @@ class CustomModelForm(forms.ModelForm):
             "description",
             "model_file",
             "model_type",
-            "framework",
-            "version",
-            "dataset_name",
-            "classes",
-            "num_classes",
-            "accuracy",
-            "precision",
-            "recall",
-            "map_score",
-            "author",
-            "tags",
+            "training_dataset",
+            "training_epochs",
+            "performance_metrics",
             "config",
+            "is_active",
         ]
         widgets = {
             "name": forms.TextInput(
@@ -107,88 +100,93 @@ class CustomModelForm(forms.ModelForm):
             "model_type": forms.TextInput(
                 attrs={"class": "form-control", "placeholder": "예: yolo, custom"}
             ),
-            "framework": forms.TextInput(
-                attrs={
-                    "class": "form-control",
-                    "placeholder": "예: PyTorch, TensorFlow",
-                }
-            ),
-            "version": forms.TextInput(
-                attrs={"class": "form-control", "placeholder": "모델 버전"}
-            ),
-            "dataset_name": forms.TextInput(
+            "training_dataset": forms.TextInput(
                 attrs={
                     "class": "form-control",
                     "placeholder": "학습에 사용한 데이터셋 이름",
                 }
             ),
-            "num_classes": forms.NumberInput(
-                attrs={"class": "form-control", "placeholder": "탐지 가능한 클래스 수"}
+            "training_epochs": forms.NumberInput(
+                attrs={"class": "form-control", "placeholder": "학습 에포크 수"}
             ),
-            "accuracy": forms.NumberInput(
-                attrs={
-                    "class": "form-control",
-                    "step": "0.01",
-                    "placeholder": "정확도 (%)",
-                }
-            ),
-            "precision": forms.NumberInput(
-                attrs={
-                    "class": "form-control",
-                    "step": "0.01",
-                    "placeholder": "정밀도 (%)",
-                }
-            ),
-            "recall": forms.NumberInput(
-                attrs={
-                    "class": "form-control",
-                    "step": "0.01",
-                    "placeholder": "재현율 (%)",
-                }
-            ),
-            "map_score": forms.NumberInput(
-                attrs={
-                    "class": "form-control",
-                    "step": "0.01",
-                    "placeholder": "mAP 점수",
-                }
-            ),
-            "author": forms.TextInput(
-                attrs={"class": "form-control", "placeholder": "모델 작성자"}
-            ),
+            "is_active": forms.CheckboxInput(attrs={"class": "form-check-input"}),
         }
 
-    def clean_model_file(self):
-        """모델 파일 검증"""
-        file = self.cleaned_data.get("model_file")
+    # JSONField를 CharField로 오버라이드하여 UI에서 입력 편의성 제공
+    performance_metrics = forms.CharField(
+        required=False,
+        widget=forms.Textarea(attrs={
+            'class': 'form-control font-monospace',
+            'rows': 5,
+            'placeholder': '''예시:
+{
+  "accuracy": 0.95,
+  "precision": 0.92,
+  "recall": 0.90,
+  "map": 0.88
+}'''
+        }),
+        help_text="JSON 형식으로 성능 지표를 입력하세요"
+    )
+    
+    config = forms.CharField(
+        required=False,
+        widget=forms.Textarea(attrs={
+            'class': 'form-control font-monospace',
+            'rows': 5,
+            'placeholder': '''예시:
+{
+  "conf_threshold": 0.25,
+  "iou_threshold": 0.45
+}'''
+        }),
+        help_text="JSON 형식으로 추가 설정을 입력하세요"
+    )
 
+    def clean_performance_metrics(self):
+        """JSON 형식 검증"""
+        import json
+        data = self.cleaned_data.get('performance_metrics', '').strip()
+        
+        if not data:
+            return {}
+        
+        try:
+            return json.loads(data)
+        except json.JSONDecodeError as e:
+            raise ValidationError(f"올바른 JSON 형식이 아닙니다: {e}")
+
+    def clean_config(self):
+        """JSON 형식 검증"""
+        import json
+        data = self.cleaned_data.get('config', '').strip()
+        
+        if not data:
+            return {}
+        
+        try:
+            return json.loads(data)
+        except json.JSONDecodeError as e:
+            raise ValidationError(f"올바른 JSON 형식이 아닙니다: {e}")
+
+    def clean_model_file(self):
+        """파일 크기 및 형식 검증"""
+        file = self.cleaned_data.get("model_file")
+        
         if file:
-            # 파일 크기 체크 (500MB)
+            # 최대 파일 크기: 500MB
             max_size = 500 * 1024 * 1024
             if file.size > max_size:
-                raise ValidationError(
-                    f"모델 파일 크기는 500MB를 초과할 수 없습니다. "
-                    f"(현재: {file.size / 1024 / 1024:.2f}MB)"
-                )
-
-            # 파일 확장자 검증
+                raise ValidationError("모델 파일 크기는 500MB를 초과할 수 없습니다.")
+            
+            # 허용된 확장자
             ext = os.path.splitext(file.name)[1].lower()
             allowed_extensions = [".pt", ".pth", ".onnx", ".h5", ".pb"]
-
+            
             if ext not in allowed_extensions:
                 raise ValidationError(
                     f"허용되지 않는 파일 형식입니다. "
                     f'허용 형식: {", ".join(allowed_extensions)}'
                 )
-
+        
         return file
-
-    def clean(self):
-        cleaned_data = super().clean()
-        model_file = cleaned_data.get("model_file")
-
-        # 커스텀 모델은 파일 필수
-        if not model_file:
-            raise ValidationError("커스텀 모델은 파일 업로드가 필수입니다.")
-
-        return cleaned_data

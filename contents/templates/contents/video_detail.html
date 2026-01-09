@@ -47,7 +47,7 @@
     <!-- 6단계: 탐지 결과 (비활성화) -->
     <li class="custom-breadcrumb-item disabled">
         <span class="text-muted">
-            <i class="bi bi-clipboard-data"></i> 탐지 결과
+            <i class="bi bi-clipboard-data"></i> 모델 결과
         </span>
     </li>
 {% endblock %}
@@ -198,7 +198,7 @@
                                             <i class="bi bi-pencil-square"></i> 편집
                                         </a>
                                         {% endif %}
-                                        <a href="{#{% url 'vision_engine:select_model' task.id %}#}" 
+                                        <a href="{% url 'vision_engine:select_model' task.id %}" 
                                         class="btn btn-outline-success btn-sm">
                                             <i class="bi bi-cpu"></i> 모델 적용
                                         </a>
@@ -295,12 +295,12 @@
                                                     <td>
                                                         <div class="btn-group btn-group-sm" role="group">
                                                             {% if detection.status == 'completed' %}
-                                                                <a href="{#{% url 'vision_engine:detection_result' detection.id %}#}" 
+                                                                <a href="{% url 'vision_engine:detection_result' detection.id %}" 
                                                                     class="btn btn-outline-primary">
                                                                     <i class="bi bi-eye"></i> 결과
                                                                 </a>
                                                             {% elif detection.status == 'processing' %}
-                                                                <a href="{#{% url 'vision_engine:detection_progress' detection.id %}#}" 
+                                                                <a href="{% url 'vision_engine:detection_progress' detection.id %}" 
                                                                     class="btn btn-outline-primary">
                                                                     <i class="bi bi-hourglass-split"></i> 진행
                                                                 </a>
@@ -326,7 +326,7 @@
                                             <i class="bi bi-inbox text-muted" style="font-size: 2rem;"></i>
                                             <p class="mb-2 text-muted">아직 탐지 이력이 없습니다.</p>
                                             {% if task.status == 'completed' %}
-                                                <a href="{#{% url 'vision_engine:select_model' task.id %}#}" class="btn btn-sm btn-success">
+                                                <a href="{% url 'vision_engine:select_model' task.id %}" class="btn btn-sm btn-success">
                                                     <i class="bi bi-plus-circle"></i> 첫 탐지 작업 시작하기
                                                 </a>
                                             {% else %}
@@ -339,7 +339,7 @@
                                 <!-- 새 탐지 작업 추가 버튼 -->
                                 {% if task.status == 'completed' and task.detections.exists %}
                                 <div class="text-center mt-3">
-                                    <a href="{#{% url 'vision_engine:select_model' task.id %}#}" class="btn btn-sm btn-outline-success">
+                                    <a href="{% url 'vision_engine:select_model' task.id %}" class="btn btn-sm btn-outline-success">
                                         <i class="bi bi-plus-circle"></i> 새 탐지 작업 추가
                                     </a>
                                 </div>

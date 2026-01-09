@@ -31,7 +31,7 @@
         <span class="text-muted"><i class="bi bi-play-circle-fill"></i> 모델 실행</span>
     </li>
     <li class="custom-breadcrumb-item disabled">
-        <span class="text-muted"><i class="bi bi-clipboard-data"></i> 탐지 결과</span>
+        <span class="text-muted"><i class="bi bi-clipboard-data"></i> 모델 결과</span>
     </li>
 {% endblock %}
 
@@ -204,7 +204,7 @@
     <div class="card-body">
         <div class="d-grid gap-2 d-md-flex justify-content-md-center">
             {% if task.status == 'completed' %}
-            <a href="#" class="btn btn-primary px-4" style="border-radius: 8px;">
+            <a href="{% url 'vision_engine:select_model' task.id %}" class="btn btn-primary px-4" style="border-radius: 8px;">
                 <i class="bi bi-cpu-fill"></i> 객체 탐지 시작
             </a>
             {% endif %}
@@ -218,6 +218,7 @@
         </div>
     </div>
 </div>
+
 
 <style>
 /* 슬라이더 커스텀 스타일 */
@@ -296,7 +297,7 @@ document.addEventListener('DOMContentLoaded', function() {
         processedVideo.currentTime = targetTime;
     });
 
-    // 3. 개별 슬라이더 - 원본만 이동
+    // 3. 개별 슬라이더 - 원본만 이동개
     originalSeekBar.addEventListener('input', () => {
         originalVideo.currentTime = originalSeekBar.value;
     });

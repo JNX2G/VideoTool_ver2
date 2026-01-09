@@ -1,0 +1,125 @@
+{% extends 'contents/base.html' %}
+
+{% block title %}탐지 실행{% endblock %}
+
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="custom-breadcrumb-item">
+            <a href="{% url 'content_list' %}">
+                <i class="bi bi-collection-play"></i> 콘텐츠 목록
+            </a>
+        </li>
+        <li class="custom-breadcrumb-item">
+            {% if content_type == 'video' %}
+            <a href="{% url 'video_detail' content.id %}">
+                <i class="bi bi-camera-video"></i> 동영상 상세
+            </a>
+            {% else %}
+            <a href="{% url 'image_detail' content.id %}">
+                <i class="bi bi-image"></i> 이미지 상세
+            </a>
+            {% endif %}
+        </li>
+        <li class="custom-breadcrumb-item">
+            <a href="{% url 'preprocess:start_preprocessing' content.id %}">
+                <i class="bi bi-layers-half"></i> 전처리
+            </a>
+        </li>
+        <li class="custom-breadcrumb-item">
+            <a href="{% url 'preprocess:preprocessing_result' task.id %}">
+                <i class="bi bi-clipboard-data"></i> 전처리 결과
+            </a>
+        </li>
+        <li class="custom-breadcrumb-item">
+            <a href="{% url 'vision_engine:select_model' task.id %}">
+                <i class="bi bi-cpu-fill"></i> 모델 선택
+            </a>
+        </li>
+        <li class="custom-breadcrumb-item active">
+            <a href="#">
+                <i class="bi bi-play-circle-fill"></i> 모델 실행
+            </a>
+        </li>
+        <li class="custom-breadcrumb-item disabled">
+            <span><i class="bi bi-clipboard-data"></i> 모델 결과</span>
+        </li>
+    </ol>
+</nav>
+{% endblock breadcrumb %}
+
+{% block content %}
+<div class="container" style="max-width: 800px;">
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0"><i class="bi bi-play-circle-fill"></i> 객체 탐지 실행 확인</h5>
+        </div>
+        <div class="card-body">
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle"></i> 
+                <strong>안내:</strong> 선택한 모델로 객체 탐지를 시작합니다. 처리 시간은 콘텐츠 길이와 모델에 따라 다를 수 있습니다.
+            </div>
+
+            <h6 class="mt-4 mb-3">탐지 작업 정보</h6>
+            <table class="table table-borderless">
+                <tbody>
+                    <tr>
+                        <th width="30%">작업 제목:</th>
+                        <td>{{ detection.title }}</td>
+                    </tr>
+                    {% if detection.description %}
+                    <tr>
+                        <th>설명:</th>
+                        <td>{{ detection.description }}</td>
+                    </tr>
+                    {% endif %}
+                    <tr>
+                        <th>콘텐츠:</th>
+                        <td>
+                            {% if content_type == 'video' %}
+                                <i class="bi bi-camera-video text-primary"></i> {{ content.title }}
+                            {% else %}
+                                <i class="bi bi-image text-success"></i> {{ content.title }}
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>전처리 파이프라인:</th>
+                        <td>
+                            {% if task.preprocessing_pipeline %}
+                                {{ task.preprocessing_pipeline|length }}개 단계 적용됨
+                            {% else %}
+                                전처리 생략 (원본 사용)
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>선택된 모델:</th>
+                        <td>
+                            <strong>{{ detection.get_model_name }}</strong>
+                            {% if detection.base_model %}
+                                <span class="badge bg-success">빌트인</span>
+                            {% else %}
+                                <span class="badge bg-info">커스텀</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <form method="post" class="mt-4">
+                {% csrf_token %}
+                
+                <div class="d-grid gap-2">
+                    <button type="submit" class="btn btn-primary btn-lg">
+                        <i class="bi bi-play-circle-fill"></i> 탐지 시작
+                    </button>
+                    <a href="{% url 'vision_engine:select_model' task.id %}" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-left"></i> 모델 다시 선택
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

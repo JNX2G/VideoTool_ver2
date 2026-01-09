@@ -1,0 +1,96 @@
+{% extends 'contents/base.html' %}
+
+{% block title %}모델 추가{% endblock %}
+
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="custom-breadcrumb-item">
+            <a href="{% url 'modelhub:model_list' %}">
+                <i class="bi bi-box-seam"></i> 모델 허브
+            </a>
+        </li>
+        <li class="custom-breadcrumb-item active">
+            <a href="{% url 'modelhub:model_add'%}">
+                <i class="bi bi-plus-circle"></i> 모델 추가
+            </a>
+        </li>
+    </ol>
+</nav>
+{% endblock breadcrumb %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <!-- 기본 모델 추가 -->
+        <div class="col-md-6 mb-4">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body text-center">
+                    <div class="mb-4">
+                        <i class="bi bi-lightning-charge-fill text-info" style="font-size: 4rem;"></i>
+                    </div>
+                    <h4 class="card-title"> 빌트인 모델</h4>
+                    <p class="card-text text-muted">
+                        사전에 업로드된 모델을 활용합니다.<br>
+                        현재 YOLOv8 모델을 활용 가능합니다.
+                    </p>
+                    <ul class="list-unstyled text-start">
+                        <li><i class="bi bi-check-circle-fill text-info"></i> YOLOv8 nano ~ xlarge</li>
+                        <li><i class="bi bi-check-circle-fill text-info"></i> 80개 클래스 지원 (COCO)</li>
+                        <li><i class="bi bi-check-circle-fill text-info"></i> 자동 다운로드</li>
+                        <li><i class="bi bi-check-circle-fill text-info"></i> 즉시 사용 가능</li>
+                    </ul>
+                </div>
+                <div class="card-footer bg-transparent border-0 text-center pb-4">
+                    <a href="{% url 'modelhub:base_model_add' %}" class="btn btn-info btn-lg">
+                        <i class="bi bi-arrow-right-circle"></i> 기본 모델 추가
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- 커스텀 모델 업로드 -->
+        <div class="col-md-6 mb-4">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body text-center">
+                    <div class="mb-4">
+                        <i class="bi bi-cloud-upload-fill text-warning" style="font-size: 4rem;"></i>
+                    </div>
+                    <h4 class="card-title">커스텀 모델</h4>
+                    <p class="card-text text-muted">
+                        직접 학습시킨 모델 파일을 업로드합니다.<br>
+                        특정 도메인이나 맞춤형 객체 탐지에 적합합니다.
+                    </p>
+                    <ul class="list-unstyled text-start">
+                        <li><i class="bi bi-check-circle-fill text-warning"></i> PyTorch (.pt, .pth)</li>
+                        <li><i class="bi bi-check-circle-fill text-warning"></i> ONNX (.onnx)</li>
+                        <li><i class="bi bi-check-circle-fill text-warning"></i> TensorFlow (.h5, .pb)</li>
+                        <li><i class="bi bi-check-circle-fill text-warning"></i> 성능 지표 기록</li>
+                    </ul>
+                </div>
+                <div class="card-footer bg-transparent border-0 text-center pb-4">
+                    <a href="{% url 'modelhub:custom_model_add' %}" class="btn btn-warning btn-lg">
+                        <i class="bi bi-arrow-right-circle"></i> 커스텀 모델 업로드
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-md-12">
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle-fill"></i> 
+                <strong>안내:</strong> 
+                모델 추가 후 탐지 작업에서 선택하여 사용할 수 있습니다.
+            </div>
+        </div>
+    </div>
+
+    <div class="text-center mt-3">
+        <a href="{% url 'modelhub:model_list' %}" class="btn btn-secondary">
+            <i class="bi bi-list"></i> 목록으로
+        </a>
+    </div>
+</div>
+{% endblock %}

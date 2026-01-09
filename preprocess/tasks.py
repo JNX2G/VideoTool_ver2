@@ -42,7 +42,7 @@ def process_preprocessing_task(task_id):
         input_path = content.file.path
         
         # 출력 파일 경로 생성
-        output_dir = Path(settings.RESULTS_ROOT) / content_type / str(content.id)
+        output_dir = Path(settings.RESULTS_ROOT) / 'preprocess' / str(content.id)
         output_dir.mkdir(parents=True, exist_ok=True)
         
         input_filename = Path(input_path).stem

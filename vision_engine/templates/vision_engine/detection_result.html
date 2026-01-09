@@ -1,0 +1,411 @@
+{% extends 'contents/base.html' %}
+{% load static %}
+
+{% block title %}모델 결과{% endblock %}
+
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="custom-breadcrumb-item">
+            <a href="{% url 'content_list' %}">
+                <i class="bi bi-collection-play"></i> 콘텐츠 목록
+            </a>
+        </li>
+        <li class="custom-breadcrumb-item">
+            {% if detection.get_content_type == 'video' %}
+            <a href="{% url 'video_detail' detection.get_content.id %}">
+                <i class="bi bi-camera-video"></i> 동영상 상세
+            </a>
+            {% else %}
+            <a href="{% url 'image_detail' detection.get_content.id %}">
+                <i class="bi bi-image"></i> 이미지 상세
+            </a>
+            {% endif %}
+        </li>
+        <li class="custom-breadcrumb-item">
+            <a href="{% url 'preprocess:start_preprocessing' detection.get_content.id %}">
+                <i class="bi bi-layers-half"></i> 전처리
+            </a>
+        </li>
+        <li class="custom-breadcrumb-item">
+            <a href="{% url 'preprocess:preprocessing_result' task.id %}">
+                <i class="bi bi-clipboard-data"></i> 전처리 결과
+            </a>
+        </li>
+        <li class="custom-breadcrumb-item">
+            <a href="{% url 'vision_engine:select_model' task.id %}">
+                <i class="bi bi-cpu-fill"></i> 모델 선택
+            </a>
+        </li>
+        <li class="custom-breadcrumb-item">
+            <a href="{% url 'vision_engine:execute_detection' detection.id %}">
+                <i class="bi bi-play-circle-fill"></i> 모델 실행
+            </a>
+        </li>
+        <li class="custom-breadcrumb-item active">
+            <a href="#">
+                <i class="bi bi-clipboard-data"></i> 모델 결과
+            </a>
+        </li>
+    </ol>
+</nav>
+{% endblock breadcrumb %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- 상단 정보 카드 -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="bi bi-check-circle-fill"></i> 모델 적용 완료</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="mb-3">작업 정보</h6>
+                            <table class="table table-borderless table-sm">
+                                <tbody>
+                                    <tr>
+                                        <th width="35%">작업 제목:</th>
+                                        <td>{{ detection.title }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>콘텐츠:</th>
+                                        <td>{{ detection.get_content.title }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>사용 모델:</th>
+                                        <td>{{ detection.get_model_name }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>실행 시간:</th>
+                                        <td>{{ detection.get_duration_display }}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="mb-3">모델 결과 통계</h6>
+                            <table class="table table-borderless table-sm">
+                                <tbody>
+                                    <tr>
+                                        <th width="35%">총 탐지 수:</th>
+                                        <td><span class="badge bg-primary fs-6">{{ detection.total_detections }}</span></td>
+                                    </tr>
+                                    <tr>
+                                        <th>처리 프레임:</th>
+                                        <td>{{ detection.total_frames }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>탐지 클래스:</th>
+                                        <td>{{ summary_stats|length }}개</td>
+                                    </tr>
+                                    <tr>
+                                        <th>생성일:</th>
+                                        <td>{{ detection.created_at|date:"Y-m-d H:i" }}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ⭐ 비디오/이미지 비교 -->
+    <div class="row row-cols-1 row-cols-md-2 g-4 mb-4">
+        <!-- 전처리 결과 -->
+        <div class="col">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-header bg-white py-3">
+                    <h6 class="mb-0 fw-bold">
+                        <i class="bi bi-layers-half"></i> 전처리 결과
+                    </h6>
+                </div>
+                <div class="card-body d-flex flex-column">
+                    <div class="flex-grow-1 rounded overflow-hidden" style="min-height: 300px;">
+                        {% if content_type == 'video' %}
+                            <video id="preprocessedVideo" width="100%" preload="metadata" style="display: block; width: 100%;">
+                                <source src="{% url 'preprocess:serve_preprocessed_video' task.id %}" type="video/mp4">
+                            </video>
+                        {% else %}
+                            <img src="{% url 'preprocess:serve_preprocessed_image' task.id %}" 
+                                 class="w-100" 
+                                 alt="전처리 결과"
+                                 style="display: block; height: auto; object-fit: contain;">
+                        {% endif %}
+                    </div>
+                    
+                    {% if content_type == 'video' %}
+                    <div class="mt-3 px-1">
+                        <div class="d-flex align-items-center gap-2">
+                            <small class="text-secondary fw-bold" style="min-width: 60px;">전처리</small>
+                            <input type="range" id="preprocessedSeekBar" class="form-range individual-range flex-grow-1" value="0" step="0.01">
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <div class="mt-3">
+                        <p class="text-muted mb-1 small">
+                            <i class="bi bi-check-circle text-success"></i> 전처리 완료
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 탐지 결과 -->
+        <div class="col">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-header bg-white py-3 text-success">
+                    <h6 class="mb-0 fw-bold">
+                        <i class="bi bi-check-circle"></i> 탐지 결과
+                    </h6>
+                </div>
+                <div class="card-body d-flex flex-column">
+                    <div class="flex-grow-1 rounded overflow-hidden" style="min-height: 300px;">
+                        {% if content_type == 'video' %}
+                            <video id="detectedVideo" width="100%" preload="metadata" style="display: block; width: 100%;">
+                                <source src="{{ output_url }}" type="video/mp4">
+                            </video>
+                        {% else %}
+                            <img src="{{ output_url }}" 
+                                 class="w-100" 
+                                 alt="탐지 결과"
+                                 style="display: block; height: auto; object-fit: contain;">
+                        {% endif %}
+                    </div>
+
+                    {% if content_type == 'video' %}
+                    <div class="mt-3 px-1">
+                        <div class="d-flex align-items-center gap-2">
+                            <small class="text-success fw-bold" style="min-width: 60px;">탐지</small>
+                            <input type="range" id="detectedSeekBar" class="form-range individual-range flex-grow-1" value="0" step="0.01">
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <div class="mt-3">
+                        <p class="text-muted mb-1 small">
+                            <i class="bi bi-box-seam text-success"></i> 총 {{ detection.total_detections }}개 탐지
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if content_type == 'video' %}
+    <!-- ⭐ 마스터 컨트롤 (동기화) -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card border-0 shadow-sm bg-light" style="border-radius: 10px;">
+                <div class="card-body py-2 px-3">
+                    <div class="d-flex align-items-center gap-3">
+                        <button id="masterPlayBtn" class="btn btn-sm d-flex align-items-center justify-content-center shadow-sm" 
+                                style="width: 36px; height: 36px; border-radius: 50%; background-color: #fff; border: 1px solid #dee2e6; color: #495057;">
+                            <i class="bi bi-play-fill"></i>
+                        </button>
+                        
+                        <div class="flex-grow-1 position-relative d-flex align-items-center">
+                            <input type="range" id="masterSeekBar" class="form-range custom-range" value="0" step="0.01" max="100">
+                        </div>
+                        
+                        <div class="text-secondary small fw-light" style="font-variant-numeric: tabular-nums; min-width: 90px; text-align: center;">
+                            <span id="currentTime">0:00</span> / <span id="totalTime">0:00</span>
+                        </div>
+                        
+                        <button id="syncVideosBtn" class="btn btn-link btn-sm text-secondary p-0" title="싱크 강제 맞춤">
+                            <i class="bi bi-arrow-repeat" style="font-size: 1.1rem;"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- ⭐ 탐지 상세 통계 -->
+    {% if summary_stats %}
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-bar-chart-fill"></i> 클래스별 탐지 통계</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>클래스</th>
+                                    <th>탐지 수</th>
+                                    <th>비율</th>
+                                    <th>그래프</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for stat in summary_stats %}
+                                <tr>
+                                    <td><strong>{{ stat.label }}</strong></td>
+                                    <td>{{ stat.count }}</td>
+                                    <td>
+                                        {% widthratio stat.count detection.total_detections 100 %}%
+                                    </td>
+                                    <td>
+                                        <div class="progress" style="height: 20px;">
+                                            <div class="progress-bar bg-success" 
+                                                 role="progressbar" 
+                                                 style="width: {% widthratio stat.count detection.total_detections 100 %}%"
+                                                 aria-valuenow="{% widthratio stat.count detection.total_detections 100 %}" 
+                                                 aria-valuemin="0" 
+                                                 aria-valuemax="100">
+                                                {% widthratio stat.count detection.total_detections 100 %}%
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- 액션 버튼 -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="d-flex gap-2 justify-content-center">
+                <a href="{% url 'vision_engine:select_model' task.id %}" class="btn btn-primary">
+                    <i class="bi bi-arrow-clockwise"></i> 다른 모델로 탐지
+                </a>
+                <a href="{% url 'preprocess:preprocessing_result' task.id %}" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left"></i> 전처리 결과로
+                </a>
+                <a href="{% url 'vision_engine:detection_delete' detection.id %}" class="btn btn-outline-danger">
+                    <i class="bi bi-trash"></i> 모델 결과 삭제
+                </a>
+            </div>
+        </div>
+    </div>
+    <div></div>
+</div>
+
+<style>
+/* 슬라이더 커스텀 스타일 */
+.custom-range { height: 6px; padding: 0; }
+.custom-range::-webkit-slider-runnable-track { background-color: #dee2e6; height: 6px; border-radius: 3px; }
+.custom-range::-webkit-slider-thumb { 
+    width: 16px; height: 16px; margin-top: -5px; 
+    background-color: #0d6efd; border: 2px solid #fff; 
+    border-radius: 50%; box-shadow: 0 1px 3px rgba(0,0,0,0.2); appearance: none;
+}
+
+/* 개별 슬라이더 스타일 */
+.individual-range { height: 4px; padding: 0; }
+.individual-range::-webkit-slider-runnable-track { background-color: #e9ecef; height: 4px; border-radius: 2px; }
+.individual-range::-webkit-slider-thumb {
+    width: 12px; height: 12px; margin-top: -4px;
+    background-color: #adb5bd; border: 1px solid #fff;
+    border-radius: 50%; appearance: none;
+}
+
+.card { transition: transform 0.2s; }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const contentType = "{{ content_type }}";
+    if (contentType !== 'video') return;
+
+    const preprocessedVideo = document.getElementById('preprocessedVideo');
+    const detectedVideo = document.getElementById('detectedVideo');
+    
+    const masterSeekBar = document.getElementById('masterSeekBar');
+    const preprocessedSeekBar = document.getElementById('preprocessedSeekBar');
+    const detectedSeekBar = document.getElementById('detectedSeekBar');
+    
+    const masterPlayBtn = document.getElementById('masterPlayBtn');
+    const currentTimeText = document.getElementById('currentTime');
+    const totalTimeText = document.getElementById('totalTime');
+    const syncBtn = document.getElementById('syncVideosBtn');
+
+    function formatTime(seconds) {
+        const min = Math.floor(seconds / 60);
+        const sec = Math.floor(seconds % 60);
+        return `${min}:${sec < 10 ? '0' + sec : sec}`;
+    }
+
+    // 메타데이터 로드 시 전체 시간 설정
+    detectedVideo.addEventListener('loadedmetadata', () => {
+        const duration = detectedVideo.duration;
+        masterSeekBar.max = duration;
+        detectedSeekBar.max = duration;
+        totalTimeText.innerText = formatTime(duration);
+    });
+
+    preprocessedVideo.addEventListener('loadedmetadata', () => {
+        preprocessedSeekBar.max = preprocessedVideo.duration;
+    });
+
+    // 1. 마스터 플레이 버튼 (동시 재생/정지)
+    masterPlayBtn.addEventListener('click', () => {
+        if (detectedVideo.paused) {
+            preprocessedVideo.play();
+            detectedVideo.play();
+            masterPlayBtn.innerHTML = '<i class="bi bi-pause-fill"></i>';
+        } else {
+            preprocessedVideo.pause();
+            detectedVideo.pause();
+            masterPlayBtn.innerHTML = '<i class="bi bi-play-fill"></i>';
+        }
+    });
+
+    // 2. 통합 슬라이더 (마스터) - 두 비디오 동시 이동
+    masterSeekBar.addEventListener('input', () => {
+        const targetTime = masterSeekBar.value;
+        preprocessedVideo.currentTime = targetTime;
+        detectedVideo.currentTime = targetTime;
+    });
+
+    // 3. 개별 슬라이더 - 전처리만 이동
+    preprocessedSeekBar.addEventListener('input', () => {
+        preprocessedVideo.currentTime = preprocessedSeekBar.value;
+    });
+
+    // 4. 개별 슬라이더 - 탐지만 이동
+    detectedSeekBar.addEventListener('input', () => {
+        detectedVideo.currentTime = detectedSeekBar.value;
+    });
+
+    // 5. 비디오 상태 업데이트 (진행바 동기화)
+    preprocessedVideo.addEventListener('timeupdate', () => {
+        preprocessedSeekBar.value = preprocessedVideo.currentTime;
+    });
+
+    detectedVideo.addEventListener('timeupdate', () => {
+        detectedSeekBar.value = detectedVideo.currentTime;
+        masterSeekBar.value = detectedVideo.currentTime;
+        currentTimeText.innerText = formatTime(detectedVideo.currentTime);
+        
+        // 재생 중일 때만 자동 싱크 유지 (0.5초 이상 벌어지면 보정)
+        if (!detectedVideo.paused) {
+            if (Math.abs(preprocessedVideo.currentTime - detectedVideo.currentTime) > 0.5) {
+                preprocessedVideo.currentTime = detectedVideo.currentTime;
+            }
+        }
+    });
+
+    // 6. 싱크 강제 맞춤 버튼 (전처리를 탐지에 맞춤)
+    syncBtn.addEventListener('click', () => {
+        preprocessedVideo.currentTime = detectedVideo.currentTime;
+        if (!detectedVideo.paused) preprocessedVideo.play();
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,235 @@
+{% extends 'contents/base.html' %}
+
+{% block title %}커스텀 모델 업로드{% endblock %}
+
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="custom-breadcrumb-item">
+            <a href="{% url 'modelhub:model_list' %}">
+                <i class="bi bi-box-seam"></i> 모델 허브
+            </a>
+        </li>
+        <li class="custom-breadcrumb-item">
+            <a href="{% url 'modelhub:model_add'%}">
+                <i class="bi bi-plus-circle"></i> 모델 추가
+            </a>
+        </li>
+        <li class="custom-breadcrumb-item active">
+            <a href="#">
+                <i class="bi bi-plus-circle"></i> 커스텀 모델 추가
+            </a>
+        </li>
+    </ol>
+</nav>
+{% endblock breadcrumb %}
+
+{% block content %}
+<div class="container">
+    <div class="card">
+        <div class="card-body">
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                
+                <div class="row">
+                    <!-- 왼쪽 컬럼: 기본 정보 -->
+                    <div class="col-md-6">
+                        <h5 class="mb-3">기본 정보</h5>
+                        
+                        <!-- 모델 이름 -->
+                        <div class="mb-3">
+                            <label for="{{ form.name.id_for_label }}" class="form-label">
+                                모델 이름 <span class="text-danger">*</span>
+                            </label>
+                            {{ form.name }}
+                            {% if form.name.errors %}
+                                <div class="text-danger">{{ form.name.errors }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- 모델 파일 -->
+                        <div class="mb-3">
+                            <label for="{{ form.model_file.id_for_label }}" class="form-label">
+                                모델 파일 <span class="text-danger">*</span>
+                            </label>
+                            {{ form.model_file }}
+                            {% if form.model_file.errors %}
+                                <div class="text-danger">{{ form.model_file.errors }}</div>
+                            {% endif %}
+                            <div class="form-text">
+                                지원 형식: .pt, .pth, .onnx, .h5, .pb (최대 500MB)
+                            </div>
+                        </div>
+
+                        <!-- 설명 -->
+                        <div class="mb-3">
+                            <label for="{{ form.description.id_for_label }}" class="form-label">
+                                설명
+                            </label>
+                            {{ form.description }}
+                        </div>
+
+                        <!-- 모델 타입 -->
+                        <div class="mb-3">
+                            <label for="{{ form.model_type.id_for_label }}" class="form-label">
+                                모델 타입
+                            </label>
+                            {{ form.model_type }}
+                        </div>
+
+                        <!-- 프레임워크 -->
+                        <div class="mb-3">
+                            <label for="{{ form.framework.id_for_label }}" class="form-label">
+                                프레임워크
+                            </label>
+                            {{ form.framework }}
+                            <div class="form-text">예: PyTorch, TensorFlow, ONNX</div>
+                        </div>
+
+                        <!-- 버전 -->
+                        <div class="mb-3">
+                            <label for="{{ form.version.id_for_label }}" class="form-label">
+                                모델 버전
+                            </label>
+                            {{ form.version }}
+                        </div>
+                    </div>
+
+                    <!-- 오른쪽 컬럼: 학습/성능 정보 -->
+                    <div class="col-md-6">
+                        <h5 class="mb-3">학습 정보 (선택)</h5>
+                        
+                        <!-- 데이터셋 이름 -->
+                        <div class="mb-3">
+                            <label for="{{ form.dataset_name.id_for_label }}" class="form-label">
+                                데이터셋 이름
+                            </label>
+                            {{ form.dataset_name }}
+                        </div>
+
+                        <!-- 클래스 수 -->
+                        <div class="mb-3">
+                            <label for="{{ form.num_classes.id_for_label }}" class="form-label">
+                                클래스 수
+                            </label>
+                            {{ form.num_classes }}
+                        </div>
+
+                        <h5 class="mb-3 mt-4">성능 정보 (선택)</h5>
+
+                        <div class="row">
+                            <!-- 정확도 -->
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.accuracy.id_for_label }}" class="form-label">
+                                    정확도 (%)
+                                </label>
+                                {{ form.accuracy }}
+                            </div>
+
+                            <!-- 정밀도 -->
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.precision.id_for_label }}" class="form-label">
+                                    정밀도 (%)
+                                </label>
+                                {{ form.precision }}
+                            </div>
+
+                            <!-- 재현율 -->
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.recall.id_for_label }}" class="form-label">
+                                    재현율 (%)
+                                </label>
+                                {{ form.recall }}
+                            </div>
+
+                            <!-- mAP -->
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.map_score.id_for_label }}" class="form-label">
+                                    mAP 점수
+                                </label>
+                                {{ form.map_score }}
+                            </div>
+                        </div>
+
+                        <!-- 작성자 -->
+                        <div class="mb-3">
+                            <label for="{{ form.author.id_for_label }}" class="form-label">
+                                작성자
+                            </label>
+                            {{ form.author }}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 폼 에러 -->
+                {% if form.non_field_errors %}
+                    <div class="alert alert-danger">
+                        {{ form.non_field_errors }}
+                    </div>
+                {% endif %}
+
+                <!-- 업로드 안내 -->
+                <div class="alert alert-warning mt-3">
+                    <h6><i class="bi bi-exclamation-triangle"></i> 업로드 안내</h6>
+                    <ul class="mb-0">
+                        <li>모델 파일은 필수이며, 최대 500MB까지 업로드 가능합니다</li>
+                        <li>업로드된 파일은 <code>models/custom/YYYY/</code> 디렉토리에 저장됩니다</li>
+                        <li>성능 정보는 선택사항이지만, 입력하면 모델 관리가 용이합니다</li>
+                        <li>업로드 중에는 브라우저를 닫지 마세요</li>
+                    </ul>
+                </div>
+
+                <!-- 버튼 -->
+                <div class="d-flex justify-content-between mt-4">
+                    <a href="{% url 'modelhub:model_list' %}" class="btn btn-secondary">
+                        <i class="bi bi-arrow-left"></i> 취소
+                    </a>
+                    <button type="submit" class="btn btn-info" id="submitBtn">
+                        <i class="bi bi-upload"></i> 업로드
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 지원 형식 안내 -->
+    <div class="card mt-4">
+        <div class="card-header">
+            <h5 class="mb-0">지원하는 모델 형식</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-4">
+                    <h6><i class="bi bi-file-earmark-code text-primary"></i> PyTorch</h6>
+                    <ul>
+                        <li><code>.pt</code> - PyTorch 모델 (권장)</li>
+                        <li><code>.pth</code> - PyTorch 체크포인트</li>
+                    </ul>
+                </div>
+                <div class="col-md-4">
+                    <h6><i class="bi bi-file-earmark-code text-success"></i> TensorFlow</h6>
+                    <ul>
+                        <li><code>.h5</code> - Keras/TensorFlow 모델</li>
+                        <li><code>.pb</code> - TensorFlow SavedModel</li>
+                    </ul>
+                </div>
+                <div class="col-md-4">
+                    <h6><i class="bi bi-file-earmark-code text-info"></i> 기타</h6>
+                    <ul>
+                        <li><code>.onnx</code> - ONNX 모델</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 업로드 진행 표시 -->
+<script>
+document.querySelector('form').addEventListener('submit', function(e) {
+    const submitBtn = document.getElementById('submitBtn');
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>업로드 중...';
+});
+</script>
+{% endblock %}

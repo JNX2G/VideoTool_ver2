@@ -29,7 +29,7 @@ RESULTS_ROOT = os.path.join(BASE_DIR, 'results')
 
 # 모델 파일
 MODELS_ROOT = BASE_DIR / "models"
-DEFAULT_MODELS_DIR = MODELS_ROOT / "default"
+DEFAULT_MODELS_DIR = MODELS_ROOT / "builtin"
 CUSTOM_MODELS_DIR = MODELS_ROOT / "custom"
 
 # 폴더 생성
