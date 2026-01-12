@@ -1,6 +1,5 @@
 """
 전처리 작업 실행 (취소 확인 로직 포함)
-기존 tasks.py의 process_preprocessing_task 함수를 수정하세요.
 """
 import logging
 from pathlib import Path
@@ -41,7 +40,7 @@ def process_preprocessing_task(task_id):
         # 입력 파일 경로
         input_path = content.file.path
         
-        # 출력 파일 경로 생성
+        # ⭐ 출력 파일 경로 생성 - results/preprocess/content_id/
         output_dir = Path(settings.RESULTS_ROOT) / 'preprocess' / str(content.id)
         output_dir.mkdir(parents=True, exist_ok=True)
         
@@ -63,40 +62,28 @@ def process_preprocessing_task(task_id):
                 raise InterruptedError("작업이 취소되었습니다.")
             
             # 진행률 업데이트
+            task.progress = percent
             task.processed_frames = current
             task.total_frames = total
-            task.progress = percent
-            task.save(update_fields=['processed_frames', 'total_frames', 'progress'])
-            
-            if percent % 10 == 0:
-                logger.info(f"⏳ 진행률: {percent}%")
+            task.save(update_fields=['progress', 'processed_frames', 'total_frames'])
         
-        # 전처리 엔진 실행
+        # 전처리 실행
         engine = PreprocessingEngine()
         
         if content_type == 'image':
             engine.process_image(
-                input_path=input_path,
+                input_path=str(input_path),
                 pipeline=pipeline,
-                output_path=output_path,
+                output_path=str(output_path),
                 progress_callback=progress_callback
             )
         else:
-            # 동영상 총 프레임 수 미리 계산
-            import cv2
-            cap = cv2.VideoCapture(str(input_path))
-            total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-            cap.release()
-            
-            task.total_frames = total_frames
-            task.save(update_fields=['total_frames'])
-            
             engine.process_video(
-                input_path=input_path,
+                input_path=str(input_path),
                 pipeline=pipeline,
-                output_path=output_path,
+                output_path=str(output_path),
                 progress_callback=progress_callback,
-                task_id=task_id  # ⭐ task_id 전달
+                task_id=task.id
             )
         
         # ⭐ 완료 전 마지막 취소 확인
@@ -108,23 +95,26 @@ def process_preprocessing_task(task_id):
                 output_path.unlink()
             return
         
-        # 작업 완료
-        task.output_file_path = str(output_path.relative_to(settings.RESULTS_ROOT))
+        # 출력 경로 저장 (RESULTS_ROOT 기준 상대 경로)
+        relative_path = output_path.relative_to(settings.RESULTS_ROOT)
+        task.output_file_path = str(relative_path).replace("\\", "/")
+        
+        # 완료
         task.status = 'completed'
-        task.progress = 100
         task.completed_at = timezone.now()
+        task.progress = 100
         task.save()
         
-        logger.info(f"✅ 전처리 작업 완료: task_id={task_id}")
+        logger.info(f"✅ 전처리 완료: task_id={task_id}, output={task.output_file_path}")
     
     except InterruptedError as e:
         # 취소로 인한 중단
         logger.info(f"🛑 작업 취소: task_id={task_id}, {e}")
         
         # 출력 파일 삭제
-        if 'output_path' in locals() and Path(output_path).exists():
+        if 'output_path' in locals() and output_path.exists():
             try:
-                Path(output_path).unlink()
+                output_path.unlink()
                 logger.info(f"임시 출력 파일 삭제: {output_path}")
             except Exception as delete_error:
                 logger.warning(f"임시 파일 삭제 실패: {delete_error}")

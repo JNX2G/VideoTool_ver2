@@ -1,10 +1,16 @@
-import re, os
+import os
+import re
+import shutil
 
 from django.db import models
 from django.utils import timezone
 from django.conf import settings
 from pathlib import Path
-import shutil
+
+from django.db.models.signals import post_delete
+from django.dispatch import receiver
+
+
 
 def sanitize_filename(filename):
     """파일명 정리 - 특수문자, 공백 제거"""
@@ -250,3 +256,71 @@ class Detection(models.Model):
                 print(f"⚠️ 탐지 결과 삭제 실패: {e}")
         
         super().delete(*args, **kwargs)
+
+
+@receiver(post_delete, sender=Detection)
+def detection_delete_files(sender, instance, **kwargs):
+    """Detection 삭제 시 results 폴더의 파일도 삭제"""
+    if instance.output_file_path:
+        # 탐지 결과 파일 삭제
+        try:
+            file_path = os.path.join(settings.RESULTS_ROOT, instance.output_file_path)
+            if os.path.exists(file_path):
+                os.remove(file_path)
+                print(f"✅ 탐지 결과 파일 삭제: {file_path}")
+            
+            # 탐지 결과 폴더 전체 삭제 (results/vision_engine/content_id/detection_id/)
+            # 폴더 경로 추출
+            result_dir = Path(file_path).parent
+            if result_dir.exists() and result_dir.is_dir():
+                # 폴더가 비어있으면 삭제
+                try:
+                    result_dir.rmdir()  # 비어있을 때만 삭제
+                    print(f"✅ 탐지 결과 폴더 삭제: {result_dir}")
+                except OSError:
+                    # 폴더가 비어있지 않으면 무시
+                    pass
+                    
+        except Exception as e:
+            print(f"❌ 탐지 결과 파일 삭제 실패: {e}")
+
+
+
+def remove_empty_directories(file_path, base_path):
+    """
+    파일 삭제 후 빈 폴더를 재귀적으로 삭제
+    """
+    try:
+        file_path = Path(file_path)
+        base_path = Path(base_path)
+        
+        current_dir = file_path.parent
+        
+        while current_dir != base_path and current_dir.is_relative_to(base_path):
+            if current_dir.exists() and current_dir.is_dir():
+                try:
+                    current_dir.rmdir()
+                    print(f"✅ 빈 폴더 삭제: {current_dir}")
+                except OSError:
+                    break
+            current_dir = current_dir.parent
+            
+    except Exception as e:
+        print(f"⚠️ 빈 폴더 삭제 중 오류: {e}")
+
+
+@receiver(post_delete, sender=Detection)
+def detection_delete_files(sender, instance, **kwargs):
+    """Detection 삭제 시 results 폴더의 파일도 삭제"""
+    if instance.output_file_path:
+        try:
+            file_path = Path(settings.RESULTS_ROOT) / instance.output_file_path
+            
+            if file_path.exists() and file_path.is_file():
+                file_path.unlink()
+                print(f"✅ 탐지 결과 파일 삭제: {file_path}")
+                
+                remove_empty_directories(file_path, Path(settings.RESULTS_ROOT))
+                
+        except Exception as e:
+            print(f"❌ 탐지 결과 파일 삭제 실패: {e}")

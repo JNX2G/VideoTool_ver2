@@ -54,7 +54,7 @@ class MethodListView(ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['categories'] = PreprocessingMethod.CATEGORY_CHOICES
-        context['current_tab'] = self.request.GET.get('tab', 'all')
+        context['tab'] = self.request.GET.get('tab', 'all')
         context['current_category'] = self.request.GET.get('category', '')
         context['current_status'] = self.request.GET.get('status', '')
         context['search_query'] = self.request.GET.get('search', '')

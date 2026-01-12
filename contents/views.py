@@ -1,10 +1,9 @@
 import os
 import re
-import ffmpeg
 import mimetypes
 
-from PIL import Image
 from io import BytesIO
+from PIL import Image as PILImage
 
 from django.contrib import messages
 from django.core.files.base import ContentFile
@@ -105,25 +104,51 @@ class VideoCreateView(CreateView):
     template_name = "contents/video_upload.html"
 
     def form_valid(self, form):
+        # 1단계: 동영상 파일 먼저 저장
         self.object = form.save(commit=False)
-
-        if self.object.file:
-            self.object.file_size = self.object.file.size
-
+        self.object.file_size = self.object.file.size if self.object.file else 0
         self.object.save()
+        
+        print(f"\n{'='*60}")
+        print(f"📹 동영상 업로드: {self.object.title}")
+        print(f"{'='*60}")
 
+        # 2단계: 썸네일 생성
         if self.object.file:
-            thumbnail_content = generate_thumbnail(self.object.file.path)
-            if thumbnail_content:
-                original_name = os.path.splitext(
-                    os.path.basename(self.object.file.name)
-                )[0]
-                thumbnail_name = f"{original_name}.jpg"
-                self.object.thumbnail.save(
-                    thumbnail_name, thumbnail_content, save=False
-                )
-
-        self.object.save()
+            try:
+                video_path = self.object.file.path
+                print(f"📂 동영상 경로: {video_path}")
+                print(f"✅ 파일 존재: {os.path.exists(video_path)}")
+                
+                # 썸네일 생성
+                thumbnail_content = generate_thumbnail_from_video(video_path)
+                
+                if thumbnail_content:
+                    # 파일명 생성
+                    original_name = os.path.splitext(os.path.basename(self.object.file.name))[0]
+                    thumbnail_filename = f"{original_name}_thumb.jpg"
+                    
+                    print(f"📝 썸네일 파일명: {thumbnail_filename}")
+                    
+                    # 썸네일 저장 (save=True로 즉시 저장)
+                    self.object.thumbnail.save(
+                        thumbnail_filename,
+                        thumbnail_content,
+                        save=True  # ⭐ 즉시 저장
+                    )
+                    
+                    print(f"✅ 썸네일 저장 성공!")
+                    print(f"📍 썸네일 경로: {self.object.thumbnail.path}")
+                    print(f"📍 썸네일 URL: {self.object.thumbnail.url}")
+                else:
+                    print(f"⚠️ 썸네일 생성 실패 - generate_thumbnail 반환값 None")
+                    
+            except Exception as e:
+                print(f"❌ 썸네일 생성 중 오류: {e}")
+                import traceback
+                traceback.print_exc()
+        
+        print(f"{'='*60}\n")
 
         messages.success(self.request, "동영상이 성공적으로 업로드되었습니다!")
         return redirect(self.get_success_url())
@@ -151,14 +176,7 @@ class VideoDeleteView(DeleteView):
     success_url = reverse_lazy("content_list")
 
     def delete(self, request, *args, **kwargs):
-        self.object = self.get_object()
-
-        if self.object.file and os.path.isfile(self.object.file.path):
-            os.remove(self.object.file.path)
-
-        if self.object.thumbnail and os.path.isfile(self.object.thumbnail.path):
-            os.remove(self.object.thumbnail.path)
-
+        # Signal이 파일 삭제를 자동으로 처리
         messages.success(request, "동영상이 삭제되었습니다.")
         return super().delete(request, *args, **kwargs)
 
@@ -220,8 +238,6 @@ class ImageCreateView(CreateView):
 
             # 이미지 해상도 저장
             try:
-                from PIL import Image as PILImage
-
                 img = PILImage.open(self.object.file)
                 self.object.width, self.object.height = img.size
             except Exception as e:
@@ -254,11 +270,7 @@ class ImageDeleteView(DeleteView):
     success_url = reverse_lazy("content_list")
 
     def delete(self, request, *args, **kwargs):
-        self.object = self.get_object()
-
-        if self.object.file and os.path.isfile(self.object.file.path):
-            os.remove(self.object.file.path)
-
+        # Signal이 파일 삭제를 자동으로 처리
         messages.success(request, "이미지가 삭제되었습니다.")
         return super().delete(request, *args, **kwargs)
 
@@ -285,22 +297,104 @@ class ContentUploadView(View):
 
 
 # ============ 헬퍼 함수 ============
-def generate_thumbnail(video_path):
+def generate_thumbnail_from_video(video_path):
+    """
+    동영상 첫 프레임에서 썸네일 생성
+    
+    Method 1: ffmpeg-python 사용 (선호)
+    Method 2: OpenCV 사용 (fallback)
+    """
+    print(f"\n--- 썸네일 생성 시작 ---")
+    print(f"입력: {video_path}")
+    
+    # Method 1: ffmpeg-python 시도
     try:
-        out, _ = (
+        import ffmpeg
+        
+        print("🔧 방법 1: ffmpeg-python 사용")
+        
+        out, err = (
             ffmpeg.input(video_path, ss=0)
             .output("pipe:", vframes=1, format="image2", vcodec="mjpeg")
-            .run(capture_stdout=True, capture_stderr=True)
+            .run(capture_stdout=True, capture_stderr=True, quiet=True)
         )
-
-        image = Image.open(BytesIO(out))
-        image.thumbnail((640, 360), Image.Resampling.LANCZOS)
-
+        
+        if out:
+            print(f"✅ ffmpeg 출력: {len(out)} bytes")
+            
+            # PIL로 이미지 처리
+            image = PILImage.open(BytesIO(out))
+            print(f"🖼️ 원본 크기: {image.size}")
+            
+            # 리사이즈
+            image.thumbnail((640, 360), PILImage.Resampling.LANCZOS)
+            print(f"📏 리사이즈 후: {image.size}")
+            
+            # JPEG로 변환
+            thumb_io = BytesIO()
+            image.save(thumb_io, format="JPEG", quality=85)
+            thumb_io.seek(0)
+            
+            print(f"💾 최종 크기: {len(thumb_io.getvalue())} bytes")
+            print(f"✅ 썸네일 생성 성공 (ffmpeg)\n")
+            
+            return ContentFile(thumb_io.read())
+        else:
+            print("⚠️ ffmpeg 출력 없음")
+            
+    except ImportError:
+        print("⚠️ ffmpeg-python 미설치")
+    except Exception as e:
+        print(f"⚠️ ffmpeg 오류: {e}")
+    
+    # Method 2: OpenCV 시도
+    try:
+        import cv2
+        
+        print("🔧 방법 2: OpenCV 사용")
+        
+        cap = cv2.VideoCapture(video_path)
+        
+        if not cap.isOpened():
+            print("❌ OpenCV로 동영상 열기 실패")
+            return None
+        
+        # 첫 프레임 읽기
+        ret, frame = cap.read()
+        cap.release()
+        
+        if not ret or frame is None:
+            print("❌ 프레임 읽기 실패")
+            return None
+        
+        print(f"🖼️ 프레임 크기: {frame.shape}")
+        
+        # BGR을 RGB로 변환
+        frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        
+        # PIL Image로 변환
+        image = PILImage.fromarray(frame_rgb)
+        
+        # 리사이즈
+        image.thumbnail((640, 360), PILImage.Resampling.LANCZOS)
+        print(f"📏 리사이즈 후: {image.size}")
+        
+        # JPEG로 저장
         thumb_io = BytesIO()
         image.save(thumb_io, format="JPEG", quality=85)
         thumb_io.seek(0)
-
+        
+        print(f"💾 최종 크기: {len(thumb_io.getvalue())} bytes")
+        print(f"✅ 썸네일 생성 성공 (OpenCV)\n")
+        
         return ContentFile(thumb_io.read())
-    except Exception as exc:
-        print(f"썸네일 생성 오류: {exc}")
-        return None
+        
+    except ImportError:
+        print("⚠️ OpenCV 미설치")
+    except Exception as e:
+        print(f"❌ OpenCV 오류: {e}")
+        import traceback
+        traceback.print_exc()
+    
+    print("❌ 썸네일 생성 실패 - 모든 방법 실패\n")
+    return None

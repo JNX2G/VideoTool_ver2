@@ -1,6 +1,14 @@
+import os
+import shutil
+from django.conf import settings
+from django.db.models.signals import post_delete
+from django.dispatch import receiver
+from pathlib import Path
+
 from django.db import models
 from django.utils import timezone
 from contents.models import Video, Image
+
 
 
 class PreprocessingTask(models.Model):
@@ -139,6 +147,31 @@ class PreprocessingTask(models.Model):
         """컨텐츠 타입 반환"""
         return "video" if self.video else "image"
 
+    def is_using_original_file(self):
+        """원본 파일을 사용하는지 확인"""
+        return self.output_file_path and self.output_file_path.startswith("__original__:")
+    
+    def get_actual_file_path(self):
+        """
+        실제 파일 시스템 경로 반환
+        
+        Returns:
+            str: 파일의 절대 경로
+        """
+        from django.conf import settings
+        import os
+        
+        if not self.output_file_path:
+            return None
+        
+        if self.is_using_original_file():
+            # 원본 파일 경로 추출
+            original_path = self.output_file_path.replace("__original__:", "")
+            return os.path.join(settings.MEDIA_ROOT, original_path)
+        else:
+            # 전처리 결과 파일 경로
+            return os.path.join(settings.RESULTS_ROOT, self.output_file_path)
+
     # ⭐ 전처리 파이프라인 관리 메서드들
     def add_preprocessing_step(self, method_id, params=None):
         """전처리 단계 추가"""
@@ -235,9 +268,12 @@ class PreprocessingTask(models.Model):
         # 출력 파일 삭제
         if self.output_file_path:
             try:
-                # 전처리 생략한 경우 원본 파일 경로일 수 있으므로 체크
-                content = self.get_content()
-                if content and self.output_file_path != content.file.name:
+                # ⭐ 원본 파일 사용 플래그 확인 - 원본 파일은 삭제하지 않음
+                if self.output_file_path.startswith("__original__:"):
+                    # 원본 파일은 건드리지 않음
+                    pass
+                else:
+                    # 전처리 결과 파일 삭제
                     path = os.path.join(settings.RESULTS_ROOT, self.output_file_path)
                     if os.path.exists(path):
                         os.remove(path)
@@ -257,3 +293,68 @@ class PreprocessingTask(models.Model):
                 print(f"폴더 삭제 실패: {e}")
 
         return deleted_files
+    
+
+@receiver(post_delete, sender=PreprocessingTask)
+def preprocessing_task_delete_files(sender, instance, **kwargs):
+    """PreprocessingTask 삭제 시 results 폴더의 파일도 삭제"""
+    if instance.output_file_path:
+        # ⭐ 원본 파일 사용 플래그 확인 - 원본 파일은 삭제하지 않음
+        if instance.output_file_path.startswith("__original__:"):
+            # 원본 파일은 건드리지 않음
+            return
+        
+        # 전처리 결과 파일 삭제
+        try:
+            # results/preprocess/content_id/ 경로의 파일 삭제
+            file_path = os.path.join(settings.RESULTS_ROOT, instance.output_file_path)
+            if os.path.exists(file_path):
+                os.remove(file_path)
+                print(f"✅ 전처리 결과 파일 삭제: {file_path}")
+        except Exception as e:
+            print(f"❌ 전처리 결과 파일 삭제 실패: {e}")
+
+
+def remove_empty_directories(file_path, base_path):
+    """
+    파일 삭제 후 빈 폴더를 재귀적으로 삭제
+    """
+    try:
+        file_path = Path(file_path)
+        base_path = Path(base_path)
+        
+        current_dir = file_path.parent
+        
+        while current_dir != base_path and current_dir.is_relative_to(base_path):
+            if current_dir.exists() and current_dir.is_dir():
+                try:
+                    current_dir.rmdir()
+                    print(f"✅ 빈 폴더 삭제: {current_dir}")
+                except OSError:
+                    break
+            current_dir = current_dir.parent
+            
+    except Exception as e:
+        print(f"⚠️ 빈 폴더 삭제 중 오류: {e}")
+
+
+@receiver(post_delete, sender=PreprocessingTask)
+def preprocessing_task_delete_files_with_cleanup(sender, instance, **kwargs):
+    """PreprocessingTask 삭제 시 results 폴더의 파일도 삭제 (빈 폴더 정리 포함)"""
+    if instance.output_file_path:
+        # ⭐ 원본 파일 사용 플래그 확인 - 원본 파일은 삭제하지 않음
+        if instance.output_file_path.startswith("__original__:"):
+            # 원본 파일은 건드리지 않음
+            return
+        
+        try:
+            file_path = Path(settings.RESULTS_ROOT) / instance.output_file_path
+            
+            if file_path.exists() and file_path.is_file():
+                file_path.unlink()
+                print(f"✅ 전처리 결과 파일 삭제: {file_path}")
+                
+                remove_empty_directories(file_path, Path(settings.RESULTS_ROOT))
+                
+        except Exception as e:
+            print(f"❌ 전처리 결과 파일 삭제 실패: {e}")

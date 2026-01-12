@@ -120,7 +120,7 @@
                         {% endif %}
                     </div>
                     <a href="{% if content_type == 'video' %}{% url 'preprocess:serve_preprocessed_video' task.id %}{% else %}{% url 'preprocess:serve_preprocessed_image' task.id %}{% endif %}" 
-                       download="processed_{{ content.file.name }}" class="btn btn-success btn-sm">
+                       download="processed_{{ content.file.name }}" class="btn btn-light btn-sm">
                         <i class="bi bi-download"></i> 다운로드
                     </a>
                 </div>
@@ -205,7 +205,7 @@
         <div class="d-grid gap-2 d-md-flex justify-content-md-center">
             {% if task.status == 'completed' %}
             <a href="{% url 'vision_engine:select_model' task.id %}" class="btn btn-primary px-4" style="border-radius: 8px;">
-                <i class="bi bi-cpu-fill"></i> 객체 탐지 시작
+                <i class="bi bi-cpu-fill"></i> 모델 적용하기
             </a>
             {% endif %}
             <a href="{% url 'preprocess:start_preprocessing' content.id %}?type={{ content_type }}" class="btn btn-warning px-4" style="border-radius: 8px;">

@@ -37,11 +37,11 @@
     <div class="card mb-4">
         <div class="card-header bg-success text-white">
             <h5 class="mb-0">
-                <i class="bi bi-zap-fill"></i> YOLO 모델 빠른 추가
+                <i class="bi bi-zap-fill"></i> 빌트인 모델
             </h5>
         </div>
         <div class="card-body">
-            <p>사전 정의된 YOLO 모델을 클릭 한 번으로 추가할 수 있습니다.</p>
+            <p>사전 정의된 모델을 선택할 수 있습니다.</p>
             
             <div class="row g-3">
                 {% for preset in yolo_presets %}
@@ -69,148 +69,12 @@
         </div>
     </div>
 
-    <!-- 수동 추가 폼 -->
-    <div class="card">
-        <div class="card-header">
-            <h5 class="mb-0">
-                <i class="bi bi-pencil-fill"></i> 수동으로 추가하기
-            </h5>
-        </div>
-        <div class="card-body">
-            <form method="post" enctype="multipart/form-data">
-                {% csrf_token %}
-                
-                <div class="row">
-                    <!-- 왼쪽 컬럼 -->
-                    <div class="col-md-6">
-                        <!-- 모델 이름 -->
-                        <div class="mb-3">
-                            <label for="{{ form.name.id_for_label }}" class="form-label">
-                                모델 이름 <span class="text-danger">*</span>
-                            </label>
-                            {{ form.name }}
-                            {% if form.name.errors %}
-                                <div class="text-danger">{{ form.name.errors }}</div>
-                            {% endif %}
-                            <div class="form-text">내부 식별자 (예: yolov8s)</div>
-                        </div>
-
-                        <!-- 표시 이름 -->
-                        <div class="mb-3">
-                            <label for="{{ form.display_name.id_for_label }}" class="form-label">
-                                표시 이름 <span class="text-danger">*</span>
-                            </label>
-                            {{ form.display_name }}
-                            {% if form.display_name.errors %}
-                                <div class="text-danger">{{ form.display_name.errors }}</div>
-                            {% endif %}
-                            <div class="form-text">화면에 보여질 이름 (예: YOLOv8 Small)</div>
-                        </div>
-
-                        <!-- 모델 타입 -->
-                        <div class="mb-3">
-                            <label for="{{ form.model_type.id_for_label }}" class="form-label">
-                                모델 타입
-                            </label>
-                            {{ form.model_type }}
-                        </div>
-
-                        <!-- 버전 -->
-                        <div class="mb-3">
-                            <label for="{{ form.version.id_for_label }}" class="form-label">
-                                버전
-                            </label>
-                            {{ form.version }}
-                        </div>
-                    </div>
-
-                    <!-- 오른쪽 컬럼 -->
-                    <div class="col-md-6">
-                        <!-- YOLO 버전 -->
-                        <div class="mb-3">
-                            <label for="{{ form.yolo_version.id_for_label }}" class="form-label">
-                                YOLO 버전 (자동 다운로드)
-                            </label>
-                            {{ form.yolo_version }}
-                            <div class="form-text">
-                                예: yolov8n.pt (입력 시 자동 다운로드)
-                            </div>
-                        </div>
-
-                        <!-- 모델 파일 -->
-                        <div class="mb-3">
-                            <label for="{{ form.model_file.id_for_label }}" class="form-label">
-                                모델 파일 업로드 (선택)
-                            </label>
-                            {{ form.model_file }}
-                            <div class="form-text">
-                                YOLO 버전 대신 직접 파일을 업로드할 수 있습니다
-                            </div>
-                        </div>
-
-                        <!-- 기본 모델 -->
-                        <div class="mb-3">
-                            <div class="form-check">
-                                {{ form.is_default }}
-                                <label class="form-check-label" for="{{ form.is_default.id_for_label }}">
-                                    기본 모델로 설정
-                                </label>
-                            </div>
-                        </div>
-
-                        <!-- 활성화 -->
-                        <div class="mb-3">
-                            <div class="form-check">
-                                {{ form.is_active }}
-                                <label class="form-check-label" for="{{ form.is_active.id_for_label }}">
-                                    활성화
-                                </label>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- 설명 -->
-                <div class="mb-3">
-                    <label for="{{ form.description.id_for_label }}" class="form-label">
-                        설명
-                    </label>
-                    {{ form.description }}
-                </div>
-
-                <!-- 폼 에러 -->
-                {% if form.non_field_errors %}
-                    <div class="alert alert-danger">
-                        {{ form.non_field_errors }}
-                    </div>
-                {% endif %}
-
-                <!-- 안내 -->
-                <div class="alert alert-info">
-                    <i class="bi bi-info-circle"></i> 
-                    <strong>안내:</strong> YOLO 버전을 입력하면 첫 사용 시 자동으로 다운로드됩니다. 
-                    또는 직접 모델 파일을 업로드할 수 있습니다.
-                </div>
-
-                <!-- 버튼 -->
-                <div class="d-flex justify-content-between">
-                    <a href="{% url 'modelhub:model_list' %}" class="btn btn-secondary">
-                        <i class="bi bi-arrow-left"></i> 취소
-                    </a>
-                    <button type="submit" class="btn btn-success">
-                        <i class="bi bi-check-circle"></i> 추가
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-
     <!-- 뒤로 가기 -->
-    <!-- <div class="text-center mt-4">
-        <a href="{% url 'modelhub:model_add' %}" class="btn btn-outline-secondary">
-            <i class="bi bi-arrow-left"></i> 이전 페이지
+    <div class="text-center mt-4">
+        <a href="{% url 'modelhub:model_list' %}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> 모델 목록으로
         </a>
-    </div> -->
+    </div>
 </div>
 
 <!-- Bootstrap Icons CDN -->

@@ -23,27 +23,27 @@
                 <!-- 탭 -->
                 <ul class="nav nav-pills flex-shrink-0">
                     <li class="nav-item">
-                        <a class="nav-link py-1 py-md-2 px-2 px-md-3 {% if current_tab == 'all' %}active{% endif %}" 
+                        <a class="nav-link py-1 py-md-2 px-2 px-md-3 {% if tab == 'all' %}active{% endif %}" 
                            href="?tab=all" title="전체">
                             <i class="bi bi-collection"></i>
                             <span class="d-none d-lg-inline ms-1">전체</span>
-                            <span class="badge {% if current_tab == 'all' %}bg-white text-primary{% else %}bg-secondary{% endif %} ms-1" style="font-size: 0.65rem;">{{ total_count }}</span>
+                            <span class="badge {% if tab == 'all' %}bg-white text-primary{% else %}bg-secondary{% endif %} ms-1" style="font-size: 0.65rem;">{{ total_count }}</span>
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link py-1 py-md-2 px-2 px-md-3 {% if current_tab == 'builtin' %}active{% endif %}" 
+                        <a class="nav-link py-1 py-md-2 px-2 px-md-3 {% if tab == 'builtin' %}active{% endif %}" 
                            href="?tab=builtin" title="빌트인">
-                            <i class="bi bi-gear-fill text-info"></i>
-                            <span class="d-none d-lg-inline ms-1">빌트인</span>
-                            <span class="badge {% if current_tab == 'builtin' %}bg-white text-info{% else %}bg-info{% endif %} ms-1" style="font-size: 0.65rem;">{{ builtin_count }}</span>
+                            <i class="bi bi-gear-fill {% if tab == 'builtin' %} text-white{% else %}text-builtin{% endif %}"></i>
+                            <span class="d-none d-lg-inline {% if tab == 'builtin' %} text-white{% else %}text-builtin{% endif %} ms-1">빌트인</span>
+                            <span class="badge {% if tab == 'builtin' %}bg-white text-builtin{% else %}text-white bg-builtin{% endif %} ms-1" style="font-size: 0.65rem;">{{ builtin_count }}</span>
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link py-1 py-md-2 px-2 px-md-3 {% if current_tab == 'custom' %}active{% endif %}" 
+                        <a class="nav-link py-1 py-md-2 px-2 px-md-3 {% if tab == 'custom' %}active{% endif %}" 
                            href="?tab=custom" title="커스텀">
-                            <i class="bi bi-magic text-warning"></i>
-                            <span class="d-none d-lg-inline ms-1">커스텀</span>
-                            <span class="badge {% if current_tab == 'custom' %}bg-white text-warning{% else %}bg-warning{% endif %} ms-1" style="font-size: 0.65rem;">{{ custom_count }}</span>
+                            <i class="bi bi-magic {% if tab == 'custom' %} text-white{% else %}text-custom{% endif %}"></i>
+                            <span class="d-none d-lg-inline {% if tab == 'custom' %}text-white{% else %}text-custom{% endif %} ms-1">커스텀</span>
+                            <span class="badge {% if tab == 'custom' %}bg-white text-custom{% else %}text-white bg-custom {% endif %} ms-1" style="font-size: 0.65rem;">{{ custom_count }}</span>
                         </a>
                     </li>
                 </ul>
@@ -134,11 +134,11 @@
                                         <i class="bi bi-{% if method.is_active %}check{% else %}x{% endif %}-circle"></i>
                                     </button>
                                     {% if method.is_builtin %}
-                                        <span class="badge bg-info d-inline-flex align-items-center justify-content-center">
+                                        <span class="badge bg-builtin d-inline-flex align-items-center justify-content-center">
                                             <i class="bi bi-gear-fill" style="font-size: 1rem;"></i>
                                         </span>
                                     {% else %}
-                                        <span class="badge bg-warning d-inline-flex align-items-center justify-content-center">
+                                        <span class="badge bg-custom d-inline-flex align-items-center justify-content-center">
                                             <i class="bi bi-magic" style="font-size: 1rem;"></i>
                                         </span>
                                     {% endif %}
@@ -210,10 +210,10 @@
                 <ul class="pagination justify-content-center">
                     {% if page_obj.has_previous %}
                     <li class="page-item">
-                        <a class="page-link" href="?tab={{ current_tab }}&page=1">처음</a>
+                        <a class="page-link" href="?tab={{ tab }}&page=1">처음</a>
                     </li>
                     <li class="page-item">
-                        <a class="page-link" href="?tab={{ current_tab }}&page={{ page_obj.previous_page_number }}">이전</a>
+                        <a class="page-link" href="?tab={{ tab }}&page={{ page_obj.previous_page_number }}">이전</a>
                     </li>
                     {% endif %}
                     
@@ -223,10 +223,10 @@
                     
                     {% if page_obj.has_next %}
                     <li class="page-item">
-                        <a class="page-link" href="?tab={{ current_tab }}&page={{ page_obj.next_page_number }}">다음</a>
+                        <a class="page-link" href="?tab={{ tab }}&page={{ page_obj.next_page_number }}">다음</a>
                     </li>
                     <li class="page-item">
-                        <a class="page-link" href="?tab={{ current_tab }}&page={{ page_obj.paginator.num_pages }}">마지막</a>
+                        <a class="page-link" href="?tab={{ tab }}&page={{ page_obj.paginator.num_pages }}">마지막</a>
                     </li>
                     {% endif %}
                 </ul>
@@ -237,24 +237,24 @@
             <div class="alert alert-light border text-center py-5">
                 <i class="bi bi-inbox" style="font-size: 4rem; color: #dee2e6;"></i>
                 <h4 class="mt-3">
-                    {% if current_tab == 'builtin' %}
+                    {% if tab == 'builtin' %}
                     내장 기법이 없습니다
-                    {% elif current_tab == 'custom' %}
+                    {% elif tab == 'custom' %}
                     커스텀 기법이 없습니다
                     {% else %}
                     전처리 기법이 없습니다
                     {% endif %}
                 </h4>
                 <p class="text-muted">
-                    {% if current_tab == 'builtin' %}
+                    {% if tab == 'builtin' %}
                     <code>python manage.py loaddata builtin_methods</code> 명령어로 내장 기법을 로드하세요.
-                    {% elif current_tab == 'custom' %}
+                    {% elif tab == 'custom' %}
                     새로운 전처리 기법을 추가하여 시작하세요.
                     {% else %}
                     새로운 전처리 기법을 추가하여 시작하세요.
                     {% endif %}
                 </p>
-                {% if current_tab != 'builtin' %}
+                {% if tab != 'builtin' %}
                 <div class="mt-4">
                     <a href="{% url 'prephub:method_add' %}" class="btn btn-primary btn-lg">
                         <i class="bi bi-plus-lg"></i> 첫 기법 추가하기
@@ -273,7 +273,7 @@ function applyFilter() {
     const category = document.querySelector('select[name="category"]').value;
     const status = document.querySelector('select[name="status"]').value;
     const search = document.querySelector('input[name="search"]').value;
-    const tab = '{{ current_tab }}';
+    const tab = '{{ tab }}';
     
     let url = '?tab=' + tab;
     if (category) url += '&category=' + encodeURIComponent(category);
@@ -285,7 +285,7 @@ function applyFilter() {
 
 // 일괄 활성화/비활성화
 function bulkToggle(action) {
-    const tab = '{{ current_tab }}';
+    const tab = '{{ tab }}';
     const category = document.querySelector('select[name="category"]').value;
     const status = document.querySelector('select[name="status"]').value;
     const search = document.querySelector('input[name="search"]').value;

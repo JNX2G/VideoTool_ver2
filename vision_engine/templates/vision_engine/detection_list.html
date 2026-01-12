@@ -20,10 +20,7 @@
     <div class="card mb-3 border-0 shadow-sm">
         <div class="card-body p-2 p-md-3">
             <div class="d-flex gap-2 align-items-center flex-wrap">
-                <h5 class="mb-0">
-                    <i class="bi bi-search"></i> 모델 결과
-                </h5>
-                
+            
                 <div class="flex-grow-1"></div>
                 
                 <!-- 필터 -->
@@ -45,8 +42,7 @@
         </div>
     </div>
 
-    <!-- 탐지 목록 -->
-    {% if detections %}
+    <!-- 탐지 목록 테이블 -->
     <div class="card border-0 shadow-sm">
         <div class="card-body p-0">
             <div class="table-responsive">
@@ -65,96 +61,106 @@
                         </tr>
                     </thead>
                     <tbody>
-                        {% for detection in detections %}
-                        <tr>
-                            <td>{{ detection.id }}</td>
-                            <td>{{ detection.title|truncatewords:10 }}</td>
-                            <td>
-                                {% if detection.get_content_type == 'video' %}
-                                    <i class="bi bi-camera-video text-primary"></i>
-                                {% else %}
-                                    <i class="bi bi-image text-success"></i>
-                                {% endif %}
-                                {{ detection.get_content.title|truncatewords:8 }}
-                            </td>
-                            <td>
-                                {{ detection.get_model_name|truncatewords:5 }}
-                                {% if detection.base_model %}
-                                    <span class="badge bg-success">빌트인</span>
-                                {% else %}
-                                    <span class="badge bg-info">커스텀</span>
-                                {% endif %}
-                            </td>
-                            <td>
-                                {% if detection.status == 'completed' %}
-                                    <span class="badge bg-success">완료</span>
-                                {% elif detection.status == 'processing' %}
-                                    <span class="badge bg-warning">처리 중</span>
-                                {% elif detection.status == 'failed' %}
-                                    <span class="badge bg-danger">실패</span>
-                                {% elif detection.status == 'cancelled' %}
-                                    <span class="badge bg-secondary">취소</span>
-                                {% else %}
-                                    <span class="badge bg-secondary">대기</span>
-                                {% endif %}
-                            </td>
-                            <td>
-                                {% if detection.total_detections > 0 %}
-                                    <span class="badge bg-primary">{{ detection.total_detections }}</span>
-                                {% else %}
-                                    -
-                                {% endif %}
-                            </td>
-                            <td>
-                                <div class="progress" style="width: 100px; height: 20px;">
-                                    <div class="progress-bar 
-                                                {% if detection.status == 'completed' %}bg-success
-                                                {% elif detection.status == 'failed' %}bg-danger
-                                                {% elif detection.status == 'processing' %}bg-warning
-                                                {% else %}bg-secondary{% endif %}"
-                                         role="progressbar" 
-                                         style="width: {{ detection.progress }}%">
-                                        {{ detection.progress }}%
+                        {% if detections %}
+                            {% for detection in detections %}
+                            <tr>
+                                <td>{{ detection.id }}</td>
+                                <td>{{ detection.title|truncatewords:10 }}</td>
+                                <td>
+                                    {% if detection.get_content_type == 'video' %}
+                                        <i class="bi bi-camera-video text-primary"></i>
+                                    {% else %}
+                                        <i class="bi bi-image text-success"></i>
+                                    {% endif %}
+                                    {{ detection.get_content.title|truncatewords:8 }}
+                                </td>
+                                <td>
+                                    {{ detection.get_model_name|truncatewords:5 }}
+                                    {% if detection.base_model %}
+                                        <span class="badge bg-success">빌트인</span>
+                                    {% else %}
+                                        <span class="badge bg-info">커스텀</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if detection.status == 'completed' %}
+                                        <span class="badge bg-success">완료</span>
+                                    {% elif detection.status == 'processing' %}
+                                        <span class="badge bg-warning">처리 중</span>
+                                    {% elif detection.status == 'failed' %}
+                                        <span class="badge bg-danger">실패</span>
+                                    {% elif detection.status == 'cancelled' %}
+                                        <span class="badge bg-secondary">취소</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">대기</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if detection.total_detections > 0 %}
+                                        <span class="badge bg-primary">{{ detection.total_detections }}</span>
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="progress" style="width: 100px; height: 20px;">
+                                        <div class="progress-bar 
+                                                    {% if detection.status == 'completed' %}bg-success
+                                                    {% elif detection.status == 'failed' %}bg-danger
+                                                    {% elif detection.status == 'processing' %}bg-warning
+                                                    {% else %}bg-secondary{% endif %}"
+                                             role="progressbar" 
+                                             style="width: {{ detection.progress }}%">
+                                            {{ detection.progress }}%
+                                        </div>
                                     </div>
-                                </div>
-                            </td>
-                            <td>{{ detection.created_at|date:"Y-m-d H:i" }}</td>
-                            <td>
-                                {% if detection.status == 'completed' %}
-                                    <a href="{% url 'vision_engine:detection_result' detection.id %}" 
-                                       class="btn btn-sm btn-outline-success">
-                                        <i class="bi bi-eye"></i> 결과
-                                    </a>
-                                {% elif detection.status == 'processing' %}
-                                    <a href="{% url 'vision_engine:detection_progress' detection.id %}" 
-                                       class="btn btn-sm btn-outline-warning">
-                                        <i class="bi bi-hourglass-split"></i> 진행
-                                    </a>
-                                {% else %}
-                                    <a href="{% url 'vision_engine:execute_detection' detection.id %}" 
-                                       class="btn btn-sm btn-outline-primary">
-                                        <i class="bi bi-play"></i> 실행
-                                    </a>
-                                {% endif %}
-                            </td>
-                        </tr>
-                        {% endfor %}
+                                </td>
+                                <td>{{ detection.created_at|date:"Y-m-d H:i" }}</td>
+                                <td>
+                                    <div class="btn-group btn-group-sm" role="group">
+                                        {% if detection.status == 'completed' %}
+                                            <a href="{% url 'vision_engine:detection_result' detection.id %}" 
+                                               class="btn btn-outline-success">
+                                                <i class="bi bi-eye"></i> 결과
+                                            </a>
+                                        {% elif detection.status == 'processing' %}
+                                            <a href="{% url 'vision_engine:detection_progress' detection.id %}" 
+                                               class="btn btn-outline-warning">
+                                                <i class="bi bi-hourglass-split"></i> 진행
+                                            </a>
+                                        {% else %}
+                                            <a href="{% url 'vision_engine:execute_detection' detection.id %}" 
+                                               class="btn btn-outline-primary">
+                                                <i class="bi bi-play"></i> 실행
+                                            </a>
+                                        {% endif %}
+                                        <a href="{% url 'vision_engine:detection_delete' detection.id %}" 
+                                            class="btn btn-outline-danger">
+                                            <i class="bi bi-trash"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <!-- 데이터 없을 때 -->
+                            <tr>
+                                <td colspan="9" class="text-center py-5">
+                                    <div class="py-5">
+                                        <i class="bi bi-inbox" style="font-size: 4rem; color: #dee2e6;"></i>
+                                        <h4 class="mt-3 text-muted">모델 결과가 없습니다</h4>
+                                        <p class="text-muted mb-4">콘텐츠를 업로드하고 모델을 적용하세요.</p>
+                                        <a href="{% url 'content_list' %}" class="btn btn-primary">
+                                            <i class="bi bi-collection-play"></i> 콘텐츠 목록
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endif %}
                     </tbody>
                 </table>
             </div>
         </div>
     </div>
-    {% else %}
-    <div class="alert alert-light border text-center py-5">
-        <i class="bi bi-inbox" style="font-size: 4rem; color: #dee2e6;"></i>
-        <h4 class="mt-3 text-muted">모델 결과가 없습니다</h4>
-        <p class="text-muted">콘텐츠를 업로드하고 모델을 적용하세요.</p>
-        <div class="mt-4">
-            <a href="{% url 'content_list' %}" class="btn btn-primary btn-lg">
-                <i class="bi bi-collection-play"></i> 콘텐츠 목록
-            </a>
-        </div>
-    </div>
-    {% endif %}
 </div>
 {% endblock %}

@@ -94,15 +94,24 @@
             }
         }
 
+        /* 빌트인 */
+        .text-builtin { color: #6C757D !important; } 
+        .bg-builtin { background-color: #6C757D !important; }
+
+        /* 커스텀 */
+        .text-custom { color: #A06EE1 !important; } 
+        .bg-custom { background-color: #A06EE1 !important; }
+
+
         /* 1. 레이아웃 밀림 방지 및 배경 설정 */
         html {
             scrollbar-gutter: stable; 
-            background-color: #ffffff; /* 실제 페이지 배경색에 맞춰주세요 */
+            background-color: #ffffff; 
         }
 
         /* 2. 크롬, 사파리, 엣지용 */
         ::-webkit-scrollbar {
-            width: 10px; /* 배경이 투명하므로 조금 더 넓게 설정해도 좋습니다 */
+            width: 14px;
         }
 
         /* 스크롤바 트랙(바탕)을 투명하게 설정 */
@@ -112,19 +121,17 @@
 
         /* 스크롤바 핸들(움직이는 부분) */
         ::-webkit-scrollbar-thumb {
-            /* 배경이 투명할 때는 핸들에 어느 정도 대비가 필요합니다 */
-            background: rgba(0, 0, 0, 0.2); /* 반투명한 검은색 */
+            background-color: rgba(0, 0, 0, 0.2); /* 은은한 회색 */
             border-radius: 10px;
-            /* 투명한 테두리를 주어 핸들이 공중에 떠 있는 듯한 효과 */
-            border: 3px solid transparent;
+            border: 4px solid transparent; 
             background-clip: padding-box; 
         }
 
         /* 마우스 올렸을 때 핸들 색상만 살짝 진하게 */
         ::-webkit-scrollbar-thumb:hover {
             background: rgba(0, 0, 0, 0.4);
-            background-clip: padding-box;
         }
+
     </style>
 </head>
 <body>

@@ -22,6 +22,12 @@ def process_detection(detection_id):
         if not model:
             raise ValueError("모델이 선택되지 않았습니다")
 
+        # 취소 확인
+        detection.refresh_from_db()
+        if detection.status == "cancelled":
+            print(f"작업이 이미 취소됨: detection_id={detection_id}")
+            return
+
         # 상태 업데이트
         detection.status = "processing"
         detection.started_at = timezone.now()
@@ -30,22 +36,18 @@ def process_detection(detection_id):
         print(f"📹 전처리 작업 ID: {task.id}")
         print(f"🤖 모델: {detection.get_model_name()}")
 
-        # 입력 파일 경로 - RESULTS_ROOT 사용
-        if not task.output_file_path:
-            raise ValueError("전처리된 파일이 없습니다")
+        # ⭐ 헬퍼 메서드를 사용하여 실제 파일 경로 가져오기
+        input_path = task.get_actual_file_path()
 
-        input_path = os.path.join(settings.RESULTS_ROOT, task.output_file_path)
-
-        if not os.path.exists(input_path):
+        if not input_path or not os.path.exists(input_path):
             raise FileNotFoundError(f"파일을 찾을 수 없습니다: {input_path}")
 
         print(f"📂 입력: {input_path}")
 
-        # ⭐ 출력 경로 설정 - results/detection/콘텐츠타입/콘텐츠ID/detection_ID/
+        # ⭐ 출력 경로 설정 - results/vision_engine/content_id/detection_id/
         content = task.get_content()
-        content_type = task.get_content_type()
         
-        output_dir = Path(settings.RESULTS_ROOT) / "detection" / content_type / str(content.id) / str(detection.id)
+        output_dir = Path(settings.RESULTS_ROOT) / 'vision_engine' / str(content.id) / str(detection.id)
         output_dir.mkdir(parents=True, exist_ok=True)
 
         # 원본 파일명 가져오기
@@ -62,9 +64,17 @@ def process_detection(detection_id):
         # 탐지 실행
         detector = VideoDetector(model)
 
-        # ⭐ 진행률 콜백 (취소 확인 제거)
+        # 진행률 콜백 (취소 확인 포함)
         def progress_callback(current, total, progress):
-            # 진행률 업데이트만 수행
+            # DB에서 최신 상태 확인
+            detection.refresh_from_db()
+            
+            # 취소되었으면 예외 발생
+            if detection.status == "cancelled":
+                print(f"작업 취소 감지: detection_id={detection_id}")
+                raise InterruptedError("작업이 취소되었습니다.")
+            
+            # 진행률 업데이트
             detection.processed_frames = current
             detection.total_frames = total
             detection.progress = progress
@@ -77,6 +87,15 @@ def process_detection(detection_id):
         results = detector.process_video(
             str(input_path), str(output_path), progress_callback
         )
+
+        # 완료 전 마지막 취소 확인
+        detection.refresh_from_db()
+        if detection.status == "cancelled":
+            print(f"작업 완료 직전 취소 감지: detection_id={detection_id}")
+            # 출력 파일 삭제
+            if output_path.exists():
+                output_path.unlink()
+            return
 
         # 결과 저장
         detection.save_results(results["detections"])
@@ -104,15 +123,30 @@ def process_detection(detection_id):
 
         return True
 
+    except InterruptedError as e:
+        # 취소로 인한 중단
+        print(f"🛑 작업 취소: detection_id={detection_id}, {e}")
+        
+        # 출력 파일 삭제
+        if 'output_path' in locals() and Path(output_path).exists():
+            try:
+                Path(output_path).unlink()
+                print(f"임시 출력 파일 삭제: {output_path}")
+            except Exception as delete_error:
+                print(f"임시 파일 삭제 실패: {delete_error}")
+
     except Exception as e:
         print(f"❌ 에러: {e}")
         import traceback
         traceback.print_exc()
 
         if detection:
-            detection.status = "failed"
-            detection.error_message = str(e)
-            detection.save()
+            # 취소가 아닌 진짜 오류인 경우만 failed로 설정
+            detection.refresh_from_db()
+            if detection.status != "cancelled":
+                detection.status = "failed"
+                detection.error_message = str(e)
+                detection.save()
 
         return False
 

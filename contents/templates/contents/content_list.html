@@ -53,7 +53,7 @@
                         href = "?tab=all{% if search %}&search={{ search}}{% endif %}{% if sort %}&sort={{ sort }}{% endif %}" title="전체">
                             <i class="bi bi-collection"></i>
                             <span class="d-none d-lg-inline ms-1">전체</span>
-                            <span class="badge bg-secondary ms-1" style="font-size: 0.65rem;">{{ video_count|add:image_count }}</span>
+                            <span class="badge {% if tab == 'all' %}bg-white text-primary{% else %}bg-secondary{% endif %} ms-1" style="font-size: 0.65rem;">{{ video_count|add:image_count }}</span>
                         </a>
                     </li>
                     <li class="nav-item">
@@ -62,19 +62,21 @@
                         title="동영상">
                             <i class="bi bi-camera-video"></i>
                             <span class="d-none d-lg-inline ms-1">동영상</span>
-                            <span class="badge bg-primary ms-1" style="font-size: 0.65rem;">{{ video_count }}</span>
+                            <span class="badge {% if tab == 'video' %}bg-white text-primary{% else %}bg-primary{% endif %} ms-1" style="font-size: 0.65rem;">{{ video_count }}</span>
                         </a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link py-1 py-md-2 px-2 px-md-3 {% if tab == 'image' %}active{% endif %}" 
                         href="?tab=image{% if search %}&search={{ search }}{% endif %}{% if sort %}&sort={{ sort }}{% endif %}"
                         title="이미지">
-                            <i class="bi bi-image text-success"></i>
-                            <span class="d-none d-lg-inline ms-1 text-success">이미지</span>
-                            <span class="badge bg-success ms-1" style="font-size: 0.65rem;">{{ image_count }}</span>
+                            <i class="bi bi-image {% if tab == 'image' %}text-white{% else %}text-success{% endif %}"></i>
+                            <span class="d-none d-lg-inline {% if tab == 'image' %} text-white{% else %}text-success{% endif %} ms-1">이미지</span>
+                            <span class="badge {% if tab == 'image' %}bg-white text-primary{% else %}bg-success{% endif %} ms-1" style="font-size: 0.65rem;">{{ image_count }}</span>
                         </a>
                     </li>
                 </ul>
+
+                
 
                 <!-- 중간 여백 (남은 공간 채움) -->
                 <div class="flex-grow-1"></div>

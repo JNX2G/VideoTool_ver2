@@ -184,7 +184,33 @@ def detection_delete(request, detection_id):
     return render(request, "vision_engine/detection_delete.html", context)
 
 
-# 탐지 결과 파일 제공 뷰 추가
+def cancel_detection(request, detection_id):
+    """탐지 작업 취소"""
+    detection = get_object_or_404(Detection, id=detection_id)
+    task_id = detection.preprocessing_task.id
+
+    if request.method == "POST":
+        if detection.status == "processing":
+            # 상태를 cancelled로 변경
+            detection.status = "cancelled"
+            detection.save(update_fields=['status'])
+            
+            messages.success(request, "탐지 작업이 취소되었습니다.")
+            
+            # ⭐ 전처리 결과 페이지로 리다이렉트
+            return redirect("preprocess:preprocessing_result", task_id=task_id)
+        else:
+            messages.warning(request, "처리 중인 작업만 취소할 수 있습니다.")
+            return redirect("vision_engine:detection_progress", detection_id=detection_id)
+
+    # GET 요청 시에도 전처리 결과로 리다이렉트
+    return redirect("preprocess:preprocessing_result", task_id=task_id)
+
+
+# ============================================
+# 탐지 결과 파일 제공
+# ============================================
+
 def serve_detected_video(request, detection_id):
     """탐지 결과 동영상 스트리밍"""
     detection = get_object_or_404(Detection, id=detection_id)

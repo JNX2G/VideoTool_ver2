@@ -12,7 +12,7 @@ urlpatterns = [
     ),
     
     # 전처리 파이프라인 관리
-    # ⭐ 새 작업 생성 및 첫 단계 추가
+    # 새 작업 생성 및 첫 단계 추가
     path(
         "create-and-add-step/",
         views.CreateTaskAndAddStepView.as_view(),

@@ -64,14 +64,16 @@ class StartPreprocessingView(View):
                 preprocessing_pipeline=[],
                 status="completed",
             )
-            task.output_file_path = content.file.name
+            # ⭐ 원본 파일 사용을 나타내는 특별 플래그
+            task.output_file_path = f"__original__:{content.file.name}"
         else:
             task = PreprocessingTask.objects.create(
                 video=content,
                 preprocessing_pipeline=[],
                 status="completed",
             )
-            task.output_file_path = content.file.name
+            # ⭐ 원본 파일 사용을 나타내는 특별 플래그
+            task.output_file_path = f"__original__:{content.file.name}"
 
         task.total_frames = 0
         task.processed_frames = 0
@@ -85,7 +87,7 @@ class StartPreprocessingView(View):
 
         if content_type == "image":
             return redirect("image_detail", pk=content.pk)
-        return redirect("preprocessing_result", task_id=task.id)
+        return redirect("preprocess:preprocessing_result", task_id=task.id)
 
     def get(self, request, content_id):
         content_type = request.GET.get("type", "video")
@@ -474,10 +476,16 @@ class ServePreprocessedVideoView(View):
         if not task.output_file_path:
             raise Http404("처리된 동영상 파일이 없습니다.")
 
-        # results 디렉토리에서 파일 찾기
-        video_path = os.path.join(
-            settings.RESULTS_ROOT, task.output_file_path
-        )
+        # ⭐ 원본 파일 사용 플래그 확인
+        if task.output_file_path.startswith("__original__:"):
+            # 원본 파일 경로 추출
+            original_file_path = task.output_file_path.replace("__original__:", "")
+            video_path = os.path.join(settings.MEDIA_ROOT, original_file_path)
+        else:
+            # results 디렉토리에서 파일 찾기
+            video_path = os.path.join(
+                settings.RESULTS_ROOT, task.output_file_path
+            )
 
         if not os.path.exists(video_path):
             raise Http404("동영상 파일을 찾을 수 없습니다.")
@@ -529,10 +537,16 @@ class ServePreprocessedImageView(View):
         if not task.output_file_path:
             raise Http404("처리된 이미지 파일이 없습니다.")
 
-        # results 디렉토리에서 파일 찾기
-        image_path = os.path.join(
-            settings.RESULTS_ROOT, task.output_file_path
-        )
+        # ⭐ 원본 파일 사용 플래그 확인
+        if task.output_file_path.startswith("__original__:"):
+            # 원본 파일 경로 추출
+            original_file_path = task.output_file_path.replace("__original__:", "")
+            image_path = os.path.join(settings.MEDIA_ROOT, original_file_path)
+        else:
+            # results 디렉토리에서 파일 찾기
+            image_path = os.path.join(
+                settings.RESULTS_ROOT, task.output_file_path
+            )
 
         if not os.path.exists(image_path):
             raise Http404("이미지 파일을 찾을 수 없습니다.")
@@ -661,8 +675,12 @@ class CancelTaskView(View):
                 import os
                 from django.conf import settings
                 
-                # 원본 파일이 아닌 경우만 삭제
-                if content and task.output_file_path != content.file.name:
+                # ⭐ 원본 파일 사용 플래그 확인 - 원본 파일은 삭제하지 않음
+                if task.output_file_path.startswith("__original__:"):
+                    # 원본 파일은 건드리지 않음
+                    pass
+                else:
+                    # 전처리 결과 파일만 삭제
                     path = os.path.join(settings.RESULTS_ROOT, task.output_file_path)
                     if os.path.exists(path):
                         os.remove(path)

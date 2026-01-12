@@ -4,8 +4,6 @@ from django.conf import settings
 from django.core.files.storage import FileSystemStorage
 import os
 import re
-from pathlib import Path
-import shutil
 
 
 # 모델 전용 스토리지 (MODELS_ROOT 사용)
@@ -27,15 +25,15 @@ def sanitize_model_filename(filename):
 
 
 def default_model_upload_path(instance, filename):
-    """⭐ 기본 모델 업로드 경로: models/builtin/파일명.확장자"""
+    """기본 모델 업로드 경로: builtin/파일명.확장자"""
     name, ext = sanitize_model_filename(filename)
     new_filename = f"{name}{ext}"
 
-    return os.path.join("builtin", new_filename)  # default → builtin
+    return os.path.join("builtin", new_filename)
 
 
 def custom_model_upload_path(instance, filename):
-    """커스텀 모델 업로드 경로: models/custom/YYYY/파일명_MMDDhhmmss.확장자"""
+    """커스텀 모델 업로드 경로: custom/YYYY/파일명_MMDDhhmmss.확장자"""
     now = timezone.now()
     name, ext = sanitize_model_filename(filename)
     new_filename = f"{name}_{now.strftime('%m%d%H%M%S')}{ext}"
@@ -102,14 +100,32 @@ class BaseModel(models.Model):
         return self.display_name or self.name
 
     def get_model_path(self):
-        """실제 모델 경로 반환"""
-        # 파일이 업로드된 경우
+        """
+        실제 모델 경로 반환
+        
+        우선순위:
+        1. 파일이 업로드된 경우 → models/builtin/xxx.pt
+        2. YOLO 자동 다운로드 모델 → models/builtin/yolov8x.pt로 저장
+        """
+        # 1. 파일이 업로드된 경우
         if self.model_file:
             return self.model_file.path
 
-        # YOLO 자동 다운로드 모델인 경우
+        # 2. YOLO 자동 다운로드 모델인 경우
         if self.yolo_version:
-            # ultralytics가 자동으로 관리하는 경로
+            # models/builtin/ 경로에 YOLO 모델 저장
+            builtin_dir = os.path.join(settings.MODELS_ROOT, "builtin")
+            os.makedirs(builtin_dir, exist_ok=True)
+            
+            model_path = os.path.join(builtin_dir, self.yolo_version)
+            
+            # 이미 다운로드되어 있으면 그 경로 반환
+            if os.path.exists(model_path):
+                return model_path
+            
+            # 처음 사용 시 ultralytics가 자동 다운로드하도록 yolo_version 반환
+            # ultralytics는 기본적으로 ~/.cache/에 다운로드하지만
+            # 우리는 detector.py에서 models/builtin/으로 이동시킴
             return self.yolo_version
 
         return None
@@ -131,20 +147,6 @@ class BaseModel(models.Model):
         self.usage_count += 1
         self.save(update_fields=["usage_count", "updated_at"])
 
-    def delete(self, *args, **kwargs):
-        """⭐ 삭제 시 모델 파일도 함께 삭제"""
-        # 모델 파일 삭제
-        if self.model_file:
-            try:
-                if os.path.exists(self.model_file.path):
-                    os.remove(self.model_file.path)
-                    print(f"✅ 모델 파일 삭제: {self.model_file.path}")
-            except Exception as e:
-                print(f"⚠️ 모델 파일 삭제 실패: {e}")
-        
-        # ⭐ CASCADE로 설정했으므로 관련 Detection은 자동 삭제됨
-        super().delete(*args, **kwargs)
-
 
 class CustomModel(models.Model):
     """커스텀 모델 (사용자가 학습시킨 모델)"""
@@ -153,34 +155,54 @@ class CustomModel(models.Model):
     name = models.CharField(max_length=200, verbose_name="모델 이름")
     description = models.TextField(blank=True, verbose_name="설명")
 
-    # 모델 정보
-    model_type = models.CharField(
-        max_length=50, default="yolo", verbose_name="모델 타입"
-    )
-
-    # 파일 정보
+    # 파일 정보 (필수)
     model_file = models.FileField(
         upload_to=custom_model_upload_path,
         storage=model_storage,
-        verbose_name="모델 파일",
+        verbose_name="모델 파일"
     )
     file_size = models.BigIntegerField(default=0, verbose_name="파일 크기 (bytes)")
     file_format = models.CharField(max_length=10, blank=True, verbose_name="파일 형식")
 
-    # 학습 정보
-    training_dataset = models.CharField(
-        max_length=200, blank=True, verbose_name="학습 데이터셋"
+    # 모델 정보
+    model_type = models.CharField(
+        max_length=50,
+        default="custom",
+        verbose_name="모델 타입",
+        help_text="예: yolo, resnet, custom",
     )
-    training_epochs = models.IntegerField(default=0, verbose_name="학습 에포크")
-    performance_metrics = models.JSONField(
-        default=dict, blank=True, verbose_name="성능 지표"
+    framework = models.CharField(
+        max_length=50,
+        blank=True,
+        verbose_name="프레임워크",
+        help_text="예: PyTorch, TensorFlow, ONNX",
+    )
+    version = models.CharField(max_length=50, blank=True, verbose_name="버전")
+
+    # 학습 정보
+    dataset_name = models.CharField(
+        max_length=200, blank=True, verbose_name="데이터셋 이름"
+    )
+    classes = models.JSONField(default=list, blank=True, verbose_name="탐지 클래스")
+    num_classes = models.IntegerField(null=True, blank=True, verbose_name="클래스 수")
+
+    # 성능 정보
+    accuracy = models.FloatField(null=True, blank=True, verbose_name="정확도 (%)")
+    precision = models.FloatField(null=True, blank=True, verbose_name="정밀도 (%)")
+    recall = models.FloatField(null=True, blank=True, verbose_name="재현율 (%)")
+    map_score = models.FloatField(null=True, blank=True, verbose_name="mAP 점수")
+    inference_time = models.FloatField(
+        null=True, blank=True, verbose_name="추론 시간 (ms)"
     )
 
-    # 추가 설정
+    # 메타데이터
+    author = models.CharField(max_length=100, blank=True, verbose_name="작성자")
+    tags = models.JSONField(default=list, blank=True, verbose_name="태그")
     config = models.JSONField(default=dict, blank=True, verbose_name="설정")
 
     # 상태
     is_active = models.BooleanField(default=True, verbose_name="활성화")
+    is_validated = models.BooleanField(default=False, verbose_name="검증됨")
 
     # 통계
     usage_count = models.IntegerField(default=0, verbose_name="사용 횟수")
@@ -216,17 +238,3 @@ class CustomModel(models.Model):
         """사용 횟수 증가"""
         self.usage_count += 1
         self.save(update_fields=["usage_count", "updated_at"])
-
-    def delete(self, *args, **kwargs):
-        """삭제 시 모델 파일도 함께 삭제"""
-        # 모델 파일 삭제
-        if self.model_file:
-            try:
-                if os.path.exists(self.model_file.path):
-                    os.remove(self.model_file.path)
-                    print(f"✅ 모델 파일 삭제: {self.model_file.path}")
-            except Exception as e:
-                print(f"⚠️ 모델 파일 삭제 실패: {e}")
-        
-        # CASCADE로 설정했으므로 관련 Detection은 자동 삭제됨
-        super().delete(*args, **kwargs)

@@ -1,8 +1,10 @@
 import cv2
 import numpy as np
 from pathlib import Path
+from django.conf import settings
 import os
 import subprocess
+import shutil
 
 
 class VideoDetector:
@@ -21,20 +23,109 @@ class VideoDetector:
             self.load_yolo_model()
 
     def load_yolo_model(self):
-        """YOLO 모델 로드"""
+        """YOLO 모델 로드 (models/builtin/ 경로에 직접 다운로드)"""
         try:
             from ultralytics import YOLO
+            
+            print("\n" + "="*60)
+            print("🔄 YOLO 모델 로딩 시작")
+            print("="*60)
+            print(f"📂 MODELS_ROOT: {settings.MODELS_ROOT}")
 
             model_path = self.model.get_model_path()
             if not model_path:
                 raise ValueError("모델 파일이 지정되지 않았습니다")
 
-            print(f"🔄 YOLO 모델 로딩 중: {model_path}")
-            self.yolo_model = YOLO(model_path)
-            print(f"✅ YOLO 모델 로드 완료")
+            print(f"📍 모델 경로: {model_path}")
+            
+            # ⭐ YOLO 자동 다운로드 모델인 경우
+            if hasattr(self.model, 'yolo_version') and self.model.yolo_version:
+                builtin_dir = os.path.join(settings.MODELS_ROOT, "builtin")
+                os.makedirs(builtin_dir, exist_ok=True)
+                print(f"📁 Builtin 디렉토리: {builtin_dir}")
+                
+                target_path = os.path.join(builtin_dir, self.model.yolo_version)
+                print(f"🎯 타겟 경로: {target_path}")
+                
+                # 이미 models/builtin/에 있으면 바로 사용
+                if os.path.exists(target_path):
+                    print(f"✅ 기존 모델 발견!")
+                    print(f"   경로: {target_path}")
+                    print(f"   크기: {os.path.getsize(target_path) / (1024*1024):.2f} MB")
+                    self.yolo_model = YOLO(target_path)
+                else:
+                    print(f"📥 모델 자동 다운로드 시작: {self.model.yolo_version}")
+                    
+                    # ⭐ ultralytics 환경변수 설정 - builtin 폴더에 직접 다운로드
+                    # YOLO_CONFIG_DIR을 builtin으로 설정
+                    original_env = os.environ.get('YOLO_CONFIG_DIR')
+                    os.environ['YOLO_CONFIG_DIR'] = builtin_dir
+                    
+                    try:
+                        # YOLO 모델 로드 (자동 다운로드)
+                        self.yolo_model = YOLO(self.model.yolo_version)
+                        
+                        # 다운로드 후 경로 확인
+                        # ultralytics는 여러 위치에 저장 가능
+                        possible_paths = [
+                            # 1. 설정한 YOLO_CONFIG_DIR
+                            os.path.join(builtin_dir, self.model.yolo_version),
+                            # 2. 기본 캐시 경로
+                            Path.home() / '.cache' / 'ultralytics' / self.model.yolo_version,
+                            # 3. 현재 디렉토리
+                            os.path.join(os.getcwd(), self.model.yolo_version),
+                        ]
+                        
+                        downloaded_path = None
+                        for path in possible_paths:
+                            if os.path.exists(path):
+                                downloaded_path = path
+                                print(f"✅ 다운로드 완료: {downloaded_path}")
+                                break
+                        
+                        # builtin 폴더로 복사 (필요한 경우)
+                        if downloaded_path and str(downloaded_path) != target_path:
+                            print(f"📋 모델을 builtin 폴더로 복사 중...")
+                            shutil.copy2(str(downloaded_path), target_path)
+                            print(f"✅ 복사 완료: {target_path}")
+                            
+                            # 원본이 현재 디렉토리에 있으면 삭제
+                            if str(downloaded_path) == os.path.join(os.getcwd(), self.model.yolo_version):
+                                os.remove(downloaded_path)
+                                print(f"🗑️  임시 파일 삭제: {downloaded_path}")
+                        
+                        # DB에 파일 크기 저장
+                        if os.path.exists(target_path):
+                            file_size = os.path.getsize(target_path)
+                            print(f"📊 파일 크기: {file_size / (1024*1024):.2f} MB")
+                            
+                            if self.model.file_size == 0:
+                                self.model.file_size = file_size
+                                self.model.save(update_fields=['file_size'])
+                                print(f"💾 DB 업데이트 완료")
+                        
+                    finally:
+                        # 환경변수 복원
+                        if original_env:
+                            os.environ['YOLO_CONFIG_DIR'] = original_env
+                        elif 'YOLO_CONFIG_DIR' in os.environ:
+                            del os.environ['YOLO_CONFIG_DIR']
+                    
+            else:
+                # 직접 업로드된 파일 사용
+                print(f"📁 직접 업로드된 모델 사용")
+                self.yolo_model = YOLO(model_path)
+            
+            print("="*60)
+            print("✅ YOLO 모델 로드 완료")
+            print("="*60 + "\n")
 
         except Exception as e:
+            print("="*60)
             print(f"❌ YOLO 모델 로드 실패: {e}")
+            print("="*60 + "\n")
+            import traceback
+            traceback.print_exc()
             raise
 
     def detect_frame(self, frame):
@@ -222,8 +313,6 @@ class VideoDetector:
 
     def reencode_with_ffmpeg(self, input_path, output_path):
         """ffmpeg 재인코딩"""
-        import shutil
-
         ffmpeg_path = shutil.which("ffmpeg") or r"C:\ffmpeg\bin\ffmpeg.exe"
         if not os.path.exists(ffmpeg_path):
             return False

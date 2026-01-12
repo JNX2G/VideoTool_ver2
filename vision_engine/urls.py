@@ -22,10 +22,13 @@ urlpatterns = [
     # 결과
     path("<int:detection_id>/result/", views.detection_result, name="detection_result"),
     
-    # ⭐ 결과 파일 제공
-    path("<int:detection_id>/stream/", views.serve_detected_video, name="serve_detected_video"),
-    path("<int:detection_id>/image/", views.serve_detected_image, name="serve_detected_image"),
-    
     # 삭제
     path("<int:detection_id>/delete/", views.detection_delete, name="detection_delete"),
+    
+    # 취소 
+    path("<int:detection_id>/cancel/", views.cancel_detection, name="cancel_detection"),
+    
+    # 결과 파일 제공
+    path("<int:detection_id>/stream/", views.serve_detected_video, name="serve_detected_video"),
+    path("<int:detection_id>/image/", views.serve_detected_image, name="serve_detected_image"),
 ]
