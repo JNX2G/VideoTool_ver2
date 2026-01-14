@@ -444,7 +444,7 @@ class PreprocessingStatusView(View):
 
 class PreprocessingResultView(View):
     """전처리 결과"""
-    template_name = "preprocess/result.html"
+    template_name = "preprocess/preprocess_result.html"
 
     def get(self, request, task_id):
         task = get_object_or_404(PreprocessingTask, id=task_id)

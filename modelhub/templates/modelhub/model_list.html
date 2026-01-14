@@ -69,14 +69,14 @@
 
     <!-- 모델 그리드 -->
     {% if tab == 'all' or tab == 'base' %}
-        {% if base_models %}
+        {% if builtin_models %}
         <div class="row mb-4">
             <div class="col-md-12">
                 <h5 class="mb-3">
                     <i class="bi bi-gear-fill text-builtin"></i> 빌트인 모델
                 </h5>
                 <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
-                    {% for model in base_models %}
+                    {% for model in builtin_models %}
                     <div class="col">
                         <div class="card h-100 shadow-sm hover-card">
                             <div class="card-body">
@@ -162,7 +162,7 @@
     {% endif %}
 
     <!-- 빈 상태 -->
-    {% if not base_models and not custom_models %}
+    {% if not builtin_models and not custom_models %}
     <div class="alert alert-light border text-center py-5">
         <i class="bi bi-inbox" style="font-size: 4rem; color: #dee2e6;"></i>
         <h4 class="mt-3 text-muted">등록된 모델이 없습니다</h4>

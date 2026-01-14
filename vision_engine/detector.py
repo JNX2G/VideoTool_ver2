@@ -12,7 +12,7 @@ class VideoDetector:
 
     def __init__(self, model):
         """
-        model: modelhub.BaseModel 또는 modelhub.CustomModel
+        model: modelhub.BuiltinModel 또는 modelhub.CustomModel
         """
         self.model = model
         self.yolo_model = None
@@ -223,9 +223,9 @@ class VideoDetector:
                 cap.release()
                 raise ValueError("출력 VideoWriter 생성 실패")
 
-        all_detections = []
-        detection_summary = {}
-        total_detections_count = 0
+        all_applications = []
+        application_summary = {}
+        total_applications_count = 0
         frame_count = 0
 
         try:
@@ -237,19 +237,19 @@ class VideoDetector:
 
                 # 감지 수행
                 detections = self.detect_frame(frame)
-                annotated_frame = self.draw_detections(frame, detections)
+                annotated_frame = self.draw_applications(frame, detections)
 
                 if not is_image and out:
                     out.write(annotated_frame)
 
                 if detections:
-                    all_detections.append(
+                    all_applications.append(
                         {"frame": frame_count, "detections": detections}
                     )
-                    total_detections_count += len(detections)
+                    total_applications_count += len(detections)
                     for det in detections:
                         label = det["label"]
-                        detection_summary[label] = detection_summary.get(label, 0) + 1
+                        application_summary[label] = application_summary.get(label, 0) + 1
 
                 frame_count += 1
                 if progress_callback and frame_count % 10 == 0:
@@ -285,12 +285,12 @@ class VideoDetector:
             progress_callback(frame_count, total_frames, 100)
 
         return {
-            "detections": all_detections,
-            "total_detections": total_detections_count,
-            "summary": detection_summary,
+            "detections": all_applications,
+            "total_applications": total_applications_count,
+            "summary": application_summary,
         }
 
-    def draw_detections(self, frame, detections):
+    def draw_applications(self, frame, detections):
         """감지 결과를 프레임에 그리기"""
         result = frame.copy()
         for det in detections:

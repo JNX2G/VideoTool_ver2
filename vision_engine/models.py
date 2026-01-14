@@ -114,8 +114,8 @@ class Image(models.Model):
         return "-"
 
 
-class Detection(models.Model):
-    """객체 탐지 작업"""
+class Application(models.Model):
+    """모델 적용 작업"""
 
     STATUS_CHOICES = [
         ("ready", "대기"),
@@ -128,18 +128,18 @@ class Detection(models.Model):
     preprocessing_task = models.ForeignKey(
         'preprocess.PreprocessingTask',
         on_delete=models.CASCADE,
-        related_name="detections",
+        related_name="applications",
         verbose_name="전처리 작업",
     )
 
-    # 모델 선택 - CASCADE 설정으로 모델 삭제 시 탐지 결과도 삭제
-    base_model = models.ForeignKey(
-        "modelhub.BaseModel",
+    # 모델 선택 - CASCADE 설정으로 모델 삭제 시 결과도 삭제
+    builtin_model = models.ForeignKey(
+        "modelhub.BuiltinModel",
         on_delete=models.CASCADE,  # ⭐ SET_NULL에서 CASCADE로 변경
         null=True,
         blank=True,
         verbose_name="기본 모델",
-        related_name="detections",
+        related_name="applications",
     )
     custom_model = models.ForeignKey(
         "modelhub.CustomModel",
@@ -147,7 +147,7 @@ class Detection(models.Model):
         null=True,
         blank=True,
         verbose_name="커스텀 모델",
-        related_name="detections",
+        related_name="applications",
     )
 
     # 기본 정보
@@ -168,12 +168,12 @@ class Detection(models.Model):
     output_file_path = models.CharField(
         max_length=500, blank=True, verbose_name="결과 파일 경로"
     )
-    detection_data = models.JSONField(
-        default=list, blank=True, verbose_name="탐지 데이터"
+    application_data = models.JSONField(
+        default=list, blank=True, verbose_name="모델 적용 결과 데이터"
     )
-    total_detections = models.IntegerField(default=0, verbose_name="총 탐지 수")
-    detection_summary = models.JSONField(
-        default=dict, blank=True, verbose_name="탐지 요약"
+    total_applications = models.IntegerField(default=0, verbose_name="총 탐지 수")
+    application_summary = models.JSONField(
+        default=dict, blank=True, verbose_name="모델 적용 결과 요약"
     )
 
     # 에러
@@ -185,8 +185,8 @@ class Detection(models.Model):
     completed_at = models.DateTimeField(null=True, blank=True, verbose_name="완료 시간")
 
     class Meta:
-        verbose_name = "객체 탐지"
-        verbose_name_plural = "객체 탐지들"
+        verbose_name = "모델 적용"
+        verbose_name_plural = "모델 적용들"
         ordering = ["-created_at"]
 
     def __str__(self):
@@ -194,8 +194,8 @@ class Detection(models.Model):
 
     def get_model(self):
         """사용된 모델 반환"""
-        if self.base_model:
-            return self.base_model
+        if self.builtin_model:
+            return self.builtin_model
         return self.custom_model
 
     def get_model_name(self):
@@ -220,21 +220,21 @@ class Detection(models.Model):
             return f"/results-media/{self.output_file_path}"
         return None
 
-    def save_results(self, detections):
-        """탐지 결과 저장"""
+    def save_results(self, applications):
+        """모델 결과 저장"""
         import json
-        self.detection_data = detections
-        self.save(update_fields=["detection_data"])
+        self.application_data = applications
+        self.save(update_fields=["application_data"])
 
     def get_summary_stats(self):
         """요약 통계 반환"""
-        if not self.detection_summary:
+        if not self.application_summary:
             return []
         
         return [
             {"label": label, "count": count}
             for label, count in sorted(
-                self.detection_summary.items(), 
+                self.application_summary.items(), 
                 key=lambda x: x[1], 
                 reverse=True
             )
@@ -245,44 +245,44 @@ class Detection(models.Model):
         # 결과 파일 삭제
         if self.output_file_path:
             try:
-                # 전체 탐지 디렉토리 삭제 (detection/콘텐츠타입/콘텐츠ID/detection_ID/)
+                # 전체 모델 적용 디렉토리 삭제 (application/콘텐츠타입/콘텐츠ID/application_ID/)
                 output_full_path = Path(settings.RESULTS_ROOT) / self.output_file_path
-                detection_dir = output_full_path.parent
+                application_dir = output_full_path.parent
                 
-                if detection_dir.exists():
-                    shutil.rmtree(detection_dir)
-                    print(f"✅ 탐지 결과 디렉토리 삭제: {detection_dir}")
+                if application_dir.exists():
+                    shutil.rmtree(application_dir)
+                    print(f"✅ 모델 적용 결과 디렉토리 삭제: {application_dir}")
             except Exception as e:
-                print(f"⚠️ 탐지 결과 삭제 실패: {e}")
+                print(f"⚠️ 모델 적용 결과 삭제 실패: {e}")
         
         super().delete(*args, **kwargs)
 
 
-@receiver(post_delete, sender=Detection)
-def detection_delete_files(sender, instance, **kwargs):
-    """Detection 삭제 시 results 폴더의 파일도 삭제"""
+@receiver(post_delete, sender=Application)
+def application_delete_files(sender, instance, **kwargs):
+    """Application 삭제 시 results 폴더의 파일도 삭제"""
     if instance.output_file_path:
-        # 탐지 결과 파일 삭제
+        # 모델 적용 결과 파일 삭제
         try:
             file_path = os.path.join(settings.RESULTS_ROOT, instance.output_file_path)
             if os.path.exists(file_path):
                 os.remove(file_path)
-                print(f"✅ 탐지 결과 파일 삭제: {file_path}")
+                print(f"✅ 모델 적용 결과 파일 삭제: {file_path}")
             
-            # 탐지 결과 폴더 전체 삭제 (results/vision_engine/content_id/detection_id/)
+            # 모델 적용 결과 폴더 전체 삭제 (results/vision_engine/content_id/application_id/)
             # 폴더 경로 추출
             result_dir = Path(file_path).parent
             if result_dir.exists() and result_dir.is_dir():
                 # 폴더가 비어있으면 삭제
                 try:
                     result_dir.rmdir()  # 비어있을 때만 삭제
-                    print(f"✅ 탐지 결과 폴더 삭제: {result_dir}")
+                    print(f"✅ 모델 적용 결과 폴더 삭제: {result_dir}")
                 except OSError:
                     # 폴더가 비어있지 않으면 무시
                     pass
                     
         except Exception as e:
-            print(f"❌ 탐지 결과 파일 삭제 실패: {e}")
+            print(f"❌ 모델 적용 결과 파일 삭제 실패: {e}")
 
 
 
@@ -309,18 +309,18 @@ def remove_empty_directories(file_path, base_path):
         print(f"⚠️ 빈 폴더 삭제 중 오류: {e}")
 
 
-@receiver(post_delete, sender=Detection)
-def detection_delete_files(sender, instance, **kwargs):
-    """Detection 삭제 시 results 폴더의 파일도 삭제"""
+@receiver(post_delete, sender=Application)
+def application_delete_files(sender, instance, **kwargs):
+    """Application 삭제 시 results 폴더의 파일도 삭제"""
     if instance.output_file_path:
         try:
             file_path = Path(settings.RESULTS_ROOT) / instance.output_file_path
             
             if file_path.exists() and file_path.is_file():
                 file_path.unlink()
-                print(f"✅ 탐지 결과 파일 삭제: {file_path}")
+                print(f"✅ 모델 적용 결과 파일 삭제: {file_path}")
                 
                 remove_empty_directories(file_path, Path(settings.RESULTS_ROOT))
                 
         except Exception as e:
-            print(f"❌ 탐지 결과 파일 삭제 실패: {e}")
+            print(f"❌ 모델 적용 결과 파일 삭제 실패: {e}")

@@ -4,8 +4,8 @@ from django.contrib import messages
 from django.utils import timezone
 from django.conf import settings
 from preprocess.models import PreprocessingTask
-from modelhub.models import BaseModel, CustomModel
-from .models import Detection
+from modelhub.models import BuiltinModel, CustomModel
+from .models import Application
 from wsgiref.util import FileWrapper
 import threading
 import os
@@ -23,7 +23,7 @@ def select_model(request, task_id):
         return redirect("preprocess:preprocessing_result", task_id=task_id)
 
     # 활성화된 모델 목록
-    base_models = BaseModel.objects.filter(is_active=True)
+    builtin_models = BuiltinModel.objects.filter(is_active=True)
     custom_models = CustomModel.objects.filter(is_active=True)
 
     if request.method == "POST":
@@ -32,100 +32,100 @@ def select_model(request, task_id):
         title = request.POST.get("title", "")
         description = request.POST.get("description", "")
 
-        # Detection 생성
-        detection = Detection.objects.create(
+        # Application 생성
+        application = Application.objects.create(
             preprocessing_task=task,
-            title=title or f"객체 탐지 - {timezone.now().strftime('%Y%m%d_%H%M%S')}",
+            title=title or f"모델 적용 - {timezone.now().strftime('%Y%m%d_%H%M%S')}",
             description=description,
             status="ready",
         )
 
         # 모델 할당
         if model_type == "base":
-            model = get_object_or_404(BaseModel, id=model_id)
-            detection.base_model = model
+            model = get_object_or_404(BuiltinModel, id=model_id)
+            application.builtin_model = model
         else:
             model = get_object_or_404(CustomModel, id=model_id)
-            detection.custom_model = model
+            application.custom_model = model
 
-        detection.save()
+        application.save()
 
-        return redirect("vision_engine:execute_detection", detection_id=detection.id)
+        return redirect("vision_engine:execute_application", application_id=application.id)
 
     context = {
         "task": task,
         "content": task.get_content(),
         "content_type": task.get_content_type(),
-        "base_models": base_models,
+        "builtin_models": builtin_models,
         "custom_models": custom_models,
     }
     return render(request, "vision_engine/select_model.html", context)
 
 
-def execute_detection(request, detection_id):
+def execute_application(request, application_id):
     """탐지 실행 페이지"""
-    detection = get_object_or_404(Detection, id=detection_id)
+    application = get_object_or_404(Application, id=application_id)
 
     if request.method == "POST":
         # 상태를 즉시 processing으로 변경
-        detection.status = "processing"
-        detection.save(update_fields=['status'])
+        application.status = "processing"
+        application.save(update_fields=['status'])
         
         # 백그라운드로 탐지 실행
-        from .tasks import process_detection
+        from .tasks import process_application
 
-        thread = threading.Thread(target=process_detection, args=(detection_id,))
+        thread = threading.Thread(target=process_application, args=(application_id,))
         thread.daemon = True
         thread.start()
 
-        return redirect("vision_engine:detection_progress", detection_id=detection.id)
+        return redirect("vision_engine:application_progress", application_id=application.id)
 
     context = {
-        "detection": detection,
-        "task": detection.preprocessing_task,
-        "content": detection.get_content(),
-        "content_type": detection.get_content_type(),
+        "application": application,
+        "task": application.preprocessing_task,
+        "content": application.get_content(),
+        "content_type": application.get_content_type(),
     }
-    return render(request, "vision_engine/execute_detection.html", context)
+    return render(request, "vision_engine/execute_application.html", context)
 
 
-def detection_progress(request, detection_id):
+def application_progress(request, application_id):
     """탐지 진행 상황 페이지"""
-    detection = get_object_or_404(Detection, id=detection_id)
+    application = get_object_or_404(Application, id=application_id)
 
     context = {
-        "detection": detection,
-        "task": detection.preprocessing_task,
-        "content": detection.get_content(),
-        "content_type": detection.get_content_type(),
+        "application": application,
+        "task": application.preprocessing_task,
+        "content": application.get_content(),
+        "content_type": application.get_content_type(),
     }
-    return render(request, "vision_engine/detection_progress.html", context)
+    return render(request, "vision_engine/application_progress.html", context)
 
 
-def detection_status(request, detection_id):
+def application_status(request, application_id):
     """탐지 상태 API (AJAX)"""
-    detection = get_object_or_404(Detection, id=detection_id)
+    application = get_object_or_404(Application, id=application_id)
 
     return JsonResponse(
         {
-            "status": detection.status,
-            "progress": detection.progress,
-            "processed_frames": detection.processed_frames,
-            "total_frames": detection.total_frames,
-            "error_message": detection.error_message,
+            "status": application.status,
+            "progress": application.progress,
+            "processed_frames": application.processed_frames,
+            "total_frames": application.total_frames,
+            "error_message": application.error_message,
         }
     )
 
 
-def detection_result(request, detection_id):
+def application_result(request, application_id):
     """탐지 결과 페이지"""
-    detection = get_object_or_404(Detection, id=detection_id)
-    task = detection.preprocessing_task
+    application = get_object_or_404(Application, id=application_id)
+    task = application.preprocessing_task
     
     # summary_stats 계산
     summary_stats = []
-    if detection.detection_summary:
-        for label, count in detection.detection_summary.items():
+    if application.application_summary:
+        for label, count in application.application_summary.items():
             summary_stats.append({
                 'label': label,
                 'count': count
@@ -134,66 +134,66 @@ def detection_result(request, detection_id):
         summary_stats.sort(key=lambda x: x['count'], reverse=True)
 
     context = {
-        "detection": detection,
+        "application": application,
         "task": task,
-        "content": detection.get_content(),
-        "content_type": detection.get_content_type(),
+        "content": application.get_content(),
+        "content_type": application.get_content_type(),
         "summary_stats": summary_stats,
-        "output_url": f"/vision_engine/{detection_id}/stream/",  # ⭐ output_url 추가
+        "output_url": f"/vision_engine/{application_id}/stream/",  # ⭐ output_url 추가
     }
-    return render(request, "vision_engine/detection_result.html", context)
+    return render(request, "vision_engine/application_result.html", context)
 
 
-def detection_list(request):
+def application_list(request):
     """전체 탐지 목록"""
-    detections = Detection.objects.all().order_by("-created_at")
+    applications = Application.objects.all().order_by("-created_at")
 
     # 상태별 필터
     status = request.GET.get("status")
     if status:
-        detections = detections.filter(status=status)
+        applications = applications.filter(status=status)
 
     context = {
-        "detections": detections,
+        "applications": applications,
     }
-    return render(request, "vision_engine/detection_list.html", context)
+    return render(request, "vision_engine/application_list.html", context)
 
 
-def detection_delete(request, detection_id):
+def application_delete(request, application_id):
     """탐지 삭제"""
-    detection = get_object_or_404(Detection, id=detection_id)
+    application = get_object_or_404(Application, id=application_id)
 
     if request.method == "POST":
-        task_id = detection.preprocessing_task.id
-        detection.delete()
+        task_id = application.preprocessing_task.id
+        application.delete()
 
         messages.success(request, "탐지 작업이 삭제되었습니다.")
 
-        redirect_to = request.POST.get("redirect", "detection_list")
+        redirect_to = request.POST.get("redirect", "application_list")
         if redirect_to == "preprocessing_result":
             return redirect("preprocess:preprocessing_result", task_id=task_id)
 
-        return redirect("vision_engine:detection_list")
+        return redirect("vision_engine:application_list")
 
     context = {
-        "detection": detection,
-        "task": detection.preprocessing_task,
-        "content": detection.get_content(),
-        "content_type": detection.get_content_type(),
+        "application": application,
+        "task": application.preprocessing_task,
+        "content": application.get_content(),
+        "content_type": application.get_content_type(),
     }
-    return render(request, "vision_engine/detection_delete.html", context)
+    return render(request, "vision_engine/application_delete.html", context)
 
 
-def cancel_detection(request, detection_id):
+def cancel_application(request, application_id):
     """탐지 작업 취소"""
-    detection = get_object_or_404(Detection, id=detection_id)
-    task_id = detection.preprocessing_task.id
+    application = get_object_or_404(Application, id=application_id)
+    task_id = application.preprocessing_task.id
 
     if request.method == "POST":
-        if detection.status == "processing":
+        if application.status == "processing":
             # 상태를 cancelled로 변경
-            detection.status = "cancelled"
-            detection.save(update_fields=['status'])
+            application.status = "cancelled"
+            application.save(update_fields=['status'])
             
             messages.success(request, "탐지 작업이 취소되었습니다.")
             
@@ -201,7 +201,7 @@ def cancel_detection(request, detection_id):
             return redirect("preprocess:preprocessing_result", task_id=task_id)
         else:
             messages.warning(request, "처리 중인 작업만 취소할 수 있습니다.")
-            return redirect("vision_engine:detection_progress", detection_id=detection_id)
+            return redirect("vision_engine:application_progress", application_id=application_id)
 
     # GET 요청 시에도 전처리 결과로 리다이렉트
     return redirect("preprocess:preprocessing_result", task_id=task_id)
@@ -211,15 +211,15 @@ def cancel_detection(request, detection_id):
 # 탐지 결과 파일 제공
 # ============================================
 
-def serve_detected_video(request, detection_id):
+def serve_applied_video(request, application_id):
     """탐지 결과 동영상 스트리밍"""
-    detection = get_object_or_404(Detection, id=detection_id)
+    application = get_object_or_404(Application, id=application_id)
 
-    if not detection.output_file_path:
+    if not application.output_file_path:
         raise Http404("처리된 동영상 파일이 없습니다.")
 
     # results 디렉토리에서 파일 찾기
-    video_path = os.path.join(settings.RESULTS_ROOT, detection.output_file_path)
+    video_path = os.path.join(settings.RESULTS_ROOT, application.output_file_path)
 
     if not os.path.exists(video_path):
         raise Http404("동영상 파일을 찾을 수 없습니다.")
@@ -261,15 +261,15 @@ def serve_detected_video(request, detection_id):
     return response
 
 
-def serve_detected_image(request, detection_id):
+def serve_applied_image(request, application_id):
     """탐지 결과 이미지 제공"""
-    detection = get_object_or_404(Detection, id=detection_id)
+    application = get_object_or_404(Application, id=application_id)
 
-    if not detection.output_file_path:
+    if not application.output_file_path:
         raise Http404("처리된 이미지 파일이 없습니다.")
 
     # results 디렉토리에서 파일 찾기
-    image_path = os.path.join(settings.RESULTS_ROOT, detection.output_file_path)
+    image_path = os.path.join(settings.RESULTS_ROOT, application.output_file_path)
 
     if not os.path.exists(image_path):
         raise Http404("이미지 파일을 찾을 수 없습니다.")

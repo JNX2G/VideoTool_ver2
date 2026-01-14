@@ -24,7 +24,7 @@ def sanitize_model_filename(filename):
     return name, ext.lower()
 
 
-def default_model_upload_path(instance, filename):
+def builtin_model_upload_path(instance, filename):
     """기본 모델 업로드 경로: builtin/파일명.확장자"""
     name, ext = sanitize_model_filename(filename)
     new_filename = f"{name}{ext}"
@@ -41,7 +41,7 @@ def custom_model_upload_path(instance, filename):
     return os.path.join("custom", str(now.year), new_filename)
 
 
-class BaseModel(models.Model):
+class BuiltinModel(models.Model):
     """기본 모델 (사전 학습된 YOLO 등)"""
 
     # 기본 정보
@@ -57,7 +57,7 @@ class BaseModel(models.Model):
 
     # 파일 정보 (선택적 - 자동 다운로드 모델은 파일 없음)
     model_file = models.FileField(
-        upload_to=default_model_upload_path,
+        upload_to=builtin_model_upload_path,
         storage=model_storage,
         blank=True,
         null=True,

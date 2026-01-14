@@ -1,0 +1,531 @@
+{% extends 'contents/base.html' %}
+
+{% block title %}전처리 결과 - {{ content.title }}{% endblock %}
+
+{% block breadcrumb_items %}
+    <li class="custom-breadcrumb-item">
+        {% if content_type == 'image' %}
+        <a href="{% url 'image_detail' content.id %}">
+            <i class="bi bi-image"></i> 이미지 상세
+        </a>
+        {% else %}
+        <a href="{% url 'video_detail' content.id %}">
+            <i class="bi bi-camera-video"></i> 동영상 상세
+        </a>
+        {% endif %}
+    </li>
+    <li class="custom-breadcrumb-item">
+        <a href="{% url 'preprocess:start_preprocessing' content.id %}">
+            <i class="bi bi-layers-half"></i> 전처리
+        </a>
+    </li>
+    <li class="custom-breadcrumb-item active">
+        <a href="{% url 'preprocess:preprocessing_result' task.id %}">
+            <i class="bi bi-clipboard-data"></i> 전처리 결과
+        </a>
+    </li>
+    <li class="custom-breadcrumb-item disabled">
+        <span class="text-muted"><i class="bi bi-cpu-fill"></i> 모델 선택</span>
+    </li>
+    <li class="custom-breadcrumb-item disabled">
+        <span class="text-muted"><i class="bi bi-play-circle-fill"></i> 모델 실행</span>
+    </li>
+    <li class="custom-breadcrumb-item disabled">
+        <span class="text-muted"><i class="bi bi-clipboard-data"></i> 모델 결과</span>
+    </li>
+{% endblock %}
+
+{% block content %}
+<div class="row row-cols-1 row-cols-md-2 g-4 mb-4">
+    <div class="col">
+        <div class="card h-100 border-0 shadow-sm">
+            <div class="card-header bg-white py-3">
+                <h6 class="mb-0 fw-bold">
+                    <i class="bi bi-file-earmark"></i>
+                    원본 {% if content_type == 'video' %}동영상{% else %}이미지{% endif %}
+                </h6>
+            </div>
+            <div class="card-body d-flex flex-column">
+                <!-- 이미지 컨테이너 - 여백 제거 -->
+                <div class="flex-grow-1 rounded overflow-hidden" style="min-height: 300px;">
+                    {% if content_type == 'video' %}
+                        <video id="originalVideo" width="100%" preload="metadata" style="display: block; width: 100%;">
+                            <source src="{% url 'serve_video' content.pk %}" type="video/mp4">
+                        </video>
+                    {% else %}
+                        <img src="{{ content.file.url }}" 
+                             class="w-100" 
+                             alt="원본 이미지"
+                             style="display: block; height: auto; object-fit: contain;">
+                    {% endif %}
+                </div>
+                <div class="mt-3">
+                    <p class="text-muted mb-1 small">{{ content.title }}</p>
+                    <small class="text-secondary">
+                        <i class="bi bi-hdd"></i> {{ content.get_file_size_display }}
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col">
+        <div class="card h-100 border-0 shadow-sm">
+            <div class="card-header bg-white py-3 text-primary">
+                <h6 class="mb-0 fw-bold">
+                    <i class="bi bi-check-circle"></i> 전처리 결과
+                </h6>
+            </div>
+            <div class="card-body d-flex flex-column">
+                <!-- ⭐ 이미지 컨테이너 - 여백 제거 -->
+                <div class="flex-grow-1 rounded overflow-hidden" style="min-height: 300px;">
+                    {% if content_type == 'video' %}
+                        <video id="preprocessedVideo" width="100%" preload="metadata" style="display: block; width: 100%;">
+                            <source src="{% url 'preprocess:serve_preprocessed_video' task.id %}" type="video/mp4">
+                        </video>
+                    {% else %}
+                        <img src="{% url 'preprocess:serve_preprocessed_image' task.id %}" 
+                             class="w-100" 
+                             alt="전처리 결과"
+                             style="display: block; height: auto; object-fit: contain;">
+                    {% endif %}
+                </div>
+                <div class="mt-3 d-flex justify-content-between align-items-center">
+                    <div>
+                        <p class="text-muted mb-1 small">
+                            <i class="bi bi-check-circle text-success"></i> 전처리 완료
+                        </p>
+                        {% if content_type == 'video' %}
+                            <small class="text-secondary"><i class="bi bi-film"></i> 프레임: {{ task.processed_frames }}</small>
+                        {% endif %}
+                    </div>
+                    <a href="{% if content_type == 'video' %}{% url 'preprocess:serve_preprocessed_video' task.id %}{% else %}{% url 'preprocess:serve_preprocessed_image' task.id %}{% endif %}" 
+                       download="processed_{{ content.file.name }}" class="btn btn-light btn-sm">
+                        <i class="bi bi-download"></i> 다운로드
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if content_type == 'video' %}
+<!-- ⭐ 재생 모드 선택 토글 -->
+<div class="row mb-3">
+    <div class="col-md-12">
+        <div class="btn-group w-100" role="group">
+            <button type="button" id="syncModeBtn" class="btn btn-primary active">
+                <i class="bi bi-link-45deg"></i> 싱크 재생
+            </button>
+            <button type="button" id="individualModeBtn" class="btn btn-outline-primary">
+                <i class="bi bi-play-circle"></i> 개별 재생
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- 싱크 모드: 마스터 컨트롤 -->
+<div class="row mb-4" id="syncControls">
+    <div class="col-md-12">
+        <div class="card border-0 shadow-sm bg-light" style="border-radius: 10px;">
+            <div class="card-body py-2 px-3">
+                <div class="d-flex align-items-center gap-3">
+                    <small class="fw-bold text-secondary" style="min-width: 60px;">싱크 재생</small>
+                    <button id="masterPlayBtn" class="btn btn-sm d-flex align-items-center justify-content-center shadow-sm" 
+                            style="width: 28px; height: 28px; border-radius: 50%; background-color: #0d6efd; border: none; color: #fff;">
+                        <i class="bi bi-play-fill"></i>
+                    </button>
+                    
+                    <div class="flex-grow-1 position-relative d-flex align-items-center">
+                        <input type="range" id="masterSeekBar" class="form-range custom-range" value="0" step="0.01" max="100">
+                    </div>
+                    
+                    <div class="text-secondary small fw-light" style="font-variant-numeric: tabular-nums; min-width: 90px; text-align: center;">
+                        <span id="currentTime">0:00</span> / <span id="totalTime">0:00</span>
+                    </div>
+                    
+                    <button id="syncVideosBtn" class="btn btn-link btn-sm text-secondary p-0" title="싱크 강제 맞춤">
+                        <i class="bi bi-arrow-repeat" style="font-size: 1.1rem;"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 개별 모드: 각 비디오별 컨트롤 -->
+<div class="row mb-4 g-3" id="individualControls" style="display: none;">
+    <div class="col-md-6">
+        <div class="card border-0 shadow-sm bg-light">
+            <div class="card-body py-2 px-3">
+                <div class="d-flex align-items-center gap-2">
+                    <small class="fw-bold text-secondary" style="min-width: 60px;">원본</small>
+                    <button id="originalPlayBtn" class="btn btn-sm d-flex align-items-center justify-content-center" 
+                            style="width: 28px; height: 28px; border-radius: 50%; background-color: #6c757d; border: none; color: #fff;">
+                        <i class="bi bi-play-fill"></i>
+                    </button>
+                    <input type="range" id="originalIndividualSeekBar" class="form-range individual-control-range flex-grow-1" value="0" step="0.01">
+                    <span id="originalCurrentTime" class="small text-secondary" style="min-width: 80px; text-align: right;">0:00 / 0:00</span>
+                </div>
+            </div>
+        </div>
+    </div>    
+    <div class="col-md-6">
+        <div class="card border-0 shadow-sm bg-light">
+            <div class="card-body py-2 px-3">
+                <div class="d-flex align-items-center gap-2">
+                    <small class="fw-bold text-success" style="min-width: 60px;">전처리</small>
+                    <button id="preprocessedPlayBtn" class="btn btn-sm d-flex align-items-center justify-content-center" 
+                            style="width: 28px; height: 28px; border-radius: 50%; background-color: #198754; border: none; color: #fff;">
+                        <i class="bi bi-play-fill"></i>
+                    </button>
+                    <input type="range" id="preprocessedIndividualSeekBar" class="form-range individual-control-range flex-grow-1" value="0" step="0.01">
+                    <span id="preprocessedCurrentTime" class="small text-secondary" style="min-width: 80px; text-align: right;">0:00 / 0:00</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="card mb-3 border-0 shadow-sm">
+            <div class="card-header bg-white py-3">
+                <h6 class="mb-0 fw-bold"><i class="bi bi-funnel"></i> 적용된 전처리 파이프라인</h6>
+            </div>
+            <div class="card-body">
+                {% if task.get_pipeline_display %}
+                    <ol class="mb-3">
+                        {% for step in task.get_pipeline_display %}
+                            <li>{{ step }}</li>
+                        {% endfor %}
+                    </ol>
+                {% else %}
+                    <p class="text-muted mb-3"><i class="bi bi-info-circle"></i> 전처리를 적용하지 않았습니다</p>
+                {% endif %}
+                
+                <div class="pt-3 border-top">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <p class="mb-1"><i class="bi bi-clock"></i> <strong>처리 시간:</strong> 
+                                {% if task.started_at and task.completed_at %}{{ task.get_duration|floatformat:1 }}초{% else %}-{% endif %}</p>
+                        </div>
+                        <div class="col-md-4">
+                            <p class="mb-1"><i class="bi bi-calendar"></i> <strong>완료 시각:</strong> {{ task.completed_at|date:"Y-m-d H:i:s" }}</p>
+                        </div>
+                        <div class="col-md-4">
+                            <p class="mb-1">
+                                {% if content_type == 'video' %}
+                                    <i class="bi bi-film"></i> <strong>총 프레임:</strong> {{ task.total_frames }}
+                                {% else %}
+                                    <i class="bi bi-aspect-ratio"></i> <strong>해상도:</strong> {{ content.get_resolution_display }}
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card mb-4 border-0 shadow-sm">
+    <div class="card-body">
+        <div class="d-grid gap-2 d-md-flex justify-content-md-center">
+            {% if task.status == 'completed' %}
+            <a href="{% url 'vision_engine:select_model' task.id %}" class="btn btn-primary px-4" style="border-radius: 8px;">
+                <i class="bi bi-cpu-fill"></i> 모델 적용하기
+            </a>
+            {% endif %}
+            <a href="{% url 'preprocess:start_preprocessing' content.id %}?type={{ content_type }}" class="btn btn-warning px-4" style="border-radius: 8px;">
+                <i class="bi bi-arrow-counterclockwise"></i> 다시 전처리하기
+            </a>
+            <a href="{% if content_type == 'video' %}{% url 'video_detail' content.id %}{% else %}{% url 'image_detail' content.id %}{% endif %}" 
+               class="btn btn-outline-secondary px-4" style="border-radius: 8px;">
+                <i class="bi bi-arrow-left"></i> 상세로 돌아가기
+            </a>
+        </div>
+    </div>
+</div>
+
+
+<style>
+/* 슬라이더 공통 스타일: 모든 슬라이더의 높이를 6px로 통일 */
+.custom-range, 
+.individual-range, 
+.individual-control-range { 
+    height: 6px; 
+    padding: 0; 
+    appearance: none;
+    background: transparent;
+}
+
+/* 트랙(선) 스타일 통일 */
+.custom-range::-webkit-slider-runnable-track,
+.individual-range::-webkit-slider-runnable-track,
+.individual-control-range::-webkit-slider-runnable-track { 
+    background-color: #dee2e6; 
+    height: 6px; 
+    border-radius: 3px; 
+}
+
+/* 손잡이(Thumb) 공통 스타일: 크기를 16px로 통일하고 중앙 정렬 */
+.custom-range::-webkit-slider-thumb,
+.individual-range::-webkit-slider-thumb,
+.individual-control-range::-webkit-slider-thumb { 
+    width: 16px; 
+    height: 16px; 
+    margin-top: -5px; /* (트랙6px / 2) - (손잡이16px / 2) = -5px */
+    border-radius: 50%; 
+    border: 2px solid #fff; 
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2); 
+    appearance: none;
+    transition: background-color 0.2s;
+}
+
+/* 각 슬라이더별 손잡이 색상만 차별화 */
+.custom-range::-webkit-slider-thumb { 
+    background-color: #0d6efd; /* 파란색 (싱크) */
+}
+
+.individual-range::-webkit-slider-thumb {
+    background-color: #adb5bd; /* 연회색 */
+}
+
+.individual-control-range::-webkit-slider-thumb {
+    background-color: #6c757d; /* 진회색 (개별) */
+}
+
+.card { transition: transform 0.2s; }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const contentType = "{{ content_type }}";
+    if (contentType !== 'video') return;
+
+    const originalVideo = document.getElementById('originalVideo');
+    const preprocessedVideo = document.getElementById('preprocessedVideo');
+    
+    // 모드 선택 버튼
+    const syncModeBtn = document.getElementById('syncModeBtn');
+    const individualModeBtn = document.getElementById('individualModeBtn');
+    
+    // 컨트롤 영역
+    const syncControls = document.getElementById('syncControls');
+    const individualControls = document.getElementById('individualControls');
+    
+    // 싱크 모드 컨트롤
+    const masterPlayBtn = document.getElementById('masterPlayBtn');
+    const masterSeekBar = document.getElementById('masterSeekBar');
+    const currentTimeText = document.getElementById('currentTime');
+    const totalTimeText = document.getElementById('totalTime');
+    const syncBtn = document.getElementById('syncVideosBtn');
+    
+    // 개별 모드 컨트롤
+    const originalPlayBtn = document.getElementById('originalPlayBtn');
+    const originalIndividualSeekBar = document.getElementById('originalIndividualSeekBar');
+    const originalCurrentTimeText = document.getElementById('preprocessedCurrentTime');
+    
+    const preprocessedPlayBtn = document.getElementById('preprocessedPlayBtn');
+    const preprocessedIndividualSeekBar = document.getElementById('preprocessedIndividualSeekBar');
+    const preprocessedCurrentTimeText = document.getElementById('appliedCurrentTime');
+    
+    // 현재 모드 ('sync' | 'individual')
+    let currentMode = 'sync';
+
+    function formatTime(seconds) {
+        const min = Math.floor(seconds / 60);
+        const sec = Math.floor(seconds % 60);
+        return `${min}:${sec < 10 ? '0' + sec : sec}`;
+    }
+
+    // ============================================
+    // 모드 전환
+    // ============================================
+    function switchToSyncMode() {
+        currentMode = 'sync';
+        
+        // UI 업데이트
+        syncControls.style.display = 'block';
+        individualControls.style.display = 'none';
+        
+        syncModeBtn.classList.add('btn-primary', 'active');
+        syncModeBtn.classList.remove('btn-outline-primary');
+        
+        individualModeBtn.classList.remove('btn-primary', 'active');
+        individualModeBtn.classList.add('btn-outline-primary');
+        
+        // 두 비디오 정지 및 싱크
+        originalVideo.pause();
+        preprocessedVideo.pause();
+        originalVideo.currentTime = preprocessedVideo.currentTime;
+        
+        updateMasterPlayButton();
+        
+        // 로컬 스토리지에 저장
+        localStorage.setItem('videoMode', 'sync');
+    }
+
+    function switchToIndividualMode() {
+        currentMode = 'individual';
+        
+        // UI 업데이트
+        syncControls.style.display = 'none';
+        individualControls.style.display = 'flex';
+        
+        individualModeBtn.classList.add('btn-primary', 'active');
+        individualModeBtn.classList.remove('btn-outline-primary');
+        
+        syncModeBtn.classList.remove('btn-primary', 'active');
+        syncModeBtn.classList.add('btn-outline-primary');
+        
+        // 두 비디오 정지
+        originalVideo.pause();
+        preprocessedVideo.pause();
+        
+        updateIndividualPlayButtons();
+        
+        // 로컬 스토리지에 저장
+        localStorage.setItem('videoMode', 'individual');
+    }
+
+    syncModeBtn.addEventListener('click', switchToSyncMode);
+    individualModeBtn.addEventListener('click', switchToIndividualMode);
+
+    // ============================================
+    // 싱크 모드 컨트롤
+    // ============================================
+    function updateMasterPlayButton() {
+        if (preprocessedVideo.paused) {
+            masterPlayBtn.innerHTML = '<i class="bi bi-play-fill"></i>';
+        } else {
+            masterPlayBtn.innerHTML = '<i class="bi bi-pause-fill"></i>';
+        }
+    }
+
+    masterPlayBtn.addEventListener('click', () => {
+        if (preprocessedVideo.paused) {
+            originalVideo.play();
+            preprocessedVideo.play();
+        } else {
+            originalVideo.pause();
+            preprocessedVideo.pause();
+        }
+        updateMasterPlayButton();
+    });
+
+    masterSeekBar.addEventListener('input', () => {
+        const targetTime = parseFloat(masterSeekBar.value);
+        originalVideo.currentTime = targetTime;
+        preprocessedVideo.currentTime = targetTime;
+    });
+
+    syncBtn.addEventListener('click', () => {
+        originalVideo.currentTime = preprocessedVideo.currentTime;
+        if (!preprocessedVideo.paused) originalVideo.play();
+    });
+
+    // ============================================
+    // 개별 모드 컨트롤
+    // ============================================
+    function updateIndividualPlayButtons() {
+        if (originalVideo.paused) {
+            originalPlayBtn.innerHTML = '<i class="bi bi-play-fill"></i>';
+        } else {
+            originalPlayBtn.innerHTML = '<i class="bi bi-pause-fill"></i>';
+        }
+        
+        if (preprocessedVideo.paused) {
+            preprocessedPlayBtn.innerHTML = '<i class="bi bi-play-fill"></i>';
+        } else {
+            preprocessedPlayBtn.innerHTML = '<i class="bi bi-pause-fill"></i>';
+        }
+    }
+
+    // 전처리 비디오 컨트롤
+    originalPlayBtn.addEventListener('click', () => {
+        if (originalVideo.paused) {
+            originalVideo.play();
+        } else {
+            originalVideo.pause();
+        }
+        updateIndividualPlayButtons();
+    });
+
+    originalIndividualSeekBar.addEventListener('input', () => {
+        originalVideo.currentTime = parseFloat(originalIndividualSeekBar.value);
+    });
+
+    // 모델 결과 비디오 컨트롤
+    preprocessedPlayBtn.addEventListener('click', () => {
+        if (preprocessedVideo.paused) {
+            preprocessedVideo.play();
+        } else {
+            preprocessedVideo.pause();
+        }
+        updateIndividualPlayButtons();
+    });
+
+    preprocessedIndividualSeekBar.addEventListener('input', () => {
+        preprocessedVideo.currentTime = parseFloat(preprocessedIndividualSeekBar.value);
+    });
+
+    // ============================================
+    // 메타데이터 로드 및 시간 업데이트
+    // ============================================
+    originalVideo.addEventListener('loadedmetadata', () => {
+        const duration = originalVideo.duration;
+        originalIndividualSeekBar.max = duration;
+    });
+
+    preprocessedVideo.addEventListener('loadedmetadata', () => {
+        const duration = preprocessedVideo.duration;
+        masterSeekBar.max = duration;
+        preprocessedIndividualSeekBar.max = duration;
+        totalTimeText.innerText = formatTime(duration);
+    });
+
+    // 전처리 비디오 시간 업데이트
+    originalVideo.addEventListener('timeupdate', () => {
+        const current = originalVideo.currentTime;
+        const duration = originalVideo.duration;
+        
+        originalIndividualSeekBar.value = current;
+        originalCurrentTimeText.innerText = `${formatTime(current)} / ${formatTime(duration)}`;
+    });
+
+    // 모델 결과 비디오 시간 업데이트
+    preprocessedVideo.addEventListener('timeupdate', () => {
+        const current = preprocessedVideo.currentTime;
+        const duration = preprocessedVideo.duration;
+        
+        preprocessedIndividualSeekBar.value = current;
+        preprocessedCurrentTimeText.innerText = `${formatTime(current)} / ${formatTime(duration)}`;
+        
+        // 싱크 모드일 때만 마스터 컨트롤 업데이트
+        if (currentMode === 'sync') {
+            masterSeekBar.value = current;
+            currentTimeText.innerText = formatTime(current);
+            
+            // 자동 싱크 유지 (0.5초 이상 벌어지면 보정)
+            if (!preprocessedVideo.paused) {
+                if (Math.abs(originalVideo.currentTime - preprocessedVideo.currentTime) > 0.5) {
+                    originalVideo.currentTime = preprocessedVideo.currentTime;
+                }
+            }
+        }
+    });
+
+    // ============================================
+    // 페이지 로드 시 저장된 모드 복원
+    // ============================================
+    const savedMode = localStorage.getItem('videoMode');
+    if (savedMode === 'individual') {
+        switchToIndividualMode();
+    }
+});
+</script>
+{% endblock %}

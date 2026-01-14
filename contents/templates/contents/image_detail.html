@@ -142,9 +142,9 @@
                                     {% endif %}
                                     
                                     <!-- 탐지 이력 개수 표시 -->
-                                    {% if task.detections.count > 0 %}
+                                    {% if task.applications.count > 0 %}
                                         <span class="badge bg-info ms-2">
-                                            <i class="bi bi-cpu"></i> {{ task.detections.count }}
+                                            <i class="bi bi-cpu"></i> {{ task.applications.count }}
                                         </span>
                                     {% endif %}
                                 </div>
@@ -190,7 +190,7 @@
                                             <i class="bi bi-eye"></i> 결과 보기
                                         </a>
                                         <!-- ⭐ 탐지 이력이 없을 때만 편집 버튼 표시 - task_id 전달 -->
-                                        {% if task.detections.count == 0 %}
+                                        {% if task.applications.count == 0 %}
                                         <a href="{% url 'preprocess:start_preprocessing_with_task' image.id task.id %}?type=image" 
                                         class="btn btn-outline-info btn-sm">
                                             <i class="bi bi-pencil-square"></i> 편집
@@ -240,14 +240,14 @@
                             <div class="border-start border-3 border-info ps-3 ms-2">
                                 <h6 class="mb-3">
                                     <i class="bi bi-cpu"></i> 탐지 이력
-                                    {% if task.detections.count > 0 %}
-                                        <span class="badge bg-info">{{ task.detections.count }}개</span>
+                                    {% if task.applications.count > 0 %}
+                                        <span class="badge bg-info">{{ task.applications.count }}개</span>
                                     {% else %}
                                         <span class="badge bg-secondary">0개</span>
                                     {% endif %}
                                 </h6>
                                 
-                                {% if task.detections.exists %}
+                                {% if task.applications.exists %}
                                     <!-- 탐지 이력이 있을 때 -->
                                     <div class="table-responsive">
                                         <table class="table table-sm table-hover">
@@ -262,13 +262,13 @@
                                                 </tr>
                                             </thead>
                                             <tbody>
-                                                {% for detection in task.detections.all %}
+                                                {% for application in task.applications.all %}
                                                 <tr>
-                                                    <td><strong>#{{ detection.id }}</strong></td>
+                                                    <td><strong>#{{ application.id }}</strong></td>
                                                     <td>
                                                         <div class="d-flex align-items-center">
-                                                            <small class="me-2">{{ detection.get_model_name|truncatewords:3 }}</small>
-                                                            {% if detection.base_model %}
+                                                            <small class="me-2">{{ application.get_model_name|truncatewords:3 }}</small>
+                                                            {% if application.base_model %}
                                                                 <span class="badge bg-primary">YOLO</span>
                                                             {% else %}
                                                                 <span class="badge bg-secondary">Custom</span>
@@ -276,29 +276,29 @@
                                                         </div>
                                                     </td>
                                                     <td>
-                                                        <span class="badge bg-{{ detection.get_status_display_badge }}">
-                                                            {{ detection.get_status_display }}
+                                                        <span class="badge bg-{{ application.get_status_display_badge }}">
+                                                            {{ application.get_status_display }}
                                                         </span>
                                                     </td>
                                                     <td>
-                                                        {% if detection.total_detections %}
-                                                            <span class="badge bg-info">{{ detection.total_detections }}</span>
+                                                        {% if application.total_applications %}
+                                                            <span class="badge bg-info">{{ application.total_applications }}</span>
                                                         {% else %}
                                                             <span class="text-muted">-</span>
                                                         {% endif %}
                                                     </td>
                                                     <td>
-                                                        <small>{{ detection.created_at|date:"m/d H:i" }}</small>
+                                                        <small>{{ application.created_at|date:"m/d H:i" }}</small>
                                                     </td>
                                                     <td>
                                                         <div class="btn-group btn-group-sm" role="group">
-                                                            {% if detection.status == 'completed' %}
-                                                                <a href="{% url 'vision_engine:detection_result' detection.id %}" 
+                                                            {% if application.status == 'completed' %}
+                                                                <a href="{% url 'vision_engine:application_result' application.id %}" 
                                                                    class="btn btn-outline-primary">
                                                                     <i class="bi bi-eye"></i> 결과
                                                                 </a>
-                                                            {% elif detection.status == 'processing' %}
-                                                                <a href="{% url 'vision_engine:detection_progress' detection.id %}" 
+                                                            {% elif application.status == 'processing' %}
+                                                                <a href="{% url 'vision_engine:application_progress' application.id %}" 
                                                                    class="btn btn-outline-primary">
                                                                     <i class="bi bi-hourglass-split"></i> 진행
                                                                 </a>
@@ -306,7 +306,7 @@
                                                             
                                                             <button type="button" 
                                                                     class="btn btn-danger"
-                                                                    data-detection-id="{{ detection.id }}"
+                                                                    data-application-id="{{ application.id }}"
                                                                     onclick="deleteDetection(this)">
                                                                 <i class="bi bi-trash"></i> 삭제
                                                             </button>
@@ -335,7 +335,7 @@
                                 {% endif %}
                                 
                                 <!-- 새 탐지 작업 추가 버튼 -->
-                                {% if task.status == 'completed' and task.detections.exists %}
+                                {% if task.status == 'completed' and task.applications.exists %}
                                 <div class="text-center mt-3">
                                     <a href="{% url 'vision_engine:select_model' task.id %}" class="btn btn-sm btn-outline-success">
                                         <i class="bi bi-plus-circle"></i> 새 탐지 작업 추가
@@ -498,10 +498,10 @@ document.addEventListener('DOMContentLoaded', function() {
         deleteTaskModal = new bootstrap.Modal(taskModalElement);
     }
     
-    const detectionModalElement = document.getElementById('deleteDetectionModal');
+    const applicationModalElement = document.getElementById('deleteDetectionModal');
     
-    if (detectionModalElement) {
-        deleteDetectionModal = new bootstrap.Modal(detectionModalElement);
+    if (applicationModalElement) {
+        deleteDetectionModal = new bootstrap.Modal(applicationModalElement);
     }
 });
 
@@ -526,13 +526,13 @@ function deleteTask(button) {
 }
 
 function deleteDetection(button) {
-    const detectionId = button.getAttribute('data-detection-id');
+    const applicationId = button.getAttribute('data-application-id');
     
-    document.getElementById('deleteDetectionId').textContent = detectionId;
+    document.getElementById('deleteDetectionId').textContent = applicationId;
     
     const form = document.getElementById('deleteDetectionForm');
     if (form) {
-        form.action = `/vision/${detectionId}/delete/`;
+        form.action = `/vision/${applicationId}/delete/`;
     }
     
     if (deleteDetectionModal) {

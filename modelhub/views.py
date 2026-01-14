@@ -1,8 +1,8 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse
 from django.contrib import messages
-from .models import BaseModel, CustomModel
-from .forms import BaseModelForm, CustomModelForm
+from .models import BuiltinModel, CustomModel
+from .forms import BuiltinModelForm, CustomModelForm
 import os
 
 
@@ -16,17 +16,17 @@ def model_list(request):
     # 탭 파라미터 가져오기 (기본값: all)
     tab = request.GET.get("tab", "all")
     
-    base_models = BaseModel.objects.filter(is_active=True).order_by(
+    builtin_models = BuiltinModel.objects.filter(is_active=True).order_by(
         "-is_default", "-created_at"
     )
     custom_models = CustomModel.objects.filter(is_active=True).order_by("-created_at")
 
-    total_base = base_models.count()
+    total_base = builtin_models.count()
     total_custom = custom_models.count()
     total_models = total_base + total_custom
 
     context = {
-        "base_models": base_models,
+        "builtin_models": builtin_models,
         "custom_models": custom_models,
         "total_models": total_models,
         "total_base": total_base,
@@ -46,10 +46,10 @@ def model_add(request):
 # ============================================
 
 
-def base_model_add(request):
+def builtin_model_add(request):
     """기본 모델 추가 (YOLO 등)"""
     if request.method == "POST":
-        form = BaseModelForm(request.POST, request.FILES)
+        form = BuiltinModelForm(request.POST, request.FILES)
         if form.is_valid():
             model = form.save(commit=False)
             if model.model_file:
@@ -60,7 +60,7 @@ def base_model_add(request):
             )
             return redirect("modelhub:model_list")
     else:
-        form = BaseModelForm()
+        form = BuiltinModelForm()
 
     # YOLO 사전 정의 모델 목록
     yolo_presets = [
@@ -100,17 +100,17 @@ def base_model_add(request):
         "form": form,
         "yolo_presets": yolo_presets,
     }
-    return render(request, "modelhub/base_model_add.html", context)
+    return render(request, "modelhub/builtin_model_add.html", context)
 
 
-def base_model_add_preset(request):
+def builtin_model_add_preset(request):
     """YOLO 사전 정의 모델 빠른 추가"""
     if request.method == "POST":
         yolo_version = request.POST.get("yolo_version")
         display_name = request.POST.get("display_name")
         description = request.POST.get("description", "")
 
-        model = BaseModel.objects.create(
+        model = BuiltinModel.objects.create(
             name=yolo_version.replace(".pt", ""),
             display_name=display_name,
             description=description,
@@ -122,7 +122,7 @@ def base_model_add_preset(request):
         messages.success(request, f'YOLO 모델 "{model.display_name}"이 추가되었습니다.')
         return redirect("modelhub:model_list")
 
-    return redirect("modelhub:base_model_add")
+    return redirect("modelhub:builtin_model_add")
 
 
 # ============================================
@@ -161,11 +161,11 @@ def custom_model_add(request):
 def model_detail(request, model_type, model_id):
     """통합 모델 상세 (모델 정보 + 탐지 결과 목록)"""
     if model_type == "base":
-        model = get_object_or_404(BaseModel, id=model_id)
+        model = get_object_or_404(BuiltinModel, id=model_id)
         # 이 모델을 사용한 탐지 목록
         from vision_engine.models import Detection
 
-        detections = Detection.objects.filter(base_model=model).order_by("-created_at")
+        detections = Detection.objects.filter(builtin_model=model).order_by("-created_at")
     else:
         model = get_object_or_404(CustomModel, id=model_id)
         # 이 모델을 사용한 탐지 목록
@@ -190,15 +190,15 @@ def model_detail(request, model_type, model_id):
 def model_edit(request, model_type, model_id):
     """통합 모델 수정"""
     if model_type == "base":
-        model = get_object_or_404(BaseModel, id=model_id)
+        model = get_object_or_404(BuiltinModel, id=model_id)
         if request.method == "POST":
-            form = BaseModelForm(request.POST, request.FILES, instance=model)
+            form = BuiltinModelForm(request.POST, request.FILES, instance=model)
             if form.is_valid():
                 form.save()
                 messages.success(request, "모델 정보가 수정되었습니다.")
                 return redirect("modelhub:model_detail", model_type, model.id)
         else:
-            form = BaseModelForm(instance=model)
+            form = BuiltinModelForm(instance=model)
     else:
         model = get_object_or_404(CustomModel, id=model_id)
         if request.method == "POST":
@@ -220,7 +220,7 @@ def model_edit(request, model_type, model_id):
 def model_delete(request, model_type, model_id):
     """통합 모델 삭제"""
     if model_type == "base":
-        model = get_object_or_404(BaseModel, id=model_id)
+        model = get_object_or_404(BuiltinModel, id=model_id)
     else:
         model = get_object_or_404(CustomModel, id=model_id)
 
@@ -252,7 +252,7 @@ def model_delete(request, model_type, model_id):
 def model_toggle(request, model_type, model_id):
     """모델 활성화/비활성화 토글"""
     if model_type == "base":
-        model = get_object_or_404(BaseModel, id=model_id)
+        model = get_object_or_404(BuiltinModel, id=model_id)
     else:
         model = get_object_or_404(CustomModel, id=model_id)
 
@@ -290,7 +290,7 @@ def custom_model_validate(request, model_id):
 
 def api_all_models(request):
     """전체 모델 목록 API"""
-    base_models = BaseModel.objects.filter(is_active=True).values(
+    builtin_models = BuiltinModel.objects.filter(is_active=True).values(
         "id", "name", "display_name", "yolo_version"
     )
     custom_models = CustomModel.objects.filter(is_active=True).values(
@@ -300,7 +300,7 @@ def api_all_models(request):
     return JsonResponse(
         {
             "success": True,
-            "base_models": list(base_models),
+            "builtin_models": list(builtin_models),
             "custom_models": list(custom_models),
         }
     )

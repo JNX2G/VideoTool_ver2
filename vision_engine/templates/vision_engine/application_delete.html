@@ -1,0 +1,136 @@
+{% extends 'contents/base.html' %}
+
+{% block title %}모델 결과 삭제{% endblock %}
+
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="custom-breadcrumb-item">
+            <a href="{% url 'vision_engine:application_list' %}">
+                <i class="bi bi-search"></i> 모델 결과 목록
+            </a>
+        </li>
+        <li class="custom-breadcrumb-item">
+            <a href="{% url 'vision_engine:application_result' application.id %}">
+                <i class="bi bi-clipboard-data"></i> {{ application.title }}
+            </a>
+        </li>
+        <li class="custom-breadcrumb-item active">
+            <a href="#">
+                <i class="bi bi-trash"></i> 삭제
+            </a>
+        </li>
+    </ol>
+</nav>
+{% endblock breadcrumb %}
+
+{% block content %}
+<div class="container" style="max-width: 600px;">
+    <div class="card border-danger shadow-sm">
+        <div class="card-header bg-danger text-white">
+            <h5 class="mb-0">
+                <i class="bi bi-exclamation-triangle"></i> 모델 작업 결과 삭제 확인
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="alert alert-danger">
+                <h5><i class="bi bi-exclamation-triangle-fill"></i> 경고</h5>
+                <p class="mb-0">정말로 이 모델 작업 결과을 삭제하시겠습니까?</p>
+            </div>
+
+            <ul class="list-unstyled mb-4">
+                <li class="mb-2">
+                    <i class="bi bi-x-circle text-danger"></i>
+                    작업 결과 <strong>{{ application.title }}</strong>이(가) 영구적으로 삭제됩니다
+                </li>
+                <li class="mb-2">
+                    <i class="bi bi-x-circle text-danger"></i>
+                    작업 결과 파일도 함께 삭제됩니다
+                </li>
+                <li class="mb-2">
+                    <i class="bi bi-x-circle text-danger"></i>
+                    이 작업은 되돌릴 수 없습니다
+                </li>
+            </ul>
+
+            <!-- 모델 적용 결과 정보 -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6 class="mb-0">삭제될 모델 작업 결과 정보</h6>
+                </div>
+                <div class="card-body">
+                    <table class="table table-borderless mb-0">
+                        <tbody>
+                            <tr>
+                                <th width="35%">작업 제목:</th>
+                                <td>{{ application.title }}</td>
+                            </tr>
+                            <tr>
+                                <th>콘텐츠:</th>
+                                <td>{{ application.get_content.title }}</td>
+                            </tr>
+                            <tr>
+                                <th>사용 모델:</th>
+                                <td>{{ application.get_model_name }}</td>
+                            </tr>
+                            <tr>
+                                <th>상태:</th>
+                                <td>
+                                    {% if application.status == 'completed' %}
+                                        <span class="badge bg-success">완료</span>
+                                    {% elif application.status == 'processing' %}
+                                        <span class="badge bg-warning">처리 중</span>
+                                    {% elif application.status == 'failed' %}
+                                        <span class="badge bg-danger">실패</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">대기</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% if application.total_applications > 0 %}
+                            <tr>
+                                <th>총 탐지 수:</th>
+                                <td>{{ application.total_applications }}</td>
+                            </tr>
+                            {% endif %}
+                            <tr>
+                                <th>생성일:</th>
+                                <td>{{ application.created_at|date:"Y-m-d H:i" }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 삭제 확인 폼 -->
+            <form method="post">
+                {% csrf_token %}
+                
+                <div class="d-grid gap-2">
+                    <button type="submit" class="btn btn-danger btn-lg">
+                        <i class="bi bi-trash"></i> 삭제하기
+                    </button>
+                    <a href="javascript:history.back();" class="btn btn-outline-secondary">
+                        <i class="bi bi-x-circle"></i> 취소
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- 안내 메시지 -->
+    <div class="alert alert-info mt-3">
+        <i class="bi bi-info-circle"></i>
+        <strong>참고:</strong> 모델 작업 결과를 삭제해도 원본 콘텐츠와 전처리 결과는 유지됩니다.
+    </div>
+</div>
+
+<!-- 삭제 확인 JavaScript -->
+<script>
+document.querySelector('form').addEventListener('submit', function(e) {
+    if (!confirm('정말로 "{{ application.title }}" 모델 작업 결과를 삭제하시겠습니까?\n\n이 작업은 되돌릴 수 없습니다!')) {
+        e.preventDefault();
+    }
+});
+</script>
+{% endblock %}

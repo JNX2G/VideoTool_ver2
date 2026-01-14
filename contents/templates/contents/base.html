@@ -97,11 +97,11 @@
         /* 빌트인 */
         .text-builtin { color: #6B7280   !important; } 
         .bg-builtin { background-color: #6B7280   !important; }
-
+        .btn-builtin { color: white; background-color: #6B7280   !important; }
         /* 커스텀 */
         .text-custom { color: #0D6EFD !important; } 
         .bg-custom { background-color: #0D6EFD !important; }
-
+        .btn-custom { color: white; background-color: #0D6EFD   !important; }
 
         /* 1. 레이아웃 밀림 방지 및 배경 설정 */
         html {
@@ -168,7 +168,7 @@
 
                     <!-- 탐지 작업 -->
                     <li class="nav-item">
-                        <a class="nav-link" href="{% url 'vision_engine:detection_list' %}">
+                        <a class="nav-link" href="{% url 'vision_engine:application_list' %}">
                             <i class="bi bi-search"></i> 모델 결과
                         </a>
                     </li>

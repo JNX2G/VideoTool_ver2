@@ -1,14 +1,14 @@
 from django import forms
-from .models import BaseModel, CustomModel
+from .models import BuiltinModel, CustomModel
 from django.core.exceptions import ValidationError
 import os
 
 
-class BaseModelForm(forms.ModelForm):
+class BuiltinModelForm(forms.ModelForm):
     """기본 모델 폼"""
 
     class Meta:
-        model = BaseModel
+        model = BuiltinModel
         fields = [
             "name",
             "display_name",

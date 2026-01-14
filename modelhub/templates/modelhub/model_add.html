@@ -27,7 +27,7 @@
             <div class="card h-100 shadow-sm">
                 <div class="card-body text-center">
                     <div class="mb-4">
-                        <i class="bi bi-lightning-charge-fill text-info" style="font-size: 4rem;"></i>
+                        <i class="bi bi-lightning-charge-fill text-builtin" style="font-size: 4rem;"></i>
                     </div>
                     <h4 class="card-title"> 빌트인 모델</h4>
                     <p class="card-text text-muted">
@@ -35,14 +35,14 @@
                         현재 YOLOv8 모델을 활용 가능합니다.
                     </p>
                     <ul class="list-unstyled text-start">
-                        <li><i class="bi bi-check-circle-fill text-info"></i> YOLOv8 nano ~ xlarge</li>
-                        <li><i class="bi bi-check-circle-fill text-info"></i> 80개 클래스 지원 (COCO)</li>
-                        <li><i class="bi bi-check-circle-fill text-info"></i> 자동 다운로드</li>
-                        <li><i class="bi bi-check-circle-fill text-info"></i> 즉시 사용 가능</li>
+                        <li><i class="bi bi-check-circle-fill text-builtin"></i> YOLOv8 nano ~ xlarge</li>
+                        <li><i class="bi bi-check-circle-fill text-builtin"></i> 80개 클래스 지원 (COCO)</li>
+                        <li><i class="bi bi-check-circle-fill text-builtin"></i> 자동 다운로드</li>
+                        <li><i class="bi bi-check-circle-fill text-builtin"></i> 즉시 사용 가능</li>
                     </ul>
                 </div>
                 <div class="card-footer bg-transparent border-0 text-center pb-4">
-                    <a href="{% url 'modelhub:base_model_add' %}" class="btn btn-info btn-lg">
+                    <a href="{% url 'modelhub:builtin_model_add' %}" class="btn btn-builtin btn-lg">
                         <i class="bi bi-arrow-right-circle"></i> 기본 모델 추가
                     </a>
                 </div>
@@ -54,7 +54,7 @@
             <div class="card h-100 shadow-sm">
                 <div class="card-body text-center">
                     <div class="mb-4">
-                        <i class="bi bi-cloud-upload-fill text-warning" style="font-size: 4rem;"></i>
+                        <i class="bi bi-cloud-upload-fill text-custom" style="font-size: 4rem;"></i>
                     </div>
                     <h4 class="card-title">커스텀 모델</h4>
                     <p class="card-text text-muted">
@@ -62,14 +62,14 @@
                         특정 도메인이나 맞춤형 객체 탐지에 적합합니다.
                     </p>
                     <ul class="list-unstyled text-start">
-                        <li><i class="bi bi-check-circle-fill text-warning"></i> PyTorch (.pt, .pth)</li>
-                        <li><i class="bi bi-check-circle-fill text-warning"></i> ONNX (.onnx)</li>
-                        <li><i class="bi bi-check-circle-fill text-warning"></i> TensorFlow (.h5, .pb)</li>
-                        <li><i class="bi bi-check-circle-fill text-warning"></i> 성능 지표 기록</li>
+                        <li><i class="bi bi-check-circle-fill text-custom"></i> PyTorch (.pt, .pth)</li>
+                        <li><i class="bi bi-check-circle-fill text-custom"></i> ONNX (.onnx)</li>
+                        <li><i class="bi bi-check-circle-fill text-custom"></i> TensorFlow (.h5, .pb)</li>
+                        <li><i class="bi bi-check-circle-fill text-custom"></i> 성능 지표 기록</li>
                     </ul>
                 </div>
                 <div class="card-footer bg-transparent border-0 text-center pb-4">
-                    <a href="{% url 'modelhub:custom_model_add' %}" class="btn btn-warning btn-lg">
+                    <a href="{% url 'modelhub:custom_model_add' %}" class="btn btn-custom btn-lg">
                         <i class="bi bi-arrow-right-circle"></i> 커스텀 모델 업로드
                     </a>
                 </div>
