@@ -5,10 +5,16 @@ app_name = 'preprocess'
 
 urlpatterns = [
     # 전처리 시작 (파이프라인 구성)
+    # ⭐ task_id를 선택적으로 받을 수 있도록 두 개의 URL 패턴 추가
     path(
         "start/<int:content_id>/",
         views.StartPreprocessingView.as_view(),
         name="start_preprocessing",
+    ),
+    path(
+        "start/<int:content_id>/<int:task_id>/",
+        views.StartPreprocessingView.as_view(),
+        name="start_preprocessing_with_task",
     ),
     
     # 전처리 파이프라인 관리

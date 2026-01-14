@@ -187,14 +187,15 @@
                         </button>
                     {% endif %}
                 {% endif %}
-                
+
+
                 <!-- 돌아가기 버튼 -->
                 {% if content_type == 'video' %}
-                    <a href="{% url 'preprocess:start_preprocessing' content.pk %}?type=video" class="btn btn-outline-secondary">
+                    <a href="{% url 'preprocess:start_preprocessing_with_task' content.pk task.id %}?type=video" class="btn btn-outline-secondary">
                         <i class="bi bi-arrow-left"></i> 파이프라인 편집으로 돌아가기
                     </a>
                 {% else %}
-                    <a href="{% url 'preprocess:start_preprocessing' content.pk %}?type=image" class="btn btn-outline-secondary">
+                    <a href="{% url 'preprocess:start_preprocessing_with_task' content.pk task.id %}?type=image" class="btn btn-outline-secondary">
                         <i class="bi bi-arrow-left"></i> 파이프라인 편집으로 돌아가기
                     </a>
                 {% endif %}

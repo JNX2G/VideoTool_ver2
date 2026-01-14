@@ -197,20 +197,40 @@
     </div>
 </div>
 
+<!-- ⭐ 모달 - 기법 소개 포함 -->
 <div class="modal fade" id="paramModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content border-0 shadow-lg">
-            <div class="modal-header bg-light">
+            <div class="modal-header bg-light border-bottom">
                 <h6 class="modal-title fw-bold text-dark" id="modalTitle">매개변수 설정</h6>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
+                <!-- ⭐ 기법 소개 섹션 -->
+                <div id="methodInfoSection" class="mb-4 p-3 bg-light rounded border">
+                    <!-- 기법 타입 배지 -->
+                    <div class="mb-2">
+                        <span id="methodInfoTypeBadge"></span>
+                        <span id="methodInfoCategoryBadge" class="badge bg-secondary-subtle text-secondary border ms-1"></span>
+                    </div>
+                    
+                    <!-- 설명 -->
+                    <p id="methodInfoDescription" class="small text-muted mb-2"></p>
+                    
+                    <!-- 사용 예시 -->
+                    <div id="methodInfoExample" class="p-2 bg-white rounded border-start border-3 border-info" style="display: none;">
+                        <small class="text-muted d-block mb-1"><i class="bi bi-lightbulb me-1"></i>사용 예시</small>
+                        <small id="methodInfoExampleText" class="text-dark"></small>
+                    </div>
+                </div>
+                
+                <!-- 파라미터 설정 폼 -->
                 <form id="paramForm">
                     <input type="hidden" id="methodId">
                     <div id="paramFields"></div>
                 </form>
             </div>
-            <div class="modal-footer border-0">
+            <div class="modal-footer border-0 bg-light">
                 <button type="button" class="btn btn-light border" data-bs-dismiss="modal">취소</button>
                 <button type="button" class="btn btn-primary px-4" id="modalSubmitBtn">단계 추가</button>
             </div>
@@ -225,8 +245,11 @@
     let paramModal;
     
     // 데이터 보관용
-    let currentPipelineFull = {% if task %}{{ task.preprocessing_pipeline|safe }}{% else %}[]{% endif %};
+    let currentPipelineFull = {{ task.preprocessing_pipeline|default:"[]"|safe }};
     const methodSchemas = {};
+    
+    // ⭐ 기법 상세 정보 저장
+    const methodDetails = {};
 
     document.addEventListener('DOMContentLoaded', function() {
         paramModal = new bootstrap.Modal(document.getElementById('paramModal'));
@@ -239,9 +262,53 @@
                 schema: {{ method.parameter_schema|safe }},
                 defaults: {{ method.default_parameters|safe }}
             };
+            
+            // ⭐ 기법 상세 정보 저장
+            methodDetails[{{ method.id }}] = {
+                name: '{{ method.name }}',
+                description: '{{ method.description|escapejs }}',
+                category: '{{ category }}',
+                is_builtin: {{ method.is_builtin|lower }},
+                example: '{{ method.example_use_case|default:""|escapejs }}',
+                parameter_schema: {{ method.parameter_schema|safe }},
+                defaults: {{ method.default_parameters|safe }}
+            };
             {% endfor %}
         {% endfor %}
     });
+
+    // ⭐ 기법 정보 표시 함수 (모달용으로 간소화)
+    function showMethodInfo(methodId) {
+        const info = methodDetails[methodId];
+        if (!info) return;
+        
+        const typeBadge = document.getElementById('methodInfoTypeBadge');
+        const categoryBadge = document.getElementById('methodInfoCategoryBadge');
+        const description = document.getElementById('methodInfoDescription');
+        const exampleDiv = document.getElementById('methodInfoExample');
+        const exampleText = document.getElementById('methodInfoExampleText');
+        
+        // 타입 배지 설정
+        if (info.is_builtin) {
+            typeBadge.innerHTML = '<span class="badge bg-info-subtle text-info border"><i class="bi bi-gear-fill me-1"></i>기본 제공</span>';
+        } else {
+            typeBadge.innerHTML = '<span class="badge bg-success-subtle text-success border"><i class="bi bi-magic me-1"></i>사용자 정의</span>';
+        }
+        
+        // 카테고리 배지 설정
+        categoryBadge.textContent = info.category;
+        
+        // 설명 설정
+        description.textContent = info.description || '이 전처리 기법에 대한 설명이 제공되지 않았습니다.';
+        
+        // 사용 예시 표시
+        if (info.example) {
+            exampleText.textContent = info.example;
+            exampleDiv.style.display = 'block';
+        } else {
+            exampleDiv.style.display = 'none';
+        }
+    }
 
     // 1. 공통 폼 생성 함수 (추가/수정 공용)
     function generateParamForm(methodId, currentParams = null) {
@@ -253,20 +320,35 @@
         paramFields.innerHTML = '';
 
         if (Object.keys(method.schema).length === 0) {
-            paramFields.innerHTML = '<p class="text-center text-muted my-3">이 기법은 추가 설정이 필요 없습니다.</p>';
+            paramFields.innerHTML = `
+                <div class="alert alert-info mb-0">
+                    <i class="bi bi-check-circle me-2"></i>
+                    이 기법은 추가 파라미터 설정이 필요하지 않습니다.
+                </div>`;
         } else {
+            // ⭐ 파라미터 헤더 추가
+            paramFields.innerHTML = '<h6 class="mb-3 text-dark"><i class="bi bi-sliders me-2"></i>파라미터 설정</h6>';
+            
             for (const [paramName, paramInfo] of Object.entries(method.schema)) {
-                // 수정 모드면 현재값(currentParams), 아니면 기본값(defaults) 사용
                 const val = (currentParams && currentParams[paramName] !== undefined) 
                             ? currentParams[paramName] 
                             : (method.defaults[paramName] || paramInfo.default);
 
                 paramFields.innerHTML += `
                     <div class="mb-3">
-                        <label class="form-label small fw-bold text-dark">${paramInfo.description || paramName}</label>
-                        <input type="number" class="form-control form-control-sm shadow-sm" name="${paramName}" 
-                               value="${val}" step="${paramInfo.type === 'float' ? '0.1' : '1'}">
-                        <div class="form-text x-small text-muted">기본값: ${method.defaults[paramName] || paramInfo.default}</div>
+                        <label class="form-label fw-bold text-dark">
+                            ${paramInfo.description || paramName}
+                        </label>
+                        <input type="number" 
+                               class="form-control shadow-sm" 
+                               name="${paramName}" 
+                               value="${val}" 
+                               step="${paramInfo.type === 'float' ? '0.1' : '1'}"
+                               placeholder="기본값: ${method.defaults[paramName] || paramInfo.default}">
+                        <div class="form-text text-muted">
+                            <i class="bi bi-info-circle me-1"></i>
+                            기본값: ${method.defaults[paramName] || paramInfo.default}
+                        </div>
                     </div>`;
             }
         }
@@ -274,6 +356,9 @@
 
     // 2. 기법 라이브러리에서 추가 버튼 클릭 시
     function showMethodModal(methodId, methodName, schema, defaults) {
+        // ⭐ 기법 정보 먼저 표시
+        showMethodInfo(methodId);
+        
         document.getElementById('modalTitle').innerHTML = `<i class="bi bi-plus-circle text-primary me-1"></i> ${methodName} 추가`;
         const submitBtn = document.getElementById('modalSubmitBtn');
         submitBtn.textContent = "단계 추가";
@@ -286,9 +371,20 @@
     // 3. 현재 파이프라인에서 편집 버튼 클릭 시
     function editStep(index) {
         const stepData = currentPipelineFull[index];
-        if (!stepData) return;
+        if (!stepData) {
+            alert('편집할 단계 데이터를 찾을 수 없습니다.');
+            return;
+        }
 
         const method = methodSchemas[stepData.method_id];
+        if (!method) {
+            alert('전처리 기법 정보를 찾을 수 없습니다.');
+            return;
+        }
+        
+        // ⭐ 기법 정보 먼저 표시
+        showMethodInfo(stepData.method_id);
+        
         document.getElementById('modalTitle').innerHTML = `<i class="bi bi-pencil-square text-primary me-1"></i> #${index + 1} ${method.name} 수정`;
         
         const submitBtn = document.getElementById('modalSubmitBtn');
@@ -309,7 +405,6 @@
             params[key] = isNaN(value) ? value : Number(value);
         }
         
-        // ⭐ task가 없으면 생성 요청 (별도 URL 사용)
         const url = taskId 
             ? `/preprocess/${taskId}/add-step/`
             : `/preprocess/create-and-add-step/`;
@@ -326,12 +421,10 @@
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                // ⭐ 새로 생성된 task_id 저장
                 if (data.task_id && !taskId) {
                     taskId = data.task_id;
                 }
                 
-                // ⭐ URL에서 new=true 파라미터 제거하고 reload
                 const currentUrl = new URL(window.location.href);
                 if (currentUrl.searchParams.has('new')) {
                     currentUrl.searchParams.delete('new');
@@ -363,7 +456,12 @@
         })
         .then(response => response.json())
         .then(data => {
-            if (data.success) location.reload();
+            if (data.success) {
+                if (data.pipeline_full) {
+                    currentPipelineFull = data.pipeline_full;
+                }
+                location.reload();
+            }
             else alert('수정 실패: ' + data.error);
         });
     }
@@ -401,7 +499,6 @@
     }
 
     function executePipeline() {
-        // ⭐ task가 없으면 파이프라인이 비어있음
         if (!taskId) {
             alert('전처리 파이프라인에 단계를 추가해주세요.');
             return;
@@ -420,8 +517,6 @@
 </script>
 
 <style>
-
-
     /* 현재 파이프라인 박스 디자인 (Soft Blue) */
     .pipeline-step {
         background-color: #f0f7ff;
@@ -464,5 +559,14 @@
     .border-dashed { border: 2px dashed #dee2e6 !important; }
     .btn-link { text-decoration: none; }
     .accordion-button:not(.collapsed) { background-color: #f8f9fa; color: #0d6efd; box-shadow: none; }
+    
+    /* ⭐ 모달 열릴 때 화면 밀림 방지 */
+    html {
+        overflow-y: scroll;
+    }
+    
+    body.modal-open {
+        padding-right: 0 !important;
+    }
 </style>
 {% endblock %}

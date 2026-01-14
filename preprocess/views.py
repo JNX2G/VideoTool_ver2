@@ -35,8 +35,40 @@ class StartPreprocessingView(View):
             return get_object_or_404(Image, pk=content_id)
         return get_object_or_404(Video, pk=content_id)
 
-    def _get_ready_task(self, content, content_type):
-        """준비 상태의 전처리 작업 가져오기 또는 생성"""
+    def _get_or_create_task(self, content, content_type, task_id=None):
+        """
+        task_id가 제공되면 해당 task 반환 (편집 모드)
+        task_id가 없으면 ready 상태의 task를 가져오거나 새로 생성
+        """
+        # ⭐ task_id가 제공된 경우 - 특정 task 편집
+        if task_id:
+            if content_type == "image":
+                task = get_object_or_404(
+                    PreprocessingTask, 
+                    id=task_id, 
+                    image=content
+                )
+            else:
+                task = get_object_or_404(
+                    PreprocessingTask, 
+                    id=task_id, 
+                    video=content
+                )
+            
+            # ⭐ 편집 가능한 상태로 변경 (completed, failed, cancelled, pending -> ready)
+            if task.status in ['completed', 'failed', 'cancelled', 'pending']:
+                task.status = 'ready'
+                task.progress = 0
+                task.processed_frames = 0
+                task.current_step = None
+                task.error_message = ''
+                task.started_at = None
+                task.completed_at = None
+                task.save()
+            
+            return task
+        
+        # ⭐ task_id가 없는 경우 - ready 상태 task 찾기 또는 생성
         if content_type == "image":
             task = PreprocessingTask.objects.filter(
                 image=content, status="ready"
@@ -64,17 +96,15 @@ class StartPreprocessingView(View):
                 preprocessing_pipeline=[],
                 status="completed",
             )
-            # ⭐ 원본 파일 사용을 나타내는 특별 플래그
-            task.output_file_path = f"__original__:{content.file.name}"
         else:
             task = PreprocessingTask.objects.create(
                 video=content,
                 preprocessing_pipeline=[],
                 status="completed",
             )
-            # ⭐ 원본 파일 사용을 나타내는 특별 플래그
-            task.output_file_path = f"__original__:{content.file.name}"
-
+        
+        # ⭐ 원본 파일 사용을 나타내는 특별한 플래그 추가
+        task.output_file_path = f"__original__:{content.file.name}"
         task.total_frames = 0
         task.processed_frames = 0
         task.completed_at = timezone.now()
@@ -87,16 +117,21 @@ class StartPreprocessingView(View):
 
         if content_type == "image":
             return redirect("image_detail", pk=content.pk)
-        return redirect("preprocess:preprocessing_result", task_id=task.id)
+        return redirect("video_detail", pk=content.pk)
 
-    def get(self, request, content_id):
+    def get(self, request, content_id, task_id=None):
+        """
+        ⭐ task_id 파라미터 추가
+        - task_id가 있으면: 해당 task 편집
+        - task_id가 없으면: ready 상태 task 찾기 또는 생성
+        """
         content_type = request.GET.get("type", "video")
         content = self._get_content(content_type, content_id)
         
         # ⭐ new=true 파라미터가 있으면 기존 ready 작업 정리 후 리다이렉트
         force_new = request.GET.get("new") == "true"
         
-        if force_new:
+        if force_new and not task_id:
             # 기존 ready 상태의 작업들을 cancelled로 변경
             if content_type == "image":
                 PreprocessingTask.objects.filter(
@@ -107,19 +142,11 @@ class StartPreprocessingView(View):
                     video=content, status="ready"
                 ).update(status="cancelled")
             
-            # ⭐ new 파라미터 제거하고 리다이렉트
-            from django.shortcuts import redirect
+            # new 파라미터 제거하고 리다이렉트
             return redirect(f'/preprocess/start/{content_id}/?type={content_type}')
         
-        # ⭐ 기존 ready 상태의 작업만 조회 (없으면 None)
-        if content_type == "image":
-            task = PreprocessingTask.objects.filter(
-                image=content, status="ready"
-            ).first()
-        else:
-            task = PreprocessingTask.objects.filter(
-                video=content, status="ready"
-            ).first()
+        # ⭐ task 가져오기 또는 생성 (task_id 파라미터 전달)
+        task = self._get_or_create_task(content, content_type, task_id)
 
         # prephub에서 활성화된 전처리 기법 가져오기
         active_methods = PreprocessingMethod.objects.filter(
@@ -137,13 +164,16 @@ class StartPreprocessingView(View):
         context = {
             "content": content,
             "content_type": content_type,
-            "task": task,  # None일 수 있음
+            "task": task,
             "methods_by_category": methods_by_category,
             "current_pipeline": task.get_pipeline_display() if task else [],
         }
         return render(request, self.template_name, context)
 
-    def post(self, request, content_id):
+    def post(self, request, content_id, task_id=None):
+        """
+        ⭐ task_id 파라미터 추가
+        """
         content_type = request.GET.get("type", "video")
         content = self._get_content(content_type, content_id)
         skip_preprocessing = request.POST.get("skip_preprocessing") == "true"
@@ -152,9 +182,9 @@ class StartPreprocessingView(View):
             return self._skip_preprocessing(request, content, content_type)
 
         # 전처리를 건너뛰지 않는 경우 기존 화면 그대로 렌더
-        return self.get(request, content_id)
-
-
+        return self.get(request, content_id, task_id)
+    
+    
 class CreateTaskAndAddStepView(View):
     """새 전처리 작업 생성 및 첫 단계 추가"""
     
@@ -623,11 +653,13 @@ class RestartTaskView(View):
         return redirect('preprocess:preprocessing_progress', task_id=task.id)
 
 
+
 class CancelTaskView(View):
-    """전처리 작업 취소 """
+    """전처리 작업 취소"""
     
     def post(self, request, task_id):
         import logging
+        import time
         logger = logging.getLogger(__name__)
         
         task = get_object_or_404(PreprocessingTask, pk=task_id)
@@ -646,36 +678,77 @@ class CancelTaskView(View):
         content_type = task.get_content_type()
         content_id = content.id if content else None
         
-        # 일시적으로 'cancelled'로 변경 (백그라운드 스레드 중단용)
+        # ⭐ 1단계: 'cancelled'로 변경 (백그라운드 스레드 중단 신호)
         task.status = 'cancelled'
-        task.save()
+        task.save(update_fields=['status'])
         
-        logger.info(f"작업 취소 시작: task_id={task_id}, 일시적으로 'cancelled' 상태")
+        logger.info(f"✋ 작업 취소 신호 전송: task_id={task_id}")
         
-        # 백그라운드 스레드가 중단될 시간 대기 (0.5초)
-        import time
-        time.sleep(0.5)
+        # ⭐ 2단계: 백그라운드 스레드가 중단될 때까지 대기 (최대 3초)
+        max_wait = 3.0
+        wait_interval = 0.1
+        waited = 0.0
         
-        # 'ready' 상태로 변경 (편집 가능하도록)
+        while waited < max_wait:
+            time.sleep(wait_interval)
+            waited += wait_interval
+            task.refresh_from_db()
+            
+            # 스레드가 cancelled를 확인하고 중단했는지 확인
+            # (진행률이 변경되지 않으면 중단된 것으로 간주)
+            if task.status == 'cancelled':
+                logger.info(f"⏳ 대기 중... ({waited:.1f}초)")
+                # 한 번 더 확인
+                time.sleep(0.3)
+                task.refresh_from_db()
+                
+                # 여전히 cancelled 상태면 중단 성공
+                if task.status == 'cancelled':
+                    break
+            else:
+                # 상태가 변경되었으면 (예: completed) 취소 실패
+                logger.warning(f"⚠️ 작업이 이미 완료됨: task_id={task_id}, status={task.status}")
+                break
+        
+        # ⭐ 3단계: 최종 상태 확인
         task.refresh_from_db()
+        
+        if task.status == 'completed':
+            # 취소 실패 - 이미 완료됨
+            logger.warning(f"❌ 취소 실패 (작업 완료): task_id={task_id}")
+            
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({
+                    'success': False,
+                    'message': '작업이 이미 완료되어 취소할 수 없습니다.',
+                    'completed': True,
+                    'redirect_url': f'/preprocess/{task_id}/result/'
+                })
+            
+            messages.info(request, '작업이 이미 완료되었습니다.')
+            return redirect('preprocess:preprocessing_result', task_id=task.id)
+        
+        # ⭐ 4단계: 'ready' 상태로 변경 (편집 가능)
         task.status = 'ready'
         task.progress = 0
         task.processed_frames = 0
+        task.total_frames = 0
         task.current_step = None
         task.error_message = ''
         task.started_at = None
         task.completed_at = None
+        # ⭐ 중요: output_file_path는 유지하지 않음 (삭제 예정)
         task.save()
         
-        logger.info(f"작업 취소 완료: task_id={task_id}, 상태='ready'로 변경 (편집 가능)")
+        logger.info(f"✅ 작업 취소 완료: task_id={task_id}, 상태='ready'로 변경")
         
-        # 임시 출력 파일만 삭제 (작업 자체는 유지)
+        # ⭐ 5단계: 임시 출력 파일 삭제
         try:
             if task.output_file_path:
                 import os
                 from django.conf import settings
                 
-                # ⭐ 원본 파일 사용 플래그 확인 - 원본 파일은 삭제하지 않음
+                # 원본 파일 사용 플래그 확인 - 원본 파일은 삭제하지 않음
                 if task.output_file_path.startswith("__original__:"):
                     # 원본 파일은 건드리지 않음
                     pass
@@ -684,7 +757,7 @@ class CancelTaskView(View):
                     path = os.path.join(settings.RESULTS_ROOT, task.output_file_path)
                     if os.path.exists(path):
                         os.remove(path)
-                        logger.info(f"임시 출력 파일 삭제: {path}")
+                        logger.info(f"🗑️ 임시 출력 파일 삭제: {path}")
                 
                 task.output_file_path = ""
                 task.save(update_fields=['output_file_path'])
@@ -693,15 +766,15 @@ class CancelTaskView(View):
         
         # AJAX 응답
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            # preprocessing.html로 리다이렉트 (편집 가능)
+            # preprocessing.html로 리다이렉트 (편집 가능) - task_id 포함
             return JsonResponse({
                 'success': True,
                 'message': '작업이 취소되었습니다. 파이프라인을 수정하고 다시 시작할 수 있습니다.',
                 'cancelled': True,
-                'redirect_url': f'/preprocess/start/{content_id}/?type={content_type}'
+                'redirect_url': f'/preprocess/start/{content_id}/?type={content_type}&task_id={task_id}'
             })
         
         messages.warning(request, '작업이 취소되었습니다. 파이프라인을 수정하고 다시 시작할 수 있습니다.')
         
-        # preprocessing.html로 리다이렉트 (편집 가능)
-        return redirect(f'/preprocess/start/{content_id}/?type={content_type}')
+        # preprocessing.html로 리다이렉트 (편집 가능) - task_id 포함
+        return redirect(f'/preprocess/start/{content_id}/?type={content_type}&task_id={task_id}')

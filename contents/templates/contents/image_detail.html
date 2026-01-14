@@ -189,9 +189,9 @@
                                         class="btn btn-outline-primary btn-sm">
                                             <i class="bi bi-eye"></i> 결과 보기
                                         </a>
-                                        <!-- ⭐ 탐지 이력이 없을 때만 편집 버튼 표시 -->
+                                        <!-- ⭐ 탐지 이력이 없을 때만 편집 버튼 표시 - task_id 전달 -->
                                         {% if task.detections.count == 0 %}
-                                        <a href="{% url 'preprocess:start_preprocessing' image.id %}?type=image" 
+                                        <a href="{% url 'preprocess:start_preprocessing_with_task' image.id task.id %}?type=image" 
                                         class="btn btn-outline-info btn-sm">
                                             <i class="bi bi-pencil-square"></i> 편집
                                         </a>
@@ -209,17 +209,17 @@
                                         </a>
                                         
                                     {% elif task.status == "ready" %}
-                                        <!-- ⭐ 준비 상태 (ready) - 편집 가능 -->
-                                        <a href="{% url 'preprocess:start_preprocessing' image.id %}?type=image" 
+                                        <!-- ⭐ 준비 상태 (ready) - 편집 가능 - task_id 전달 -->
+                                        <a href="{% url 'preprocess:start_preprocessing_with_task' image.id task.id %}?type=image" 
                                         class="btn btn-outline-primary btn-sm">
                                             <i class="bi bi-pencil-square"></i> 파이프라인 편집
                                         </a>
                                         
                                     {% else %}
-                                        <!-- 대기/실패/취소 상태 (pending, failed, cancelled) -->
-                                        <a href="{% url 'preprocess:preprocessing_progress' task.id %}" 
+                                        <!-- 대기/실패/취소 상태 (pending, failed, cancelled) - task_id 전달 -->
+                                        <a href="{% url 'preprocess:start_preprocessing_with_task' image.id task.id %}?type=image" 
                                         class="btn btn-outline-warning btn-sm">
-                                            <i class="bi bi-arrow-clockwise"></i> 재시작
+                                            <i class="bi bi-pencil-square"></i> 파이프라인 편집
                                         </a>
                                     {% endif %}
                                     
