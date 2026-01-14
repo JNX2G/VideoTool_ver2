@@ -176,7 +176,11 @@
                 </div>
 
                 <div class="p-4 bg-white border-top">
-                    <button type="button" class="btn btn-primary w-100 py-3 fw-bold mb-3 shadow-sm" onclick="executePipeline()">
+                    <button type="button" 
+                            id="executeBtn" 
+                            class="btn btn-primary w-100 py-3 fw-bold mb-3 shadow-sm {% if not current_pipeline %}disabled{% endif %}" 
+                            {% if not current_pipeline %}disabled{% endif %}
+                            onclick="executePipeline()">
                         <i class="bi bi-play-fill me-1"></i> 전처리 실행하기
                     </button>
                     
