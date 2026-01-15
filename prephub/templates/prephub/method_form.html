@@ -132,7 +132,7 @@
                                     </button>
                                     <button type="button" class="btn btn-sm btn-outline-danger" 
                                             onclick="clearFieldHandler('id_parameter_schema', this)">
-                                        <i class="bi bi-x-circle"></i> 초기화
+                                        <i class="bi bi-x-circle"></i> 예시 지우기
                                     </button>
                                 </label>
                                 {{ form.parameter_schema }}
@@ -152,7 +152,7 @@
                                     </button>
                                     <button type="button" class="btn btn-sm btn-outline-danger" 
                                             onclick="clearFieldHandler('id_default_parameters', this)">
-                                        <i class="bi bi-x-circle"></i> 초기화
+                                        <i class="bi bi-x-circle"></i> 예시 지우기
                                     </button>
                                 </label>
                                 {{ form.default_parameters }}
@@ -259,12 +259,12 @@
                     <div class="card mb-3 bg-white">
                         <div class="card-header d-flex justify-content-between align-items-center">
                             <strong>📄 Python 템플릿</strong>
-                            <button type="button" class="btn btn-sm btn-primary" onclick="copyTemplateHandler('template1', this)">
+                            <button type="button" class="btn btn-sm btn-primary" onclick="copyPythonTemplate()">
                                 <i class="bi bi-clipboard"></i> 복사
                             </button>
                         </div>
                         <div class="card-body p-0">
-<pre id="template1" class="mb-0 p-3" style="font-size: 0.85rem;"><code>"""
+                            <pre class="mb-0 p-3" style="font-size: 0.85rem;"><code id="pythonTemplate">"""
 전처리 기법: [기법 이름을 여기에 입력]
 작성자: [작성자 이름]
 설명: [이 기법이 무엇을 하는지 설명]
@@ -347,27 +347,50 @@ def process(frame, **params):
 </div>
 
 <script>
-// 템플릿 복사 (클립보드)
-function copyTemplateHandler(elementId, button) {
-    const element = document.getElementById(elementId);
-    const text = element.textContent;
+
+// 템플릿 복사 (클립보드) - HTTP 환경 호환
+function copyPythonTemplate() {
+    console.log('Python 템플릿 복사 버튼 클릭됨!');
     
-    navigator.clipboard.writeText(text).then(() => {
-        const originalHTML = button.innerHTML;
-        
-        button.innerHTML = '<i class="bi bi-check"></i> 복사됨!';
-        
-        setTimeout(() => {
-            button.innerHTML = originalHTML;
-        }, 800);
-    }).catch(err => {
+    const codeElement = document.getElementById('pythonTemplate');
+    if (!codeElement) {
+        console.error('pythonTemplate 요소를 찾을 수 없음');
+        alert('템플릿을 찾을 수 없습니다.');
+        return;
+    }
+    
+    const code = codeElement.textContent;
+    console.log('복사할 코드 길이:', code.length);
+    
+    // HTTP 환경에서도 작동하는 복사 방법
+    const textarea = document.createElement('textarea');
+    textarea.value = code;
+    textarea.style.position = 'fixed';
+    textarea.style.opacity = '0';
+    document.body.appendChild(textarea);
+    textarea.select();
+    
+    try {
+        const successful = document.execCommand('copy');
+        if (successful) {
+            console.log('복사 성공!');
+            alert('템플릿이 복사되었습니다!');
+        } else {
+            console.error('복사 실패');
+            alert('복사에 실패했습니다.');
+        }
+    } catch (err) {
         console.error('복사 실패:', err);
-        alert('복사 실패: ' + err.message);
-    });
+        alert('복사 실패: ' + err);
+    } finally {
+        document.body.removeChild(textarea);
+    }
 }
 
 // 입력 필드에 직접 복사
 function copyToFieldHandler(sourceId, targetId, button) {
+    console.log('copyToFieldHandler 호출:', sourceId, targetId);
+    
     const sourceElement = document.getElementById(sourceId);
     const text = sourceElement.textContent.trim();
     
@@ -389,6 +412,8 @@ function copyToFieldHandler(sourceId, targetId, button) {
 
 // 입력 필드 초기화
 function clearFieldHandler(targetId, button) {
+    console.log('clearFieldHandler 호출:', targetId);
+    
     const targetElement = document.getElementById(targetId);
     if (!targetElement) {
         alert('입력 필드를 찾을 수 없습니다: ' + targetId);

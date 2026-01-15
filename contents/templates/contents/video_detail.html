@@ -92,7 +92,7 @@
             </h5>
         </div>
         <div class="card-body">
-            <video width="100%" controls>
+            <video width="100%" controls style="max-height: 500px; object-fit: contain;">
                 <source src="{% url 'serve_video' video.pk %}" type="video/mp4">
                 브라우저가 동영상 재생을 지원하지 않습니다.
             </video>

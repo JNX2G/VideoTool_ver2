@@ -257,6 +257,17 @@ class Application(models.Model):
         
         super().delete(*args, **kwargs)
 
+    def get_status_display_badge(self):
+        """상태에 따른 Bootstrap 색상 클래스 반환"""
+        status_colors = {
+            'ready': 'secondary',
+            'processing': 'primary',
+            'completed': 'success',
+            'failed': 'danger',
+            'cancelled': 'warning',
+        }
+        return status_colors.get(self.status, 'secondary')
+    
 
 @receiver(post_delete, sender=Application)
 def application_delete_files(sender, instance, **kwargs):
@@ -324,3 +335,5 @@ def application_delete_files(sender, instance, **kwargs):
                 
         except Exception as e:
             print(f"❌ 모델 적용 결과 파일 삭제 실패: {e}")
+
+            

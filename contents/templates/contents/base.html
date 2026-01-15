@@ -9,21 +9,63 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
 
     <style>
-        body {
-            padding-top: 60px;
-        }
-        .video-thumbnail {
-            width: 100%;
-            height: 200px;
-            object-fit: cover;
+        /* ============================================
+           1. 전역 설정
+        ============================================ */
+        html {
+            overflow-y: scroll;
+            scrollbar-gutter: stable;
+            background-color: #ffffff;
         }
 
-        /* 전체 컨테이너: 아까 추천드린 Alice Blue 계열 배경 */
+        body {
+            padding-top: 60px;
+            font-family: 'Pretendard Variable', Pretendard, -apple-system, sans-serif !important;
+            letter-spacing: -0.015rem;
+        }
+
+        /* 모달 열릴 때 화면 밀림 방지 */
+        body.modal-open {
+            padding-right: 0 !important;
+            overflow: auto;
+        }
+
+        /* 네비게이션 바 밀림 방지 */
+        .navbar.fixed-top {
+            padding-right: 0 !important;
+        }
+
+        /* ============================================
+           2. 스크롤바 스타일
+        ============================================ */
+        /* 크롬, 사파리, 엣지용 */
+        ::-webkit-scrollbar {
+            width: 14px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background-color: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            border: 4px solid transparent;
+            background-clip: padding-box;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background-color: rgba(0, 0, 0, 0.4);
+        }
+
+        /* ============================================
+           3. Breadcrumb 스타일
+        ============================================ */
         .breadcrumb {
-            background-color: #f0f4f8; 
+            background-color: #f0f4f8;
             padding: 0.75rem 1.5rem;
-            border-radius: 50px; 
-            box-shadow: inset 0 1px 2px rgba(0,0,0,0.05); 
+            border-radius: 50px;
+            box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
             display: flex;
             align-items: center;
             gap: 5px;
@@ -35,9 +77,9 @@
             font-size: 0.95rem;
         }
 
-        /* 1. 완료된 단계: 진한 초록색 대신 세련된 블루 & 언더라인 */
+        /* 완료된 단계 */
         .custom-breadcrumb-item:not(.active):not(.disabled) a {
-            color: #4a69bd; 
+            color: #4a69bd;
             font-weight: 600;
             text-decoration: none;
             padding: 6px 14px;
@@ -50,7 +92,7 @@
             color: #0a58ca;
         }
 
-        /* 2. 현재 단계 (Active) */
+        /* 현재 단계 (Active) */
         .custom-breadcrumb-item.active a {
             color: #ffffff !important;
             background-color: #0d6efd;
@@ -61,28 +103,32 @@
             text-decoration: none;
         }
 
-        /* 3. 비활성화된 단계 (Disabled) */
+        /* 비활성화된 단계 */
         .custom-breadcrumb-item.disabled span {
             color: #a0aec0;
             padding: 6px 14px;
         }
 
-        /* 화살표 아이콘: 더 깔끔하게 */
+        /* 화살표 구분자 */
         .custom-breadcrumb-item:not(:last-child)::after {
-            content: '→'; 
+            content: '→';
             font-family: serif;
             margin-left: 4px;
             color: #cbd5e0;
             font-weight: normal;
         }
 
-        /* Pretendard 기반 폰트 최적화 */
-        body, .accordion-button, .btn, .pipeline-step span {
-            font-family: 'Pretendard Variable', Pretendard, -apple-system, sans-serif !important;
-            letter-spacing: -0.015rem;
+        /* ============================================
+           4. 컴포넌트 스타일
+        ============================================ */
+        /* 비디오 썸네일 */
+        .video-thumbnail {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
         }
-    
-        /* 탭 크기 조절 */
+
+        /* 탭 크기 */
         .nav-pills .nav-link {
             font-size: 0.85rem;
             white-space: nowrap;
@@ -94,44 +140,36 @@
             }
         }
 
+        /* ============================================
+           5. 색상 유틸리티 (빌트인/커스텀)
+        ============================================ */
         /* 빌트인 */
-        .text-builtin { color: #6B7280   !important; } 
-        .bg-builtin { background-color: #6B7280   !important; }
-        .btn-builtin { color: white; background-color: #6B7280   !important; }
+        .text-builtin { 
+            color: #6B7280 !important; 
+        }
+        
+        .bg-builtin { 
+            background-color: #6B7280 !important; 
+        }
+        
+        .btn-builtin { 
+            color: white; 
+            background-color: #6B7280 !important; 
+        }
+
         /* 커스텀 */
-        .text-custom { color: #0D6EFD !important; } 
-        .bg-custom { background-color: #0D6EFD !important; }
-        .btn-custom { color: white; background-color: #0D6EFD   !important; }
-
-        /* 1. 레이아웃 밀림 방지 및 배경 설정 */
-        html {
-            scrollbar-gutter: stable; 
-            background-color: #ffffff; 
+        .text-custom { 
+            color: #0D6EFD !important; 
         }
-
-        /* 2. 크롬, 사파리, 엣지용 */
-        ::-webkit-scrollbar {
-            width: 14px;
+        
+        .bg-custom { 
+            background-color: #0D6EFD !important; 
         }
-
-        /* 스크롤바 트랙(바탕)을 투명하게 설정 */
-        ::-webkit-scrollbar-track {
-            background: transparent; 
+        
+        .btn-custom { 
+            color: white; 
+            background-color: #0D6EFD !important; 
         }
-
-        /* 스크롤바 핸들(움직이는 부분) */
-        ::-webkit-scrollbar-thumb {
-            background-color: rgba(0, 0, 0, 0.2); /* 은은한 회색 */
-            border-radius: 10px;
-            border: 4px solid transparent; 
-            background-clip: padding-box; 
-        }
-
-        /* 마우스 올렸을 때 핸들 색상만 살짝 진하게 */
-        ::-webkit-scrollbar-thumb:hover {
-            background: rgba(0, 0, 0, 0.4);
-        }
-
     </style>
 </head>
 <body>
@@ -193,16 +231,6 @@
             </ol>
         </nav>
         {% endblock breadcrumb %}
-
-        <!-- 메세지 경고 창  -->
-        <!-- {% if messages %}
-            {% for message in messages %}
-                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-                    {{ message }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                </div>
-            {% endfor %}
-        {% endif %} -->
 
         <!-- 메인 콘텐츠 -->
         {% block content %}

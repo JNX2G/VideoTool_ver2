@@ -46,17 +46,22 @@
                 </h6>
             </div>
             <div class="card-body d-flex flex-column">
-                <!-- 이미지 컨테이너 - 여백 제거 -->
-                <div class="flex-grow-1 rounded overflow-hidden" style="min-height: 300px;">
+                <div class="flex-grow-1 rounded overflow-hidden position-relative video-container" style="min-height: 300px; cursor: pointer;" onclick="openVideoModal('original')">
                     {% if content_type == 'video' %}
-                        <video id="originalVideo" width="100%" preload="metadata" style="display: block; width: 100%;">
+                        <video id="originalVideo" width="100%" preload="metadata" style="display: block; width: 100%; max-height: 500px; object-fit: contain;">
                             <source src="{% url 'serve_video' content.pk %}" type="video/mp4">
                         </video>
+                        <div class="video-overlay">
+                            <i class="bi bi-arrows-fullscreen"></i>
+                        </div>
                     {% else %}
                         <img src="{{ content.file.url }}" 
-                             class="w-100" 
-                             alt="원본 이미지"
-                             style="display: block; height: auto; object-fit: contain;">
+                            class="w-100" 
+                            alt="원본 이미지"
+                            style="display: block; height: auto; object-fit: contain; max-height: 500px;">
+                        <div class="video-overlay">
+                            <i class="bi bi-arrows-fullscreen"></i>
+                        </div>
                     {% endif %}
                 </div>
                 <div class="mt-3">
@@ -77,17 +82,22 @@
                 </h6>
             </div>
             <div class="card-body d-flex flex-column">
-                <!-- ⭐ 이미지 컨테이너 - 여백 제거 -->
-                <div class="flex-grow-1 rounded overflow-hidden" style="min-height: 300px;">
+                <div class="flex-grow-1 rounded overflow-hidden position-relative video-container" style="min-height: 300px; cursor: pointer;" onclick="openVideoModal('preprocessed')">
                     {% if content_type == 'video' %}
-                        <video id="preprocessedVideo" width="100%" preload="metadata" style="display: block; width: 100%;">
+                        <video id="preprocessedVideo" width="100%" preload="metadata" style="display: block; width: 100%; max-height: 500px; object-fit: contain;">
                             <source src="{% url 'preprocess:serve_preprocessed_video' task.id %}" type="video/mp4">
                         </video>
+                        <div class="video-overlay">
+                            <i class="bi bi-arrows-fullscreen"></i>
+                        </div>
                     {% else %}
                         <img src="{% url 'preprocess:serve_preprocessed_image' task.id %}" 
-                             class="w-100" 
-                             alt="전처리 결과"
-                             style="display: block; height: auto; object-fit: contain;">
+                            class="w-100" 
+                            alt="전처리 결과"
+                            style="display: block; height: auto; object-fit: contain; max-height: 500px;">
+                        <div class="video-overlay">
+                            <i class="bi bi-arrows-fullscreen"></i>
+                        </div>
                     {% endif %}
                 </div>
                 <div class="mt-3 d-flex justify-content-between align-items-center">
@@ -189,6 +199,28 @@
 {% endif %}
 
 
+<!-- ⭐ 영상 확대 모달 -->
+<div class="modal fade" id="videoModal" tabindex="-1">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content bg-dark">
+            <div class="modal-header border-0">
+                <h6 class="modal-title text-white" id="modalVideoTitle"></h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-0" style="background: #000;">
+                {% if content_type == 'video' %}
+                    <video id="modalVideo" width="100%" controls style="max-height: 80vh; object-fit: contain;">
+                        <source id="modalVideoSource" src="" type="video/mp4">
+                    </video>
+                {% else %}
+                    <img id="modalImage" src="" class="w-100" style="max-height: 80vh; object-fit: contain;">
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+
 <div class="row">
     <div class="col-md-12">
         <div class="card mb-3 border-0 shadow-sm">
@@ -252,6 +284,33 @@
 
 
 <style>
+/* 비디오 컨테이너 호버 효과 */
+.video-container {
+    position: relative;
+}
+
+.video-overlay {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0, 0, 0, 0.6);
+    color: white;
+    padding: 15px 20px;
+    border-radius: 50%;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+    font-size: 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.video-container:hover .video-overlay {
+    opacity: 1;
+}
+
 /* 슬라이더 공통 스타일: 모든 슬라이더의 높이를 6px로 통일 */
 .custom-range, 
 .individual-range, 
@@ -302,7 +361,46 @@
 </style>
 
 <script>
+// ⭐ 영상 확대 모달 기능
+let videoModal;
+
+function openVideoModal(type) {
+    const contentType = "{{ content_type }}";
+    const modal = document.getElementById('videoModal');
+    const modalTitle = document.getElementById('modalVideoTitle');
+    
+    if (contentType === 'video') {
+        const modalVideo = document.getElementById('modalVideo');
+        const modalVideoSource = document.getElementById('modalVideoSource');
+        
+        if (type === 'original') {
+            modalTitle.textContent = '원본 동영상';
+            modalVideoSource.src = "{% url 'serve_video' content.pk %}";
+        } else {
+            modalTitle.textContent = '전처리 결과';
+            modalVideoSource.src = "{% url 'preprocess:serve_preprocessed_video' task.id %}";
+        }
+        
+        modalVideo.load();
+    } else {
+        const modalImage = document.getElementById('modalImage');
+        
+        if (type === 'original') {
+            modalTitle.textContent = '원본 이미지';
+            modalImage.src = "{{ content.file.url }}";
+        } else {
+            modalTitle.textContent = '전처리 결과';
+            modalImage.src = "{% url 'preprocess:serve_preprocessed_image' task.id %}";
+        }
+    }
+    
+    videoModal.show();
+}
+
 document.addEventListener('DOMContentLoaded', function() {
+    // 모달 초기화
+    videoModal = new bootstrap.Modal(document.getElementById('videoModal'));
+    
     const contentType = "{{ content_type }}";
     if (contentType !== 'video') return;
 
@@ -327,11 +425,11 @@ document.addEventListener('DOMContentLoaded', function() {
     // 개별 모드 컨트롤
     const originalPlayBtn = document.getElementById('originalPlayBtn');
     const originalIndividualSeekBar = document.getElementById('originalIndividualSeekBar');
-    const originalCurrentTimeText = document.getElementById('preprocessedCurrentTime');
+    const originalCurrentTimeText = document.getElementById('originalCurrentTime');
     
     const preprocessedPlayBtn = document.getElementById('preprocessedPlayBtn');
     const preprocessedIndividualSeekBar = document.getElementById('preprocessedIndividualSeekBar');
-    const preprocessedCurrentTimeText = document.getElementById('appliedCurrentTime');
+    const preprocessedCurrentTimeText = document.getElementById('preprocessedCurrentTime');
     
     // 현재 모드 ('sync' | 'individual')
     let currentMode = 'sync';
@@ -445,7 +543,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // 전처리 비디오 컨트롤
+    // 원본 비디오 컨트롤
     originalPlayBtn.addEventListener('click', () => {
         if (originalVideo.paused) {
             originalVideo.play();
@@ -459,7 +557,7 @@ document.addEventListener('DOMContentLoaded', function() {
         originalVideo.currentTime = parseFloat(originalIndividualSeekBar.value);
     });
 
-    // 모델 결과 비디오 컨트롤
+    // 전처리 비디오 컨트롤
     preprocessedPlayBtn.addEventListener('click', () => {
         if (preprocessedVideo.paused) {
             preprocessedVideo.play();
@@ -488,7 +586,7 @@ document.addEventListener('DOMContentLoaded', function() {
         totalTimeText.innerText = formatTime(duration);
     });
 
-    // 전처리 비디오 시간 업데이트
+    // 원본 비디오 시간 업데이트
     originalVideo.addEventListener('timeupdate', () => {
         const current = originalVideo.currentTime;
         const duration = originalVideo.duration;
@@ -497,7 +595,7 @@ document.addEventListener('DOMContentLoaded', function() {
         originalCurrentTimeText.innerText = `${formatTime(current)} / ${formatTime(duration)}`;
     });
 
-    // 모델 결과 비디오 시간 업데이트
+    // 전처리 비디오 시간 업데이트
     preprocessedVideo.addEventListener('timeupdate', () => {
         const current = preprocessedVideo.currentTime;
         const duration = preprocessedVideo.duration;

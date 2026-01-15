@@ -45,36 +45,47 @@
 <div class="row">
     <div class="col-md-7">
         <div class="card mb-4 shadow-sm border-0">
-            <div class="card-header bg-white py-3 border-bottom-0">
-                <h6 class="mb-0 fw-bold text-dark">
-                    {% if content_type == 'image' %}
-                        <i class="bi bi-image text-primary me-1"></i> 원본 이미지
-                    {% else %}
-                        <i class="bi bi-camera-video text-primary me-1"></i> 원본 동영상
-                    {% endif %}
-                </h6>
-            </div>
-            <div class="card-body pt-0">
-                {% if content_type == 'image' %}
-                    <div class="text-center bg-light rounded p-2">
-                        <img src="{{ content.file.url }}" class="img-fluid rounded shadow-sm" style="max-height: 450px;">
-                    </div>
-                {% else %}
-                    <div class="bg-black rounded overflow-hidden shadow-sm">
-                        <video width="100%" controls class="d-block">
-                            <source src="{% url 'serve_video' content.pk %}" type="video/mp4">
-                        </video>
-                    </div>
-                {% endif %}
-                
-                <div class="mt-3 p-3 bg-light rounded border-start border-4 border-primary">
-                    <h6 class="fw-bold mb-1">{{ content.title }}</h6>
-                    <div class="text-muted small">
+            <div class="card-header bg-white py-3 border-bottom-0" 
+                 data-bs-toggle="collapse" 
+                 data-bs-target="#originalContent" 
+                 aria-expanded="false" 
+                 aria-controls="originalContent"
+                 style="cursor: pointer;">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0 fw-bold text-dark">
                         {% if content_type == 'image' %}
-                            <span class="me-3"><i class="bi bi-aspect-ratio"></i> {{ content.get_resolution_display }}</span>
+                            <i class="bi bi-image text-primary me-1"></i> 원본 이미지
+                        {% else %}
+                            <i class="bi bi-camera-video text-primary me-1"></i> 원본 동영상
                         {% endif %}
-                        <span class="me-3"><i class="bi bi-hdd"></i> {{ content.get_file_size_display }}</span>
-                        <span><i class="bi bi-calendar"></i> {{ content.uploaded_at|date:"Y-m-d H:i" }}</span>
+                    </h6>
+                    <i class="bi bi-chevron-down toggle-icon"></i>
+                </div>
+            </div>
+            
+            <div id="originalContent" class="collapse">
+                <div class="card-body pt-0">
+                    {% if content_type == 'image' %}
+                        <div class="text-center bg-light rounded p-2">
+                            <img src="{{ content.file.url }}" class="img-fluid rounded shadow-sm" style="max-height: 300px;">
+                        </div>
+                    {% else %}
+                        <div class="bg-black rounded overflow-hidden shadow-sm">
+                            <video width="100%" controls class="d-block" style="max-height: 300px; object-fit: contain;">
+                                <source src="{% url 'serve_video' content.pk %}" type="video/mp4">
+                            </video>
+                        </div>
+                    {% endif %}
+                    
+                    <div class="mt-3 p-3 bg-light rounded border-start border-4 border-primary">
+                        <h6 class="fw-bold mb-1">{{ content.title }}</h6>
+                        <div class="text-muted small">
+                            {% if content_type == 'image' %}
+                                <span class="me-3"><i class="bi bi-aspect-ratio"></i> {{ content.get_resolution_display }}</span>
+                            {% endif %}
+                            <span class="me-3"><i class="bi bi-hdd"></i> {{ content.get_file_size_display }}</span>
+                            <span><i class="bi bi-calendar"></i> {{ content.uploaded_at|date:"Y-m-d H:i" }}</span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -257,6 +268,18 @@
 
     document.addEventListener('DOMContentLoaded', function() {
         paramModal = new bootstrap.Modal(document.getElementById('paramModal'));
+        
+        // 토글 아이콘 회전 처리
+        const collapseElement = document.getElementById('originalContent');
+        const toggleIcon = document.querySelector('.toggle-icon');
+        
+        collapseElement.addEventListener('show.bs.collapse', function() {
+            toggleIcon.style.transform = 'rotate(180deg)';
+        });
+        
+        collapseElement.addEventListener('hide.bs.collapse', function() {
+            toggleIcon.style.transform = 'rotate(0deg)';
+        });
         
         // 기법 정보 캐싱
         {% for category, methods in methods_by_category.items %}
@@ -521,6 +544,18 @@
 </script>
 
 <style>
+    .toggle-icon {
+        transition: transform 0.3s ease;
+    }
+    
+    .card-header[aria-expanded="true"] .toggle-icon {
+        transform: rotate(180deg);
+    }
+    
+    .card-header:hover {
+        background-color: #f8f9fa !important;
+    }
+    
     /* 현재 파이프라인 박스 디자인 (Soft Blue) */
     .pipeline-step {
         background-color: #f0f7ff;
