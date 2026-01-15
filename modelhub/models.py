@@ -44,10 +44,25 @@ def custom_model_upload_path(instance, filename):
 class BuiltinModel(models.Model):
     """기본 모델 (사전 학습된 YOLO 등)"""
 
+    # 작업 유형
+    TASK_TYPE_CHOICES = [
+        ('detection', '객체 탐지'),
+        ('super_resolution', '해상도 개선'),
+        ('restoration', '이미지 복원'),
+    ]
+
     # 기본 정보
     name = models.CharField(max_length=200, verbose_name="모델 이름")
     display_name = models.CharField(max_length=200, verbose_name="표시 이름")
     description = models.TextField(blank=True, verbose_name="설명")
+
+    # 작업 유형 필드
+    task_type = models.CharField(
+        max_length=50,
+        choices=TASK_TYPE_CHOICES,
+        default='detection',
+        verbose_name="작업 유형"
+    )
 
     # 모델 정보
     model_type = models.CharField(
@@ -151,9 +166,24 @@ class BuiltinModel(models.Model):
 class CustomModel(models.Model):
     """커스텀 모델 (사용자가 학습시킨 모델)"""
 
+    # 작업 유형
+    TASK_TYPE_CHOICES = [
+        ('detection', '객체 탐지'),
+        ('super_resolution', '해상도 개선'),
+        ('restoration', '이미지 복원'),
+    ]
+
     # 기본 정보
     name = models.CharField(max_length=200, verbose_name="모델 이름")
     description = models.TextField(blank=True, verbose_name="설명")
+
+    # 작업 유형 필드
+    task_type = models.CharField(
+        max_length=50,
+        choices=TASK_TYPE_CHOICES,
+        default='detection',
+        verbose_name="작업 유형"
+    )
 
     # 파일 정보 (필수)
     model_file = models.FileField(
@@ -238,3 +268,22 @@ class CustomModel(models.Model):
         """사용 횟수 증가"""
         self.usage_count += 1
         self.save(update_fields=["usage_count", "updated_at"])
+
+    def validate_model(self):
+        """모델 파일 검증"""
+        if not self.model_file:
+            return False, "모델 파일이 없습니다"
+        
+        if not os.path.exists(self.model_file.path):
+            return False, "모델 파일을 찾을 수 없습니다"
+        
+        # 파일 형식 검증
+        valid_extensions = ['.pt', '.pth', '.onnx', '.h5', '.pb']
+        file_ext = os.path.splitext(self.model_file.name)[1].lower()
+        
+        if file_ext not in valid_extensions:
+            return False, f"지원하지 않는 파일 형식입니다: {file_ext}"
+        
+        self.is_validated = True
+        self.save(update_fields=["is_validated"])
+        return True, "모델 검증 성공"

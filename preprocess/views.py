@@ -40,7 +40,7 @@ class StartPreprocessingView(View):
         task_id가 제공되면 해당 task 반환 (편집 모드)
         task_id가 없으면 ready 상태의 task를 가져오거나 새로 생성
         """
-        # ⭐ task_id가 제공된 경우 - 특정 task 편집
+        # task_id가 제공된 경우 - 특정 task 편집
         if task_id:
             if content_type == "image":
                 task = get_object_or_404(
@@ -55,7 +55,7 @@ class StartPreprocessingView(View):
                     video=content
                 )
             
-            # ⭐ 편집 가능한 상태로 변경 (completed, failed, cancelled, pending -> ready)
+            # 편집 가능한 상태로 변경 (completed, failed, cancelled, pending -> ready)
             if task.status in ['completed', 'failed', 'cancelled', 'pending']:
                 task.status = 'ready'
                 task.progress = 0
@@ -68,7 +68,7 @@ class StartPreprocessingView(View):
             
             return task
         
-        # ⭐ task_id가 없는 경우 - ready 상태 task 찾기 또는 생성
+        # task_id가 없는 경우 - ready 상태 task 찾기 또는 생성
         if content_type == "image":
             task = PreprocessingTask.objects.filter(
                 image=content, status="ready"
@@ -103,7 +103,7 @@ class StartPreprocessingView(View):
                 status="completed",
             )
         
-        # ⭐ 원본 파일 사용을 나타내는 특별한 플래그 추가
+        # 원본 파일 사용을 나타내는 특별한 플래그 추가
         task.output_file_path = f"__original__:{content.file.name}"
         task.total_frames = 0
         task.processed_frames = 0
@@ -121,14 +121,14 @@ class StartPreprocessingView(View):
 
     def get(self, request, content_id, task_id=None):
         """
-        ⭐ task_id 파라미터 추가
+        task_id 파라미터 추가
         - task_id가 있으면: 해당 task 편집
         - task_id가 없으면: ready 상태 task 찾기 또는 생성
         """
         content_type = request.GET.get("type", "video")
         content = self._get_content(content_type, content_id)
         
-        # ⭐ new=true 파라미터가 있으면 기존 ready 작업 정리 후 리다이렉트
+        # new=true 파라미터가 있으면 기존 ready 작업 정리 후 리다이렉트
         force_new = request.GET.get("new") == "true"
         
         if force_new and not task_id:
@@ -145,7 +145,7 @@ class StartPreprocessingView(View):
             # new 파라미터 제거하고 리다이렉트
             return redirect(f'/preprocess/start/{content_id}/?type={content_type}')
         
-        # ⭐ task 가져오기 또는 생성 (task_id 파라미터 전달)
+        # task 가져오기 또는 생성 (task_id 파라미터 전달)
         task = self._get_or_create_task(content, content_type, task_id)
 
         # prephub에서 활성화된 전처리 기법 가져오기
@@ -172,7 +172,7 @@ class StartPreprocessingView(View):
 
     def post(self, request, content_id, task_id=None):
         """
-        ⭐ task_id 파라미터 추가
+        task_id 파라미터 추가
         """
         content_type = request.GET.get("type", "video")
         content = self._get_content(content_type, content_id)
@@ -384,22 +384,37 @@ class ExecutePreprocessingView(View):
     """전처리 실행"""
     
     def post(self, request, task_id):
-        task = get_object_or_404(PreprocessingTask, id=task_id)
-        content = task.get_content()
+            task = get_object_or_404(PreprocessingTask, id=task_id)
+            content = task.get_content()
 
-        if not content:
-            messages.error(request, "컨텐츠를 찾을 수 없습니다.")
-            return redirect("content_list")
+            if not content:
+                messages.error(request, "컨텐츠를 찾을 수 없습니다.")
+                return redirect("content_list")
 
-        if task.status == "processing":
-            messages.warning(request, "이미 처리 중입니다.")
+            if task.status == "processing":
+                messages.warning(request, "이미 처리 중입니다.")
+                return redirect("preprocess:preprocessing_progress", task_id=task_id)
+
+            # 실제 실행 버튼을 눌렀을 때 기존 데이터 청소
+            # 1. 연결된 탐지 결과(Application) 삭제
+            app_count = task.applications.count()
+            if app_count > 0:
+                task.applications.all().delete()
+                # 사용자에게 알림 (선택 사항)
+                # messages.info(request, f"기존 탐지 결과 {app_count}개가 삭제되었습니다.")
+
+            # 2. 기존 전처리 결과 파일 삭제 (재실행 시 덮어쓰기 방지)
+            if task.output_file_path and not task.output_file_path.startswith("__original__"):
+                task.delete_files()
+                task.output_file_path = ""
+                task.save()
+
+            # 3. 전처리 상태 초기화 및 시작
+            from .tasks import start_preprocessing_task
+            start_preprocessing_task(task_id)
+            
+            messages.success(request, "전처리를 시작했습니다.")
             return redirect("preprocess:preprocessing_progress", task_id=task_id)
-
-        from .tasks import start_preprocessing_task
-
-        start_preprocessing_task(task_id)
-        messages.success(request, "전처리를 시작했습니다.")
-        return redirect("preprocess:preprocessing_progress", task_id=task_id)
 
     def get(self, request, task_id):
         return redirect("preprocess:preprocessing_progress", task_id=task_id)
@@ -506,7 +521,7 @@ class ServePreprocessedVideoView(View):
         if not task.output_file_path:
             raise Http404("처리된 동영상 파일이 없습니다.")
 
-        # ⭐ 원본 파일 사용 플래그 확인
+        # 원본 파일 사용 플래그 확인
         if task.output_file_path.startswith("__original__:"):
             # 원본 파일 경로 추출
             original_file_path = task.output_file_path.replace("__original__:", "")
@@ -567,7 +582,7 @@ class ServePreprocessedImageView(View):
         if not task.output_file_path:
             raise Http404("처리된 이미지 파일이 없습니다.")
 
-        # ⭐ 원본 파일 사용 플래그 확인
+        # 원본 파일 사용 플래그 확인
         if task.output_file_path.startswith("__original__:"):
             # 원본 파일 경로 추출
             original_file_path = task.output_file_path.replace("__original__:", "")
@@ -678,13 +693,13 @@ class CancelTaskView(View):
         content_type = task.get_content_type()
         content_id = content.id if content else None
         
-        # ⭐ 1단계: 'cancelled'로 변경 (백그라운드 스레드 중단 신호)
+        # 1단계: 'cancelled'로 변경 (백그라운드 스레드 중단 신호)
         task.status = 'cancelled'
         task.save(update_fields=['status'])
         
         logger.info(f"✋ 작업 취소 신호 전송: task_id={task_id}")
         
-        # ⭐ 2단계: 백그라운드 스레드가 중단될 때까지 대기 (최대 3초)
+        # 2단계: 백그라운드 스레드가 중단될 때까지 대기 (최대 3초)
         max_wait = 3.0
         wait_interval = 0.1
         waited = 0.0
@@ -710,7 +725,7 @@ class CancelTaskView(View):
                 logger.warning(f"⚠️ 작업이 이미 완료됨: task_id={task_id}, status={task.status}")
                 break
         
-        # ⭐ 3단계: 최종 상태 확인
+        # 3단계: 최종 상태 확인
         task.refresh_from_db()
         
         if task.status == 'completed':
@@ -728,7 +743,7 @@ class CancelTaskView(View):
             messages.info(request, '작업이 이미 완료되었습니다.')
             return redirect('preprocess:preprocessing_result', task_id=task.id)
         
-        # ⭐ 4단계: 'ready' 상태로 변경 (편집 가능)
+        # 4단계: 'ready' 상태로 변경 (편집 가능)
         task.status = 'ready'
         task.progress = 0
         task.processed_frames = 0
@@ -737,12 +752,12 @@ class CancelTaskView(View):
         task.error_message = ''
         task.started_at = None
         task.completed_at = None
-        # ⭐ 중요: output_file_path는 유지하지 않음 (삭제 예정)
+        # 중요: output_file_path는 유지하지 않음 (삭제 예정)
         task.save()
         
         logger.info(f"✅ 작업 취소 완료: task_id={task_id}, 상태='ready'로 변경")
         
-        # ⭐ 5단계: 임시 출력 파일 삭제
+        # 5단계: 임시 출력 파일 삭제
         try:
             if task.output_file_path:
                 import os

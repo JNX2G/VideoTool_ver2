@@ -191,9 +191,9 @@
                                         </a>
                                         <!-- ⭐ 탐지 이력이 없을 때만 편집 버튼 표시 - task_id 전달 -->
                                         {% if task.applications.count == 0 %}
-                                        <a href="{% url 'preprocess:start_preprocessing_with_task' image.id task.id %}?type=image" 
+                                        <a href="{% url 'preprocess:start_preprocessing_with_task' image.id task.id %}" 
                                         class="btn btn-outline-info btn-sm">
-                                            <i class="bi bi-pencil-square"></i> 편집
+                                            <i class="bi bi-pencil-square"></i> 편집 (재실행)
                                         </a>
                                         {% endif %}
                                         <a href="{% url 'vision_engine:select_model' task.id %}" 
@@ -532,7 +532,7 @@ function deleteDetection(button) {
     
     const form = document.getElementById('deleteDetectionForm');
     if (form) {
-        form.action = `/vision/${applicationId}/delete/`;
+        form.action = `/vision_engine/${applicationId}/delete/`;
     }
     
     if (deleteDetectionModal) {

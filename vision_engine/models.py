@@ -202,7 +202,10 @@ class Application(models.Model):
         """모델 이름 반환"""
         model = self.get_model()
         if model:
-            return model.display_name or model.name
+            if hasattr(model, 'display_name'):
+                return model.display_name or model.name
+            else:
+                return model.name
         return "모델 없음"
 
     def get_content(self):

@@ -1,18 +1,18 @@
 from django.utils import timezone
 from .models import Application
-from .applicator import ModelApplier
+from .applicator import ModelExecutor 
 import os
 from pathlib import Path
 from django.conf import settings
 
 
 def process_application(application_id):
-    """탐지 작업 실행 (백그라운드)"""
+    """모델 적용 작업 실행 (백그라운드)"""
     application = None
 
     try:
         print(f"\n{'='*60}")
-        print(f"🔍 탐지 작업 시작: ID={application_id}")
+        print(f"🔍 모델 적용 작업 시작: ID={application_id}")
         print(f"{'='*60}\n")
 
         application = Application.objects.get(id=application_id)
@@ -35,8 +35,9 @@ def process_application(application_id):
 
         print(f"📹 전처리 작업 ID: {task.id}")
         print(f"🤖 모델: {application.get_model_name()}")
+        print(f"🎯 작업 유형: {model.task_type}")  # 추가
 
-        # ⭐ 헬퍼 메서드를 사용하여 실제 파일 경로 가져오기
+        # 헬퍼 메서드를 사용하여 실제 파일 경로 가져오기
         input_path = task.get_actual_file_path()
 
         if not input_path or not os.path.exists(input_path):
@@ -44,7 +45,7 @@ def process_application(application_id):
 
         print(f"📂 입력: {input_path}")
 
-        # ⭐ 출력 경로 설정 - results/vision_engine/content_id/application_id/
+        # 출력 경로 설정 - results/vision_engine/content_id/application_id/
         content = task.get_content()
         
         output_dir = Path(settings.RESULTS_ROOT) / 'vision_engine' / str(content.id) / str(application.id)
@@ -61,8 +62,8 @@ def process_application(application_id):
 
         print(f"📤 출력: {output_path}")
 
-        # 탐지 실행
-        applicator = ModelApplier(model)
+        #  새로운 executor 패턴 사용
+        executor = ModelExecutor.get_executor(model)
 
         # 진행률 콜백 (취소 확인 포함)
         def progress_callback(current, total, progress):
@@ -84,7 +85,7 @@ def process_application(application_id):
                 print(f"⏳ 진행: {current}/{total} ({progress}%)")
 
         # 실행
-        results = applicator.process_video(
+        results = executor.process_video(
             str(input_path), str(output_path), progress_callback
         )
 
@@ -116,8 +117,9 @@ def process_application(application_id):
         application.save()
 
         print(f"\n{'='*60}")
-        print(f"✨ 탐지 완료!")
-        print(f"   총 탐지: {application.total_applications}")
+        print(f"✨ 모델 적용 완료!")
+        print(f"   파일: {output_path.name}")
+        print(f"   총 적용: {application.total_applications}")
         print(f"   클래스: {len(application.application_summary)}")
         print(f"{'='*60}\n")
 
@@ -152,7 +154,7 @@ def process_application(application_id):
 
 
 def start_application_task(application_id):
-    """탐지 작업을 백그라운드 스레드로 시작"""
+    """모델 적용 작업을 백그라운드 스레드로 시작"""
     import threading
     import logging
     
@@ -166,4 +168,4 @@ def start_application_task(application_id):
     thread.daemon = True
     thread.start()
     
-    logger.info(f"탐지 작업 스레드 시작: application_id={application_id}, thread={thread.name}")
+    logger.info(f"모델 적용 작업 스레드 시작: application_id={application_id}, thread={thread.name}")

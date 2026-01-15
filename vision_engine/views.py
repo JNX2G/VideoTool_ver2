@@ -165,14 +165,26 @@ def application_delete(request, application_id):
 
     if request.method == "POST":
         task_id = application.preprocessing_task.id
+        content = application.get_content()
+        content_type = application.get_content_type()
+        
         application.delete()
 
         messages.success(request, "탐지 작업이 삭제되었습니다.")
 
+        # redirect 파라미터에 따라 분기
         redirect_to = request.POST.get("redirect", "application_list")
+        
         if redirect_to == "preprocessing_result":
             return redirect("preprocess:preprocessing_result", task_id=task_id)
-
+        
+        elif redirect_to == "video_detail" and content_type == "video" and content:
+            return redirect("video_detail", pk=content.id)  # 동영상 상세로
+        
+        elif redirect_to == "image_detail" and content_type == "image" and content:
+            return redirect("image_detail", pk=content.id)  # 이미지 상세로
+        
+        # 기본값: 탐지 목록으로
         return redirect("vision_engine:application_list")
 
     context = {
@@ -182,7 +194,6 @@ def application_delete(request, application_id):
         "content_type": application.get_content_type(),
     }
     return render(request, "vision_engine/application_delete.html", context)
-
 
 def cancel_application(request, application_id):
     """탐지 작업 취소"""
@@ -278,3 +289,42 @@ def serve_applied_image(request, application_id):
     content_type = content_type or "image/jpeg"
 
     return FileResponse(open(image_path, "rb"), content_type=content_type)
+
+
+# vision_engine/views.py에 추가할 코드
+
+def application_list(request):
+    """전체 탐지 목록 (정렬 기능 포함)"""
+    
+    # 기본 쿼리셋
+    applications = Application.objects.all()
+
+    # 상태별 필터
+    status = request.GET.get("status")
+    if status:
+        applications = applications.filter(status=status)
+
+    # 정렬 처리
+    sort = request.GET.get("sort", "-created_at")  # 기본값: 최신순
+    
+    # 허용된 정렬 필드만 사용 (보안)
+    allowed_sort_fields = [
+        'id', '-id',
+        'status', '-status',
+        'total_applications', '-total_applications',
+        'progress', '-progress',
+        'created_at', '-created_at',
+    ]
+    
+    if sort in allowed_sort_fields:
+        applications = applications.order_by(sort)
+    else:
+        # 유효하지 않은 정렬 필드면 기본값 사용
+        applications = applications.order_by("-created_at")
+        sort = "-created_at"
+
+    context = {
+        "applications": applications,
+        "current_sort": sort,  # 현재 정렬 상태 전달
+    }
+    return render(request, "vision_engine/application_list.html", context)

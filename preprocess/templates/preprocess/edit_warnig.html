@@ -1,0 +1,43 @@
+{% extends 'contents/base.html' %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card border-danger shadow">
+                <div class="card-header bg-danger text-white">
+                    <h4 class="mb-0">
+                        <i class="bi bi-exclamation-triangle-fill"></i> 데이터 삭제 주의
+                    </h4>
+                </div>
+                <div class="card-body p-4">
+                    <h5 class="card-title text-danger mb-3">전처리 파이프라인을 수정하시겠습니까?</h5>
+                    <p class="card-text text-muted">
+                        현재 이 전처리 작업(ID: {{ task.id }})에는 <strong>{{ app_count }}개의 모델 탐지 결과</strong>가 연결되어 있습니다.
+                    </p>
+                    
+                    <div class="alert alert-warning border-0 bg-light">
+                        <ul class="mb-0">
+                            <li>전처리를 수정하면 영상의 픽셀 데이터나 속성이 변경됩니다.</li>
+                            <li>따라서, <strong>기존 영상 기반의 탐지 결과는 더 이상 유효하지 않게 됩니다.</strong></li>
+                            <li>확인 버튼을 누르면 <strong>기존 탐지 데이터가 영구히 삭제</strong>되며 복구할 수 없습니다.</li>
+                        </ul>
+                    </div>
+
+                    <div class="d-flex gap-3 mt-4 justify-content-center">
+                        <a href="?type={{ content_type }}&task_id={{ task.id }}&confirmed=true" class="btn btn-danger px-4 py-2">
+                            <i class="bi bi-trash"></i> 확인 (탐지 결과 삭제 후 수정)
+                        </a>
+                        
+                        {% if content_type == 'image' %}
+                            <a href="{% url 'contents:image_detail' content.id %}" class="btn btn-outline-secondary px-4 py-2">취소</a>
+                        {% else %}
+                            <a href="{% url 'contents:video_detail' content.id %}" class="btn btn-outline-secondary px-4 py-2">취소</a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

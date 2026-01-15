@@ -16,143 +16,178 @@
 
 {% block content %}
 <div class="container-fluid">
-    <!-- 상단 헤더 -->
     <div class="card mb-3 border-0 shadow-sm">
         <div class="card-body p-2 p-md-3">
             <div class="d-flex gap-2 align-items-center flex-wrap">
-            
                 <div class="flex-grow-1"></div>
                 
-                <!-- 필터 -->
                 <div class="btn-group" role="group">
-                    <a href="?" class="btn btn-sm {% if not request.GET.status %}btn-primary{% else %}btn-outline-primary{% endif %}">
-                        전체
-                    </a>
-                    <a href="?status=completed" class="btn btn-sm {% if request.GET.status == 'completed' %}btn-success{% else %}btn-outline-success{% endif %}">
-                        완료
-                    </a>
-                    <a href="?status=processing" class="btn btn-sm {% if request.GET.status == 'processing' %}btn-warning{% else %}btn-outline-warning{% endif %}">
-                        처리 중
-                    </a>
-                    <a href="?status=failed" class="btn btn-sm {% if request.GET.status == 'failed' %}btn-danger{% else %}btn-outline-danger{% endif %}">
-                        실패
-                    </a>
+                    <a href="?" class="btn btn-sm {% if not request.GET.status %}btn-primary{% else %}btn-outline-primary{% endif %}">전체</a>
+                    <a href="?status=completed" class="btn btn-sm {% if request.GET.status == 'completed' %}btn-success{% else %}btn-outline-success{% endif %}">완료</a>
+                    <a href="?status=processing" class="btn btn-sm {% if request.GET.status == 'processing' %}btn-warning{% else %}btn-outline-warning{% endif %}">처리 중</a>
+                    <a href="?status=failed" class="btn btn-sm {% if request.GET.status == 'failed' %}btn-danger{% else %}btn-outline-danger{% endif %}">실패</a>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- 탐지 목록 테이블 -->
     <div class="card border-0 shadow-sm">
         <div class="card-body p-0">
             <div class="table-responsive">
-                <table class="table table-hover mb-0">
-                    <thead class="table-light">
+                <table class="table table-hover mb-0 fixed-table">
+                    <thead class="table-light text-center">
                         <tr>
-                            <th>ID</th>
-                            <th>제목</th>
-                            <th>콘텐츠</th>
-                            <th>모델</th>
-                            <th>상태</th>
-                            <th>탐지 수</th>
-                            <th>진행률</th>
-                            <th>생성일</th>
-                            <th>작업</th>
+                            <!-- 정렬 가능한 컬럼: ID -->
+                            <th style="width: 60px;">
+                                <a href="?{% if request.GET.status %}status={{ request.GET.status }}&{% endif %}sort={% if current_sort == 'id' %}-id{% else %}id{% endif %}" 
+                                   class="text-decoration-none text-dark d-flex align-items-center justify-content-center">
+                                    ID
+                                    {% if current_sort == 'id' %}
+                                        <i class="bi bi-arrow-up ms-1"></i>
+                                    {% elif current_sort == '-id' %}
+                                        <i class="bi bi-arrow-down ms-1"></i>
+                                    {% else %}
+                                        <i class="bi bi-arrow-down-up ms-1 text-muted"></i>
+                                    {% endif %}
+                                </a>
+                            </th>
+                            
+                            <th style="width: 20%;">제목</th>
+                            <th style="width: 10%;">콘텐츠</th>
+                            <th style="width: 15%;">모델</th>
+                            
+                            <!-- 정렬 가능한 컬럼: 상태 -->
+                            <th style="width: 100px;">
+                                <a href="?{% if request.GET.status %}status={{ request.GET.status }}&{% endif %}sort={% if current_sort == 'status' %}-status{% else %}status{% endif %}" 
+                                   class="text-decoration-none text-dark d-flex align-items-center justify-content-center">
+                                    상태
+                                    {% if current_sort == 'status' %}
+                                        <i class="bi bi-arrow-up ms-1"></i>
+                                    {% elif current_sort == '-status' %}
+                                        <i class="bi bi-arrow-down ms-1"></i>
+                                    {% else %}
+                                        <i class="bi bi-arrow-down-up ms-1 text-muted"></i>
+                                    {% endif %}
+                                </a>
+                            </th>
+                            
+                            <!-- 정렬 가능한 컬럼: 탐지 수 -->
+                            <th style="width: 80px;">
+                                <a href="?{% if request.GET.status %}status={{ request.GET.status }}&{% endif %}sort={% if current_sort == 'total_applications' %}-total_applications{% else %}total_applications{% endif %}" 
+                                   class="text-decoration-none text-dark d-flex align-items-center justify-content-center">
+                                    탐지 수
+                                    {% if current_sort == 'total_applications' %}
+                                        <i class="bi bi-arrow-up ms-1"></i>
+                                    {% elif current_sort == '-total_applications' %}
+                                        <i class="bi bi-arrow-down ms-1"></i>
+                                    {% else %}
+                                        <i class="bi bi-arrow-down-up ms-1 text-muted"></i>
+                                    {% endif %}
+                                </a>
+                            </th>
+                            
+                            <!-- 정렬 가능한 컬럼: 진행률 -->
+                            <th style="width: 120px;">
+                                <a href="?{% if request.GET.status %}status={{ request.GET.status }}&{% endif %}sort={% if current_sort == 'progress' %}-progress{% else %}progress{% endif %}" 
+                                   class="text-decoration-none text-dark d-flex align-items-center justify-content-center">
+                                    진행률
+                                    {% if current_sort == 'progress' %}
+                                        <i class="bi bi-arrow-up ms-1"></i>
+                                    {% elif current_sort == '-progress' %}
+                                        <i class="bi bi-arrow-down ms-1"></i>
+                                    {% else %}
+                                        <i class="bi bi-arrow-down-up ms-1 text-muted"></i>
+                                    {% endif %}
+                                </a>
+                            </th>
+                            
+                            <!-- 정렬 가능한 컬럼: 생성일 -->
+                            <th style="width: 150px;">
+                                <a href="?{% if request.GET.status %}status={{ request.GET.status }}&{% endif %}sort={% if current_sort == 'created_at' %}-created_at{% else %}created_at{% endif %}" 
+                                   class="text-decoration-none text-dark d-flex align-items-center justify-content-center">
+                                    생성일
+                                    {% if current_sort == 'created_at' %}
+                                        <i class="bi bi-arrow-up ms-1"></i>
+                                    {% elif current_sort == '-created_at' %}
+                                        <i class="bi bi-arrow-down ms-1"></i>
+                                    {% else %}
+                                        <i class="bi bi-arrow-down-up ms-1 text-muted"></i>
+                                    {% endif %}
+                                </a>
+                            </th>
+                            
+                            <th style="width: 110px;">작업</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody class="align-middle">
                         {% if applications %}
                             {% for application in applications %}
-                            <tr>
+                            <tr class="text-center">
                                 <td>{{ application.id }}</td>
-                                <td>{{ application.title|truncatewords:10 }}</td>
-                                <td>
-                                    {% if application.get_content_type == 'video' %}
-                                        <i class="bi bi-camera-video text-primary"></i>
-                                    {% else %}
-                                        <i class="bi bi-image text-success"></i>
-                                    {% endif %}
-                                    {{ application.get_content.title|truncatewords:8 }}
+                                <td class="text-start">
+                                    <span class="text-truncate-custom" title="{{ application.title }}">
+                                        {{ application.title }}
+                                    </span>
+                                </td>
+                                <td class="text-start">
+                                    <span class="text-truncate-custom" title="{{ application.get_content.title }}">
+                                        {% if application.get_content_type == 'video' %}
+                                            <i class="bi bi-camera-video text-primary me-1"></i>
+                                        {% else %}
+                                            <i class="bi bi-image text-success me-1"></i>
+                                        {% endif %}
+                                        {{ application.get_content.title }}
+                                    </span>
                                 </td>
                                 <td>
-                                    {{ application.get_model_name|truncatewords:5 }}
-                                    {% if application.builtin_model %}
-                                        <span class="badge bg-success">빌트인</span>
-                                    {% else %}
-                                        <span class="badge bg-info">커스텀</span>
-                                    {% endif %}
+                                    <span class="text-truncate-custom">
+                                        {{ application.get_model_name }}
+                                        {% if application.builtin_model %}
+                                            <i class="bi bi-gear-fill text-builtin ms-1"></i>
+                                        {% endif %}
+                                    </span>
                                 </td>
                                 <td>
                                     {% if application.status == 'completed' %}
                                         <span class="badge bg-success">완료</span>
                                     {% elif application.status == 'processing' %}
-                                        <span class="badge bg-warning">처리 중</span>
+                                        <span class="badge bg-warning text-dark">처리 중</span>
                                     {% elif application.status == 'failed' %}
                                         <span class="badge bg-danger">실패</span>
-                                    {% elif application.status == 'cancelled' %}
-                                        <span class="badge bg-secondary">취소</span>
                                     {% else %}
                                         <span class="badge bg-secondary">대기</span>
                                     {% endif %}
                                 </td>
+                                <td>{{ application.total_applications|default:"0" }}</td>
                                 <td>
-                                    {% if application.total_applications > 0 %}
-                                        <span class="badge bg-primary">{{ application.total_applications }}</span>
-                                    {% else %}
-                                        -
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    <div class="progress" style="width: 100px; height: 20px;">
-                                        <div class="progress-bar 
-                                                    {% if application.status == 'completed' %}bg-success
-                                                    {% elif application.status == 'failed' %}bg-danger
-                                                    {% elif application.status == 'processing' %}bg-warning
-                                                    {% else %}bg-secondary{% endif %}"
-                                             role="progressbar" 
-                                             style="width: {{ application.progress }}%">
-                                            {{ application.progress }}%
-                                        </div>
+                                    <div class="progress mx-auto" style="height: 12px; width: 80px;">
+                                        <div class="progress-bar {% if application.status == 'completed' %}bg-success{% elif application.status == 'failed' %}bg-danger{% else %}bg-warning{% endif %}" 
+                                             role="progressbar" style="width: {{ application.progress }}%"></div>
                                     </div>
+                                    <small class="d-block mt-1" style="font-size: 0.75rem;">{{ application.progress }}%</small>
                                 </td>
-                                <td>{{ application.created_at|date:"Y-m-d H:i" }}</td>
+                                <td><small class="text-muted">{{ application.created_at|date:"Y-m-d H:i" }}</small></td>
                                 <td>
-                                    <div class="btn-group btn-group-sm" role="group">
+                                    <div class="btn-group btn-group-sm">
                                         {% if application.status == 'completed' %}
-                                            <a href="{% url 'vision_engine:application_result' application.id %}" 
-                                               class="btn btn-outline-success">
-                                                <i class="bi bi-eye"></i> 결과
-                                            </a>
+                                            <a href="{% url 'vision_engine:application_result' application.id %}" class="btn btn-outline-success"><i class="bi bi-eye"></i></a>
                                         {% elif application.status == 'processing' %}
-                                            <a href="{% url 'vision_engine:application_progress' application.id %}" 
-                                               class="btn btn-outline-warning">
-                                                <i class="bi bi-hourglass-split"></i> 진행
-                                            </a>
+                                            <a href="{% url 'vision_engine:application_progress' application.id %}" class="btn btn-outline-warning"><i class="bi bi-hourglass-split"></i></a>
                                         {% else %}
-                                            <a href="{% url 'vision_engine:execute_application' application.id %}" 
-                                               class="btn btn-outline-primary">
-                                                <i class="bi bi-play"></i> 실행
-                                            </a>
+                                            <a href="{% url 'vision_engine:execute_application' application.id %}" class="btn btn-outline-primary"><i class="bi bi-play"></i></a>
                                         {% endif %}
-                                        <a href="{% url 'vision_engine:application_delete' application.id %}" 
-                                            class="btn btn-outline-danger">
-                                            <i class="bi bi-trash"></i>
-                                        </a>
+                                        <a href="{% url 'vision_engine:application_delete' application.id %}" class="btn btn-outline-danger"><i class="bi bi-trash"></i></a>
                                     </div>
                                 </td>
                             </tr>
                             {% endfor %}
                         {% else %}
-                            <!-- 데이터 없을 때 -->
                             <tr>
-                                <td colspan="9" class="text-center py-5">
-                                    <div class="py-5">
-                                        <i class="bi bi-inbox" style="font-size: 4rem; color: #dee2e6;"></i>
-                                        <h4 class="mt-3 text-muted">모델 결과가 없습니다</h4>
-                                        <p class="text-muted mb-4">콘텐츠를 업로드하고 모델을 적용하세요.</p>
-                                        <a href="{% url 'content_list' %}" class="btn btn-primary">
-                                            <i class="bi bi-collection-play"></i> 콘텐츠 목록
-                                        </a>
+                                <td colspan="9" class="text-center py-4">
+                                    <div class="py-3">
+                                        <i class="bi bi-inbox text-light-emphasis" style="font-size: 2.5rem;"></i>
+                                        <p class="text-muted mt-2 mb-3">데이터가 없습니다.</p>
+                                        <a href="{% url 'content_list' %}" class="btn btn-sm btn-primary">콘텐츠 목록 가기</a>
                                     </div>
                                 </td>
                             </tr>
@@ -163,4 +198,30 @@
         </div>
     </div>
 </div>
+
+
+<style>
+    /* 테이블 레이아웃 고정 및 텍스트 넘침 방지 */
+    .fixed-table {
+        table-layout: fixed;
+        width: 100%;
+    }
+    .text-truncate-custom {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        display: block;
+        max-width: 100%;
+    }
+    
+    /* 정렬 링크 스타일 */
+    thead th a {
+        cursor: pointer;
+    }
+    thead th a:hover {
+        background-color: rgba(0, 0, 0, 0.05);
+        border-radius: 4px;
+    }
+</style>
+
 {% endblock %}

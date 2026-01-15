@@ -157,64 +157,61 @@ def custom_model_add(request):
 # 통합 상세/수정/삭제 (model_type으로 구분)
 # ============================================
 
-
 def model_detail(request, model_type, model_id):
     """통합 모델 상세 (모델 정보 + 탐지 결과 목록)"""
     if model_type == "base":
         model = get_object_or_404(BuiltinModel, id=model_id)
         # 이 모델을 사용한 탐지 목록
-        from vision_engine.models import Detection
+        from vision_engine.models import Application  # ⭐ Detection → Application
 
-        detections = Detection.objects.filter(builtin_model=model).order_by("-created_at")
+        applications = Application.objects.filter(builtin_model=model).order_by("-created_at")  # ⭐ detections → applications
     else:
         model = get_object_or_404(CustomModel, id=model_id)
         # 이 모델을 사용한 탐지 목록
-        from vision_engine.models import Detection
+        from vision_engine.models import Application  # ⭐ Detection → Application
 
-        detections = Detection.objects.filter(custom_model=model).order_by(
-            "-created_at"
-        )
+        applications = Application.objects.filter(custom_model=model).order_by("-created_at")  # ⭐ detections → applications
 
     # 통계 계산
-    completed_count = detections.filter(status="completed").count()
+    completed_count = applications.filter(status="completed").count()  # ⭐ detections → applications
 
     context = {
         "model": model,
         "model_type": model_type,
-        "detections": detections,
+        "applications": applications,  # ⭐ detections → applications
         "completed_count": completed_count,  # 완료된 탐지 수
     }
     return render(request, "modelhub/model_detail.html", context)
 
 
-def model_edit(request, model_type, model_id):
-    """통합 모델 수정"""
-    if model_type == "base":
-        model = get_object_or_404(BuiltinModel, id=model_id)
-        if request.method == "POST":
-            form = BuiltinModelForm(request.POST, request.FILES, instance=model)
-            if form.is_valid():
-                form.save()
-                messages.success(request, "모델 정보가 수정되었습니다.")
-                return redirect("modelhub:model_detail", model_type, model.id)
-        else:
-            form = BuiltinModelForm(instance=model)
-    else:
-        model = get_object_or_404(CustomModel, id=model_id)
-        if request.method == "POST":
-            model.name = request.POST.get("name", model.name)
-            model.description = request.POST.get("description", model.description)
-            model.save()
-            messages.success(request, "모델 정보가 수정되었습니다.")
-            return redirect("modelhub:model_detail", model_type, model.id)
-        form = None
+# def model_edit(request, model_type, model_id):
+#     """통합 모델 수정"""
+#     if model_type == "base":
+#         model = get_object_or_404(BuiltinModel, id=model_id)
+#         if request.method == "POST":
+#             form = BuiltinModelForm(request.POST, request.FILES, instance=model)
+#             if form.is_valid():
+#                 form.save()
+#                 messages.success(request, "모델 정보가 수정되었습니다.")
+#                 return redirect("modelhub:model_detail", model_type, model.id)
+#         else:
+#             form = BuiltinModelForm(instance=model)
+#     else:
+#         model = get_object_or_404(CustomModel, id=model_id)
+#         if request.method == "POST":
+#             model.name = request.POST.get("name", model.name)
+#             model.description = request.POST.get("description", model.description)
+#             model.save()
+#             messages.success(request, "모델 정보가 수정되었습니다.")
+#             return redirect("modelhub:model_detail", model_type, model.id)
+#         form = None
 
-    context = {
-        "model": model,
-        "model_type": model_type,
-        "form": form,
-    }
-    return render(request, "modelhub/model_edit.html", context)
+#     context = {
+#         "model": model,
+#         "model_type": model_type,
+#         "form": form,
+#     }
+#     return render(request, "modelhub/model_edit.html", context)
 
 
 def model_delete(request, model_type, model_id):

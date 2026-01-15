@@ -13,6 +13,7 @@ class BuiltinModelForm(forms.ModelForm):
             "name",
             "display_name",
             "description",
+            "task_type",  # 추가
             "model_type",
             "version",
             "yolo_version",
@@ -37,6 +38,9 @@ class BuiltinModelForm(forms.ModelForm):
                     "rows": 3,
                     "placeholder": "모델 설명을 입력하세요",
                 }
+            ),
+            "task_type": forms.Select(
+                attrs={"class": "form-control"}
             ),
             "model_type": forms.TextInput(
                 attrs={"class": "form-control", "value": "yolo"}
@@ -75,6 +79,7 @@ class CustomModelForm(forms.ModelForm):
         fields = [
             "name",
             "description",
+            "task_type",  # 추가
             "model_file",
             "model_type",
             "framework",
@@ -101,6 +106,9 @@ class CustomModelForm(forms.ModelForm):
                     "rows": 3,
                     "placeholder": "모델에 대한 설명을 입력하세요",
                 }
+            ),
+            "task_type": forms.Select(
+                attrs={"class": "form-control"}
             ),
             "model_file": forms.FileInput(
                 attrs={"class": "form-control", "accept": ".pt,.pth,.onnx,.h5,.pb"}
@@ -167,23 +175,16 @@ class CustomModelForm(forms.ModelForm):
         }
 
     def clean_model_file(self):
-        """모델 파일 검증"""
         model_file = self.cleaned_data.get("model_file")
-
         if model_file:
-            # 파일 크기 제한 (500MB)
-            max_size = 500 * 1024 * 1024
-            if model_file.size > max_size:
-                raise ValidationError("모델 파일 크기는 500MB를 초과할 수 없습니다.")
-
             # 파일 확장자 검증
-            ext = os.path.splitext(model_file.name)[1].lower()
-            allowed_extensions = [".pt", ".pth", ".onnx", ".h5", ".pb"]
-
-            if ext not in allowed_extensions:
+            valid_extensions = ['.pt', '.pth', '.onnx', '.h5', '.pb']
+            file_ext = os.path.splitext(model_file.name)[1].lower()
+            
+            if file_ext not in valid_extensions:
                 raise ValidationError(
-                    f"허용되지 않는 파일 형식입니다. "
-                    f'허용 형식: {", ".join(allowed_extensions)}'
+                    f"지원하지 않는 파일 형식입니다. "
+                    f"허용된 형식: {', '.join(valid_extensions)}"
                 )
-
+        
         return model_file

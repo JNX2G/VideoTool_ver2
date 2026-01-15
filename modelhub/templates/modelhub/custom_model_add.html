@@ -1,6 +1,6 @@
 {% extends 'contents/base.html' %}
 
-{% block title %}커스텀 모델 업로드{% endblock %}
+{% block title %}커스텀 모델 추가{% endblock %}
 
 {% block breadcrumb %}
 <nav aria-label="breadcrumb">
@@ -17,7 +17,7 @@
         </li>
         <li class="custom-breadcrumb-item active">
             <a href="#">
-                <i class="bi bi-plus-circle"></i> 커스텀 모델 추가
+                <i class="bi bi-magic"></i> 커스텀 모델 추가
             </a>
         </li>
     </ol>
@@ -44,6 +44,20 @@
                             {{ form.name }}
                             {% if form.name.errors %}
                                 <div class="text-danger">{{ form.name.errors }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- ⭐ 작업 유형 -->
+                        <div class="mb-3">
+                            <label for="{{ form.task_type.id_for_label }}" class="form-label">
+                                작업 유형 <span class="text-danger">*</span>
+                            </label>
+                            {{ form.task_type }}
+                            <div class="form-text">
+                                <i class="bi bi-info-circle"></i> 이 모델이 수행할 작업 유형을 선택하세요
+                            </div>
+                            {% if form.task_type.errors %}
+                                <div class="text-danger">{{ form.task_type.errors }}</div>
                             {% endif %}
                         </div>
 
@@ -75,6 +89,7 @@
                                 모델 타입
                             </label>
                             {{ form.model_type }}
+                            <div class="form-text">예: yolo, resnet, custom</div>
                         </div>
 
                         <!-- 프레임워크 -->
@@ -113,6 +128,7 @@
                                 클래스 수
                             </label>
                             {{ form.num_classes }}
+                            <div class="form-text">객체 탐지 모델의 경우 탐지 가능한 클래스 수</div>
                         </div>
 
                         <h5 class="mb-3 mt-4">성능 정보 (선택)</h5>
@@ -168,11 +184,38 @@
                     </div>
                 {% endif %}
 
+                <!-- 작업 유형 안내 -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="bi bi-info-circle"></i> 작업 유형 안내</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <h6><i class="bi bi-bounding-box text-primary"></i> 객체 탐지</h6>
+                                <p class="text-muted small">이미지나 비디오에서 객체를 찾아 바운딩 박스로 표시합니다.</p>
+                                <p class="small mb-0"><strong>예시:</strong> YOLO, Faster R-CNN, SSD</p>
+                            </div>
+                            <div class="col-md-4">
+                                <h6><i class="bi bi-grid-3x3 text-success"></i> 해상도 개선</h6>
+                                <p class="text-muted small">저해상도 이미지를 고해상도로 변환합니다.</p>
+                                <p class="small mb-0"><strong>예시:</strong> Real-ESRGAN, SRGAN, EDSR</p>
+                            </div>
+                            <div class="col-md-4">
+                                <h6><i class="bi bi-image text-info"></i> 이미지 복원</h6>
+                                <p class="text-muted small">오래되거나 손상된 이미지를 복원합니다.</p>
+                                <p class="small mb-0"><strong>예시:</strong> DeOldify, 노이즈 제거</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+
                 <!-- 업로드 안내 -->
                 <div class="alert alert-warning mt-3">
                     <h6><i class="bi bi-exclamation-triangle"></i> 업로드 안내</h6>
                     <ul class="mb-0">
-                        <li>모델 파일은 필수이며, 최대 500MB까지 업로드 가능합니다</li>
+                        <li>모델 파일과 작업 유형은 필수입니다</li>
                         <li>업로드된 파일은 <code>models/custom/YYYY/</code> 디렉토리에 저장됩니다</li>
                         <li>성능 정보는 선택사항이지만, 입력하면 모델 관리가 용이합니다</li>
                         <li>업로드 중에는 브라우저를 닫지 마세요</li>
