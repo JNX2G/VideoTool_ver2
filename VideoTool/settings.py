@@ -80,6 +80,8 @@ INSTALLED_APPS = [
     "modelhub",         # CV 모델 관리
     "vision_engine",    # CV 모델 적용 
 
+    "image_compare",    # 이미지 비교 모델 
+
     # 추후 추가 예정 
     # "monitoring",     # 모델 적용 결과 시각화 및 모니터링     
     # --------------------------

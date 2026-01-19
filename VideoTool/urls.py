@@ -30,6 +30,10 @@ urlpatterns = [
     path("preprocess/", include("preprocess.urls")),
     path("modelhub/", include("modelhub.urls")),
     path("vision_engine/", include("vision_engine.urls")), 
+
+    # 이미지 비교
+    path("image_compare/", include("image_compare.urls")), 
+
     path('favicon.ico', RedirectView.as_view(url='/static/favicon.ico', permanent=True)),
 ]
 

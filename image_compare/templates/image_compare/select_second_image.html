@@ -1,0 +1,166 @@
+{% extends 'contents/base.html' %}
+
+{% block title %}비교할 이미지 선택{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="custom-breadcrumb-item">
+    <a href="{% url 'image_detail' first_image.pk %}">
+        <i class="bi bi-image"></i> {{ first_image.title }}
+    </a>
+</li>
+<li class="custom-breadcrumb-item active">
+    <a href="#">
+        <i class="bi bi-arrow-left-right"></i> 비교할 이미지 선택
+    </a>
+</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2><i class="bi bi-arrow-left-right"></i> 비교할 이미지 선택</h2>
+            <p class="text-muted">
+                <strong>{{ first_image.title }}</strong>와 비교할 이미지를 선택하세요.
+            </p>
+        </div>
+    </div>
+
+    <!-- 첫 번째 이미지 미리보기 -->
+    <div class="card mb-4 shadow-sm">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0"><i class="bi bi-image"></i> 기준 이미지</h5>
+        </div>
+        <div class="card-body">
+            <div class="row align-items-center">
+                <div class="col-md-3">
+                    <img src="{{ first_image.file.url }}" class="img-fluid rounded" alt="{{ first_image.title }}">
+                </div>
+                <div class="col-md-9">
+                    <h4>{{ first_image.title }}</h4>
+                    <p class="text-muted mb-2">{{ first_image.description }}</p>
+                    <div class="small text-muted">
+                        <i class="bi bi-aspect-ratio"></i> {{ first_image.get_resolution_display }}
+                        &nbsp;|&nbsp;
+                        <i class="bi bi-hdd"></i> {{ first_image.get_file_size_display }}
+                        &nbsp;|&nbsp;
+                        <i class="bi bi-calendar"></i> {{ first_image.uploaded_at|date:"Y-m-d H:i" }}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 검색 바 -->
+    <div class="card mb-3 shadow-sm">
+        <div class="card-body p-3">
+            <form method="get" class="d-flex gap-2">
+                <input type="text" name="search" class="form-control" 
+                       placeholder="이미지 검색..." value="{{ search }}">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-search"></i> 
+                </button>
+                {% if search %}
+                <a href="{% url 'image_compare:select_second_image' first_image.pk %}" 
+                   class="btn btn-outline-secondary">
+                    <i class="bi bi-x-circle"></i> 초기화
+                </a>
+                {% endif %}
+            </form>
+        </div>
+    </div>
+
+    <!-- 이미지 그리드 -->
+    {% if images %}
+    <div class="row row-cols-1 row-cols-md-3 row-cols-lg-4 g-4">
+        {% for image in images %}
+        <div class="col">
+            <div class="card h-100 shadow-sm hover-card">
+                <div class="position-relative" style="height: 200px; overflow: hidden;">
+                    <img src="{{ image.file.url }}" class="card-img-top h-100 w-100" 
+                         style="object-fit: cover;" alt="{{ image.title }}">
+                </div>
+                
+                <div class="card-body">
+                    <h6 class="card-title text-truncate" title="{{ image.title }}">
+                        {{ image.title }}
+                    </h6>
+                    <p class="card-text small text-muted">
+                        <i class="bi bi-aspect-ratio"></i> {{ image.get_resolution_display }}
+                        <br><i class="bi bi-hdd"></i> {{ image.get_file_size_display }}
+                    </p>
+                </div>
+                
+                <div class="card-footer bg-white border-0">
+                    <a href="{% url 'image_compare:comparison_config' first_image.pk image.pk %}" 
+                    class="btn btn-success w-100">
+                        <i class="bi bi-check-circle"></i> 이 이미지와 비교
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- 페이지네이션 -->
+    {% if page_obj.has_other_pages %}
+    <nav aria-label="Page navigation" class="mt-4">
+        <ul class="pagination justify-content-center">
+            {% if page_obj.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if search %}&search={{ search }}{% endif %}">
+                    이전
+                </a>
+            </li>
+            {% endif %}
+            
+            {% for num in page_obj.paginator.page_range %}
+            <li class="page-item {% if page_obj.number == num %}active{% endif %}">
+                <a class="page-link" href="?page={{ num }}{% if search %}&search={{ search }}{% endif %}">
+                    {{ num }}
+                </a>
+            </li>
+            {% endfor %}
+            
+            {% if page_obj.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if search %}&search={{ search }}{% endif %}">
+                    다음
+                </a>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+
+    {% else %}
+    <div class="alert alert-light border text-center py-5">
+        <i class="bi bi-inbox" style="font-size: 4rem; color: #dee2e6;"></i>
+        <h4 class="mt-3">비교할 이미지가 없습니다</h4>
+        <p class="text-muted">
+            {% if search %}
+                검색 결과가 없습니다. 다른 검색어로 시도해보세요.
+            {% else %}
+                다른 이미지를 먼저 업로드해주세요.
+            {% endif %}
+        </p>
+        {% if not search %}
+        <a href="{% url 'upload_content' %}?type=image" class="btn btn-success btn-lg mt-3">
+            <i class="bi bi-plus-lg"></i> <i class="bi bi-image"></i> 이미지 업로드
+        </a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+
+<style>
+.hover-card {
+    transition: transform 0.2s, box-shadow 0.2s;
+    cursor: pointer;
+}
+.hover-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 16px rgba(0,0,0,0.15) !important;
+}
+</style>
+{% endblock %}

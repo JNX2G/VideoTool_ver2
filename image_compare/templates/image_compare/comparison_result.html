@@ -1,0 +1,267 @@
+{% extends 'contents/base.html' %}
+
+{% block title %}이미지 비교 결과{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="custom-breadcrumb-item">
+    <a href="{% url 'image_detail' first_image.pk %}">
+        <i class="bi bi-image"></i> {{ first_image.title }}
+    </a>
+</li>
+<li class="custom-breadcrumb-item">
+    <a href="{% url 'image_compare:select_second_image' first_image.pk %}">
+        <i class="bi bi-arrow-left-right"></i> 비교할 이미지 선택
+    </a>
+</li>
+<li class="custom-breadcrumb-item">
+    <a href="{% url 'image_compare:comparison_config' first_image.pk second_image.pk %}">
+        <i class="bi bi-gear-fill"></i> 이미지 비교 설정
+    </a>
+</li>
+<li class="custom-breadcrumb-item active">
+    <a href="#">
+        <i class="bi bi-bar-chart"></i> 이미지 비교 결과
+    </a>
+</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- 헤더 -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2><i class="bi bi-bar-chart"></i> 이미지 비교 결과</h2>
+            <p class="text-muted">{{ comparison.title }}</p>
+        </div>
+    </div>
+
+    <!-- 비교 상태 -->
+    {% if comparison.status == 'failed' %}
+    <div class="alert alert-danger">
+        <h5 class="alert-heading"><i class="bi bi-exclamation-triangle"></i> 비교 실패</h5>
+        <p class="mb-0">{{ comparison.error_message }}</p>
+    </div>
+    {% elif comparison.status == 'processing' %}
+    <div class="alert alert-info">
+        <h5 class="alert-heading"><i class="bi bi-hourglass-split"></i> 처리 중</h5>
+        <p class="mb-0">이미지 비교가 진행 중입니다. 잠시 후 새로고침해주세요.</p>
+    </div>
+    {% endif %}
+
+    <!-- 유사도 점수 -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card shadow-sm border-success">
+                <div class="card-body text-center">
+                    <h5 class="card-title"><i class="bi bi-check-circle text-success"></i> 유사도</h5>
+                    <h1 class="display-4 text-success">{{ comparison.get_similarity_percentage }}%</h1>
+                    <div class="progress" style="height: 25px;">
+                        <div class="progress-bar bg-success" role="progressbar" 
+                             style="width: {{ comparison.get_similarity_percentage }}%">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card shadow-sm border-warning">
+                <div class="card-body text-center">
+                    <h5 class="card-title"><i class="bi bi-exclamation-circle text-warning"></i> 차이도</h5>
+                    <h1 class="display-4 text-warning">{{ comparison.get_difference_percentage }}%</h1>
+                    <div class="progress" style="height: 25px;">
+                        <div class="progress-bar bg-warning" role="progressbar" 
+                             style="width: {{ comparison.get_difference_percentage }}%">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 비교 결과 이미지들 -->
+    {% if result_images_list %}
+    <div class="row row-cols-1 row-cols-md-2 g-4 mb-4">
+        {% for result_img in result_images_list %}
+        <div class="col">
+            <div class="card shadow-sm h-100">
+                <div class="card-header text-white
+                    {% if result_img.type == 'matches' %}bg-primary
+                    {% elif result_img.type == 'overlay' %}bg-warning
+                    {% elif result_img.type == 'highlighted' %}bg-danger
+                    {% elif result_img.type == 'triple' %}bg-info
+                    {% elif result_img.type == 'diff_heatmap' %}bg-dark
+                    {% elif result_img.type == 'ssim_map' %}bg-success
+                    {% else %}bg-secondary{% endif %}">
+                    <h5 class="mb-0">
+                        <i class="bi 
+                            {% if result_img.type == 'matches' %}bi-diagram-3
+                            {% elif result_img.type == 'overlay' %}bi-layers
+                            {% elif result_img.type == 'highlighted' %}bi-bounding-box
+                            {% elif result_img.type == 'triple' %}bi-columns-gap
+                            {% elif result_img.type == 'diff_heatmap' %}bi-thermometer-half
+                            {% elif result_img.type == 'ssim_map' %}bi-grid-3x3
+                            {% else %}bi-image{% endif %}"></i>
+                        
+                        {% if result_img.type == 'matches' %}
+                            특징점 매칭
+                        {% elif result_img.type == 'diff_heatmap' %}
+                            차이 히트맵
+                        {% elif result_img.type == 'ssim_map' %}
+                            SSIM 유사도 맵
+                        {% elif result_img.type == 'side_by_side' %}
+                            나란히 비교
+                        {% elif result_img.type == 'overlay' %}
+                            차이 오버레이
+                        {% elif result_img.type == 'triple' %}
+                            3분할 비교
+                        {% elif result_img.type == 'highlighted' %}
+                            차이 영역 강조
+                        {% else %}
+                            {{ result_img.type }}
+                        {% endif %}
+                    </h5>
+                    <small>
+                        {% if result_img.type == 'matches' %}
+                            녹색 선 = 일치하는 특징점
+                        {% elif result_img.type == 'overlay' %}
+                            빨강 = 다른 부분
+                        {% elif result_img.type == 'highlighted' %}
+                            빨간 박스 = 차이 영역
+                        {% elif result_img.type == 'triple' %}
+                            좌: 원본1 / 중: 차이 / 우: 원본2
+                        {% elif result_img.type == 'diff_heatmap' %}
+                            밝을수록 차이가 큼
+                        {% endif %}
+                    </small>
+                </div>
+                <div class="card-body p-0">
+                    <img src="/media/{{ result_img.path }}" 
+                         class="img-fluid w-100" 
+                         alt="{{ result_img.type }}"
+                         style="cursor: zoom-in;"
+                         data-bs-toggle="modal" 
+                         data-bs-target="#imageModal"
+                         onclick="showImageModal(this.src, this.alt)">
+                </div>
+                <div class="card-footer bg-white">
+                    <small class="text-muted">
+                        <i class="bi bi-zoom-in"></i> 클릭하면 크게 볼 수 있습니다
+                    </small>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="alert alert-info">
+        <i class="bi bi-info-circle"></i> 비교 결과 이미지가 생성되지 않았습니다.
+    </div>
+    {% endif %}
+
+    <!-- 비교 방법 정보 -->
+    {% if comparison.comparison_method %}
+    <div class="card mb-4 shadow-sm">
+        <div class="card-header bg-info text-white">
+            <h5 class="mb-0"><i class="bi bi-sliders"></i> 비교 방법 정보</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <h6>{{ comparison.comparison_method.display_name }}</h6>
+                    <p class="text-muted">{{ comparison.comparison_method.description }}</p>
+                </div>
+                <div class="col-md-6">
+                    <dl class="row mb-0">
+                        <dt class="col-sm-5">카테고리:</dt>
+                        <dd class="col-sm-7">{{ comparison.comparison_method.get_category_display }}</dd>
+                        
+                        <dt class="col-sm-5">처리 시간:</dt>
+                        <dd class="col-sm-7">{{ comparison.processing_time|floatformat:2 }}초</dd>
+                        
+                        <dt class="col-sm-5">비교 일시:</dt>
+                        <dd class="col-sm-7">{{ comparison.created_at|date:"Y-m-d H:i:s" }}</dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- 액션 버튼 -->
+    <div class="d-flex gap-2 justify-content-end mb-4">
+        <a href="{% url 'image_compare:comparison_list' %}" class="btn btn-outline-secondary">
+            <i class="bi bi-list"></i> 비교 이력
+        </a>
+        <a href="{% url 'image_detail' comparison.image_1.pk %}" class="btn btn-outline-info">
+            <i class="bi bi-image"></i> 이미지 1
+        </a>
+        <a href="{% url 'image_detail' comparison.image_2.pk %}" class="btn btn-outline-success">
+            <i class="bi bi-image"></i> 이미지 2
+        </a>
+        <a href="{% url 'image_compare:comparison_config' comparison.image_1.pk comparison.image_2.pk %}" 
+           class="btn btn-primary">
+            <i class="bi bi-arrow-repeat"></i> 다시 비교
+        </a>
+        <form method="post" action="{% url 'image_compare:comparison_delete' comparison.pk %}" 
+              class="d-inline" onsubmit="return confirm('정말 삭제하시겠습니까?');">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-danger">
+                <i class="bi bi-trash"></i> 삭제
+            </button>
+        </form>
+    </div>
+</div>
+
+<!-- 이미지 확대 모달 -->
+<div class="modal fade" id="imageModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content bg-transparent border-0">
+            <div class="modal-header border-0">
+                <h5 class="modal-title text-white" id="modalImageTitle"></h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center p-0">
+                <img id="modalImage" src="" class="img-fluid" style="max-height: 85vh;" alt="">
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function showImageModal(src, title) {
+    document.getElementById('modalImage').src = src;
+    document.getElementById('modalImageTitle').textContent = title;
+}
+
+// ESC 키로 모달 닫기
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') {
+        const modal = bootstrap.Modal.getInstance(document.getElementById('imageModal'));
+        if (modal) {
+            modal.hide();
+        }
+    }
+});
+
+// 모달 배경 클릭으로 닫기
+document.getElementById('imageModal').addEventListener('click', function(event) {
+    if (event.target === this) {
+        bootstrap.Modal.getInstance(this).hide();
+    }
+});
+</script>
+
+<style>
+.modal-content {
+    background-color: rgba(0, 0, 0, 0.95) !important;
+}
+
+.modal-header {
+    padding: 1rem 1.5rem;
+}
+
+#modalImage {
+    cursor: zoom-out;
+}
+</style>
+{% endblock %}

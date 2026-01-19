@@ -16,14 +16,20 @@ def model_list(request):
     # 탭 파라미터 가져오기 (기본값: all)
     tab = request.GET.get("tab", "all")
     
-    builtin_models = BuiltinModel.objects.filter(is_active=True).order_by(
+    builtin_models = BuiltinModel.objects.all().order_by(
         "-is_default", "-created_at"
     )
-    custom_models = CustomModel.objects.filter(is_active=True).order_by("-created_at")
+    custom_models = CustomModel.objects.all().order_by("-created_at")
 
     total_base = builtin_models.count()
     total_custom = custom_models.count()
     total_models = total_base + total_custom
+    
+    # ⭐ 활성화된 모델 개수 계산
+    active_count = (
+        builtin_models.filter(is_active=True).count() +
+        custom_models.filter(is_active=True).count()
+    )
 
     context = {
         "builtin_models": builtin_models,
@@ -31,7 +37,8 @@ def model_list(request):
         "total_models": total_models,
         "total_base": total_base,
         "total_custom": total_custom,
-        "tab": tab,  # 탭 상태 전달
+        "active_count": active_count,  # ⭐ 추가
+        "tab": tab,
     }
     return render(request, "modelhub/model_list.html", context)
 
@@ -162,56 +169,26 @@ def model_detail(request, model_type, model_id):
     if model_type == "base":
         model = get_object_or_404(BuiltinModel, id=model_id)
         # 이 모델을 사용한 탐지 목록
-        from vision_engine.models import Application  # ⭐ Detection → Application
+        from vision_engine.models import Application
 
-        applications = Application.objects.filter(builtin_model=model).order_by("-created_at")  # ⭐ detections → applications
+        applications = Application.objects.filter(builtin_model=model).order_by("-created_at")
     else:
         model = get_object_or_404(CustomModel, id=model_id)
         # 이 모델을 사용한 탐지 목록
-        from vision_engine.models import Application  # ⭐ Detection → Application
+        from vision_engine.models import Application
 
-        applications = Application.objects.filter(custom_model=model).order_by("-created_at")  # ⭐ detections → applications
+        applications = Application.objects.filter(custom_model=model).order_by("-created_at")
 
     # 통계 계산
-    completed_count = applications.filter(status="completed").count()  # ⭐ detections → applications
+    completed_count = applications.filter(status="completed").count()
 
     context = {
         "model": model,
         "model_type": model_type,
-        "applications": applications,  # ⭐ detections → applications
-        "completed_count": completed_count,  # 완료된 탐지 수
+        "applications": applications,
+        "completed_count": completed_count,
     }
     return render(request, "modelhub/model_detail.html", context)
-
-
-# def model_edit(request, model_type, model_id):
-#     """통합 모델 수정"""
-#     if model_type == "base":
-#         model = get_object_or_404(BuiltinModel, id=model_id)
-#         if request.method == "POST":
-#             form = BuiltinModelForm(request.POST, request.FILES, instance=model)
-#             if form.is_valid():
-#                 form.save()
-#                 messages.success(request, "모델 정보가 수정되었습니다.")
-#                 return redirect("modelhub:model_detail", model_type, model.id)
-#         else:
-#             form = BuiltinModelForm(instance=model)
-#     else:
-#         model = get_object_or_404(CustomModel, id=model_id)
-#         if request.method == "POST":
-#             model.name = request.POST.get("name", model.name)
-#             model.description = request.POST.get("description", model.description)
-#             model.save()
-#             messages.success(request, "모델 정보가 수정되었습니다.")
-#             return redirect("modelhub:model_detail", model_type, model.id)
-#         form = None
-
-#     context = {
-#         "model": model,
-#         "model_type": model_type,
-#         "form": form,
-#     }
-#     return render(request, "modelhub/model_edit.html", context)
 
 
 def model_delete(request, model_type, model_id):
@@ -247,15 +224,33 @@ def model_delete(request, model_type, model_id):
 
 
 def model_toggle(request, model_type, model_id):
-    """모델 활성화/비활성화 토글"""
+    """모델 활성화/비활성화 토글 - AJAX JSON 응답"""
     if model_type == "base":
         model = get_object_or_404(BuiltinModel, id=model_id)
     else:
         model = get_object_or_404(CustomModel, id=model_id)
 
+    # 상태 토글
     model.is_active = not model.is_active
     model.save()
 
+    # ⭐ AJAX 요청인 경우 JSON 응답
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or \
+       request.content_type == 'application/json':
+        
+        # 전체 활성화된 모델 개수 계산
+        active_count = (
+            BuiltinModel.objects.filter(is_active=True).count() +
+            CustomModel.objects.filter(is_active=True).count()
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'is_active': model.is_active,
+            'active_count': active_count,
+        })
+    
+    # 일반 요청인 경우 기존 방식
     status = "활성화" if model.is_active else "비활성화"
     messages.success(request, f"모델이 {status}되었습니다.")
     return redirect("modelhub:model_detail", model_type, model_id)

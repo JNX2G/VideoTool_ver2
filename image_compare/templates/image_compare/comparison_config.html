@@ -1,0 +1,477 @@
+{% extends 'contents/base.html' %}
+
+{% block title %}비교 설정{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="custom-breadcrumb-item">
+    <a href="{% url 'image_detail' first_image.pk %}">
+        <i class="bi bi-image"></i> {{ first_image.title }}
+    </a>
+</li>
+<li class="custom-breadcrumb-item">
+    <a href="{% url 'image_compare:select_second_image' first_image.pk %}">
+        <i class="bi bi-arrow-left-right"></i> 비교할 이미지 선택
+    </a>
+</li>
+<li class="custom-breadcrumb-item active">
+    <a href="#">
+        <i class="bi bi-sliders"></i> 이미지 비교 설정
+    </a>
+</li>
+{% endblock %}
+
+
+{% block content %}
+<div class="container-fluid">
+    <!-- <div class="row mb-4">
+        <div class="col-12">
+            <h2><i class="bi bi-sliders"></i> 이미지 비교 설정</h2>
+            <p class="text-muted">어떤 방식으로 두 이미지를 비교할지 선택하세요. 잘 모르시면 '기본 설정'을 사용해보세요!</p>
+        </div>
+    </div> -->
+
+    <!-- 이미지 미리보기 -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="bi bi-1-circle"></i> 첫 번째 이미지</h5>
+                </div>
+                <div class="card-body text-center">
+                    <img src="{{ first_image.file.url }}" class="img-fluid rounded mb-2" 
+                         style="max-height: 200px;" alt="{{ first_image.title }}">
+                    <h6>{{ first_image.title }}</h6>
+                    <small class="text-muted">{{ first_image.get_resolution_display }}</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="bi bi-2-circle"></i> 두 번째 이미지</h5>
+                </div>
+                <div class="card-body text-center">
+                    <img src="{{ second_image.file.url }}" class="img-fluid rounded mb-2" 
+                         style="max-height: 200px;" alt="{{ second_image.title }}">
+                    <h6>{{ second_image.title }}</h6>
+                    <small class="text-muted">{{ second_image.get_resolution_display }}</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 비교 설정 폼 -->
+    <form method="post" id="comparisonForm">
+        {% csrf_token %}
+        
+        <!-- 비교 방법 선택 -->
+        <div class="card mb-4 shadow-sm">
+            <div class="card-header bg-success text-white d-flex justify-content-between align-items-center py-3">
+                <div>
+                    <h5 class="mb-0 fw-bold">
+                        <i class="bi bi-check2-square me-2"></i>비교 방법 선택
+                    </h5>
+                    <small class="opacity-75">이미지를 어떤 방식으로 비교할지 선택하세요</small>
+                </div>
+
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-primary btn-sm border-white border-opacity-25 shadow-sm" onclick="setPreset('general')">
+                        <i class="bi bi-star"></i> 기본 설정 (추천)
+                    </button>
+                    <button type="button" class="btn btn-secondary btn-sm border-white border-opacity-25 shadow-sm" onclick="setPreset('quality')">
+                        <i class="bi bi-gem"></i> 고품질 비교
+                    </button>
+                    <button type="button" class="btn btn-warning btn-sm border-white border-opacity-25 shadow-sm" onclick="setPreset('fast')">
+                        <i class="bi bi-lightning"></i> 빠른 비교
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row row-cols-1 row-cols-md-2 g-3">
+                    {% for method in methods %}
+                    <div class="col">
+                        <div class="method-card p-3 border rounded h-100" 
+                             data-category="{{ method.category }}"
+                             onclick="selectMethod('method_{{ method.id }}')">
+                            <div class="form-check">
+                                <input class="form-check-input method-radio" 
+                                       type="radio" 
+                                       name="comparison_method" 
+                                       id="method_{{ method.id }}" 
+                                       value="{{ method.id }}"
+                                       data-category="{{ method.category }}"
+                                       {% if forloop.first %}checked{% endif %}
+                                       required>
+                                <label class="form-check-label w-100" for="method_{{ method.id }}" style="cursor: pointer;">
+                                    <div class="d-flex align-items-start">
+                                        <div class="method-icon me-3">
+                                            {% if method.category == 'feature' %}
+                                                <i class="bi bi-grid-3x3 text-primary" style="font-size: 2rem;"></i>
+                                            {% elif method.category == 'structural' %}
+                                                <i class="bi bi-bounding-box text-success" style="font-size: 2rem;"></i>
+                                            {% elif method.category == 'histogram' %}
+                                                <i class="bi bi-bar-chart text-warning" style="font-size: 2rem;"></i>
+                                            {% elif method.category == 'pixel' %}
+                                                <i class="bi bi-search text-danger" style="font-size: 2rem;"></i>
+                                            {% endif %}
+                                        </div>
+                                        <div class="flex-grow-1">
+                                            <h6 class="mb-1">{{ method.display_name }}</h6>
+                                            <small class="text-muted">{{ method.description }}</small>
+                                            
+                                            <!-- 추천 상황 -->
+                                            <div class="mt-2">
+                                                <span class="badge bg-light text-dark border">
+                                                    {% if method.name == 'ORB' %}
+                                                        <i class="bi bi-star-fill text-warning"></i> 일반적인 상황에 적합
+                                                    {% elif method.name == 'SIFT' %}
+                                                        <i class="bi bi-gem"></i> 정밀한 비교가 필요할 때
+                                                    {% elif method.name == 'AKAZE' %}
+                                                        <i class="bi bi-zoom-in"></i> 세밀한 차이 찾기
+                                                    {% elif method.name == 'SSIM' %}
+                                                        <i class="bi bi-eye"></i> 사람 눈으로 보는 것처럼
+                                                    {% elif method.name == 'Histogram' %}
+                                                        <i class="bi bi-palette"></i> 색감 비교
+                                                    {% elif method.name == 'PixelDiff' %}
+                                                        <i class="bi bi-bullseye"></i> 정확히 같은 위치 비교
+                                                    {% endif %}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- 상세 설정 (접을 수 있음) -->
+        <div class="card mb-4 shadow-sm">
+            <div class="card-header bg-secondary text-white">
+                <h5 class="mb-0">
+                    <a class="text-white text-decoration-none d-flex align-items-center" 
+                       data-bs-toggle="collapse" href="#advancedSettings">
+                        <i class="bi bi-chevron-down me-2"></i>
+                        <span>상세 설정 (선택사항)</span>
+                    </a>
+                </h5>
+                <small>기본 설정으로도 충분합니다. 필요한 경우에만 변경하세요.</small>
+            </div>
+            <div class="collapse" id="advancedSettings">
+                <div class="card-body">
+                    
+                    <!-- 특징점 기반 파라미터 -->
+                    <div class="param-section" id="params-feature">
+                        <div class="alert alert-light">
+                            <h6 class="mb-2"><i class="bi bi-info-circle"></i> 특징점 기반 설정</h6>
+                            <p class="small mb-0">이미지에서 특징적인 점들을 찾아 매칭합니다.</p>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">분석 정밀도</label>
+                                <select class="form-select" id="feature_preset" onchange="updateFeatureParams(this.value)">
+                                    <option value="fast">빠르게 (특징점 500개)</option>
+                                    <option value="normal" selected>보통 (특징점 1000개) - 권장</option>
+                                    <option value="detailed">정밀하게 (특징점 2000개)</option>
+                                    <option value="custom">직접 설정</option>
+                                </select>
+                                <input type="hidden" name="n_features" id="n_features" value="1000">
+                                <input type="hidden" name="match_threshold" id="match_threshold" value="0.75">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- SSIM 파라미터 -->
+                    <div class="param-section" id="params-structural" style="display: none;">
+                        <div class="alert alert-light">
+                            <h6 class="mb-2"><i class="bi bi-info-circle"></i> 구조적 유사도 설정</h6>
+                            <p class="small mb-0">사람의 시각처럼 이미지의 구조를 비교합니다.</p>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">비교 영역 크기</label>
+                                <select class="form-select" name="window_size">
+                                    <option value="7">작게 (빠름)</option>
+                                    <option value="11" selected>중간 (권장)</option>
+                                    <option value="15">크게 (정밀)</option>
+                                </select>
+                                <small class="text-muted">더 큰 영역으로 비교하면 더 정확하지만 느립니다</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 히스토그램 파라미터 -->
+                    <div class="param-section" id="params-histogram" style="display: none;">
+                        <div class="alert alert-light">
+                            <h6 class="mb-2"><i class="bi bi-info-circle"></i> 색상 분포 설정</h6>
+                            <p class="small mb-0">이미지 전체의 색감을 비교합니다.</p>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">비교 방식</label>
+                                <select class="form-select" name="histogram_method">
+                                    <option value="correlation" selected>상관 계수 (권장)</option>
+                                    <option value="intersection">교집합</option>
+                                    <option value="chi_square">카이 제곱</option>
+                                    <option value="bhattacharyya">거리 측정</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">분석 정밀도</label>
+                                <select class="form-select" name="histogram_bins">
+                                    <option value="64">낮음</option>
+                                    <option value="128">중간</option>
+                                    <option value="256" selected>높음 (권장)</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">색공간</label>
+                                <select class="form-select" name="color_space">
+                                    <option value="RGB">RGB (일반)</option>
+                                    <option value="HSV" selected>HSV (권장)</option>
+                                    <option value="Lab">Lab (전문가용)</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 픽셀 차이 파라미터 -->
+                    <div class="param-section" id="params-pixel" style="display: none;">
+                        <div class="alert alert-light">
+                            <h6 class="mb-2"><i class="bi bi-info-circle"></i> 픽셀 단위 비교 설정</h6>
+                            <p class="small mb-0">같은 위치의 픽셀을 직접 비교합니다.</p>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">민감도</label>
+                                <select class="form-select" id="pixel_sensitivity" onchange="updatePixelThreshold(this.value)">
+                                    <option value="high">높음 (작은 차이도 감지)</option>
+                                    <option value="medium" selected>중간 (권장)</option>
+                                    <option value="low">낮음 (큰 차이만 감지)</option>
+                                </select>
+                                <input type="hidden" name="pixel_diff_method" value="absolute">
+                                <input type="hidden" name="pixel_threshold" id="pixel_threshold" value="30">
+                                <input type="hidden" name="color_space" value="RGB">
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        <!-- 결과 보기 옵션 -->
+        <div class="card mb-4 shadow-sm">
+            <div class="card-header bg-dark text-white">
+                <h5 class="mb-0"><i class="bi bi-image"></i> 결과 이미지</h5>
+                <small>비교 결과를 어떻게 표시할지 선택하세요 (여러 개 선택 가능)</small>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <div class="form-check p-3 border rounded">
+                            <input class="form-check-input" type="checkbox" id="viz_matches" name="viz_matches" checked>
+                            <label class="form-check-label w-100" for="viz_matches" style="cursor: pointer;">
+                                <div class="d-flex align-items-center">
+                                    <i class="bi bi-diagram-3 text-primary me-2" style="font-size: 1.5rem;"></i>
+                                    <div>
+                                        <strong>매칭 결과</strong>
+                                        <br><small class="text-muted">비슷한 부분을 선으로 연결해서 보여줍니다</small>
+                                    </div>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <div class="form-check p-3 border rounded">
+                            <input class="form-check-input" type="checkbox" id="viz_heatmap" name="viz_heatmap" checked>
+                            <label class="form-check-label w-100" for="viz_heatmap" style="cursor: pointer;">
+                                <div class="d-flex align-items-center">
+                                    <i class="bi bi-thermometer-half text-danger me-2" style="font-size: 1.5rem;"></i>
+                                    <div>
+                                        <strong>차이 히트맵</strong>
+                                        <br><small class="text-muted">다른 부분을 색으로 표시합니다 (빨강=많이 다름)</small>
+                                    </div>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 버튼 -->
+        <div class="d-flex gap-2 justify-content-between mb-4">
+            <a href="{% url 'image_compare:select_second_image' first_image.pk %}" 
+               class="btn btn-outline-secondary btn-lg">
+                <i class="bi bi-arrow-left"></i> 이전으로
+            </a>
+            <button type="submit" class="btn btn-primary btn-lg" id="submitBtn">
+                <i class="bi bi-play-circle-fill"></i> 비교 시작하기
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+// 프리셋 설정
+function setPreset(type) {
+    const presets = {
+        general: { method: 0, features: 1000, threshold: 0.75 },  // ORB
+        quality: { method: 1, features: 2000, threshold: 0.75 },   // SIFT
+        fast: { method: 0, features: 500, threshold: 0.80 }        // ORB fast
+    };
+    
+    const preset = presets[type];
+    const methods = document.querySelectorAll('.method-radio');
+    methods[preset.method].click();
+    
+    document.getElementById('n_features').value = preset.features;
+    document.getElementById('match_threshold').value = preset.threshold;
+    
+    // 피드백
+    const alert = document.createElement('div');
+    alert.className = 'alert alert-success alert-dismissible fade show mt-3';
+    alert.innerHTML = `
+        <i class="bi bi-check-circle"></i> <strong>${type === 'general' ? '기본' : type === 'quality' ? '고품질' : '빠른'}</strong> 설정이 적용되었습니다!
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    document.querySelector('.alert-info').after(alert);
+    setTimeout(() => alert.remove(), 3000);
+}
+
+// 특징점 파라미터 업데이트
+function updateFeatureParams(preset) {
+    const presets = {
+        fast: { features: 500, threshold: 0.80 },
+        normal: { features: 1000, threshold: 0.75 },
+        detailed: { features: 2000, threshold: 0.70 }
+    };
+    
+    if (preset !== 'custom') {
+        document.getElementById('n_features').value = presets[preset].features;
+        document.getElementById('match_threshold').value = presets[preset].threshold;
+    }
+}
+
+// 픽셀 임계값 업데이트
+function updatePixelThreshold(sensitivity) {
+    const thresholds = {
+        high: 15,
+        medium: 30,
+        low: 50
+    };
+    document.getElementById('pixel_threshold').value = thresholds[sensitivity];
+}
+
+// 메서드 카드 선택
+function selectMethod(id) {
+    document.getElementById(id).click();
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const methodRadios = document.querySelectorAll('.method-radio');
+    const paramSections = document.querySelectorAll('.param-section');
+    
+    function updateParamSections() {
+        const selectedMethod = document.querySelector('.method-radio:checked');
+        if (!selectedMethod) return;
+        
+        const category = selectedMethod.dataset.category;
+        
+        // 모든 섹션 숨김
+        paramSections.forEach(section => {
+            section.style.display = 'none';
+        });
+        
+        // 선택된 카테고리 섹션만 표시
+        const targetSection = document.getElementById('params-' + category);
+        if (targetSection) {
+            targetSection.style.display = 'block';
+        }
+        
+        // 카드 하이라이트
+        document.querySelectorAll('.method-card').forEach(card => {
+            card.style.backgroundColor = '';
+            card.style.borderColor = '';
+            card.style.borderWidth = '';
+        });
+        selectedMethod.closest('.method-card').style.backgroundColor = '#e3f2fd';
+        selectedMethod.closest('.method-card').style.borderColor = '#2196f3';
+        selectedMethod.closest('.method-card').style.borderWidth = '2px';
+    }
+    
+    methodRadios.forEach(radio => {
+        radio.addEventListener('change', updateParamSections);
+    });
+    
+    updateParamSections();
+    
+    // 폼 제출 시 로딩
+    document.getElementById('comparisonForm').addEventListener('submit', function() {
+        const btn = document.getElementById('submitBtn');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>비교 중...';
+    });
+});
+</script>
+
+<style>
+.method-card {
+    transition: all 0.3s ease;
+    cursor: pointer;
+    position: relative;
+    /* 왼쪽 패딩을 2.5rem(약 40px)로 설정하여 전체 내용을 오른쪽으로 밀어냄 */
+    padding: 0.8rem 1rem 0.8rem 2.5rem !important; 
+    border: 1px solid #dee2e6;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+}
+
+/* 아이콘과 텍스트 사이의 간격을 추가로 조절 */
+.method-card .method-icon {
+    margin-left: 10px; /* 라디오 버튼으로부터 아이콘을 떼어냄 */
+    margin-right: 15px; /* 아이콘으로부터 텍스트를 떼어냄 */
+}
+
+.method-card:hover {
+    background-color: #f8f9fa;
+    border-color: #0d6efd !important;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+}
+
+.method-card:has(input:checked) {
+    background-color: #e3f2fd;
+    border-color: #2196f3 !important;
+    box-shadow: 0 4px 12px rgba(33, 150, 243, 0.2);
+}
+
+/* 체크 표시 위치 (카드 우측 상단 고정) */
+.method-card:has(input:checked)::before {
+    content: '✓';
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: #2196f3;
+    color: white;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: bold;
+    z-index: 2;
+}
+
+.method-icon i {
+    font-size: 1.6rem !important;
+}
+</style>
+{% endblock %}
