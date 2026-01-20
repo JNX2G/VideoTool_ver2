@@ -63,7 +63,7 @@ def select_model(request, task_id):
 
 
 def execute_application(request, application_id):
-    """탐지 실행 페이지"""
+    """모델 실행 페이지"""
     application = get_object_or_404(Application, id=application_id)
 
     if request.method == "POST":
@@ -90,7 +90,7 @@ def execute_application(request, application_id):
 
 
 def application_progress(request, application_id):
-    """탐지 진행 상황 페이지"""
+    """모델 적용 진행 상황 페이지"""
     application = get_object_or_404(Application, id=application_id)
 
     context = {

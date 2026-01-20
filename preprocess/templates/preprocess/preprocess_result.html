@@ -48,7 +48,7 @@
             <div class="card-body d-flex flex-column">
                 <div class="flex-grow-1 rounded overflow-hidden position-relative video-container" style="min-height: 300px; cursor: pointer;" onclick="openVideoModal('original')">
                     {% if content_type == 'video' %}
-                        <video id="originalVideo" width="100%" preload="metadata" style="display: block; width: 100%; max-height: 500px; object-fit: contain;">
+                        <video id="originalVideo" width="100%" preload="metadata" muted style="display: block; width: 100%; max-height: 500px; object-fit: contain;">
                             <source src="{% url 'serve_video' content.pk %}" type="video/mp4">
                         </video>
                         <div class="video-overlay">
@@ -84,7 +84,7 @@
             <div class="card-body d-flex flex-column">
                 <div class="flex-grow-1 rounded overflow-hidden position-relative video-container" style="min-height: 300px; cursor: pointer;" onclick="openVideoModal('preprocessed')">
                     {% if content_type == 'video' %}
-                        <video id="preprocessedVideo" width="100%" preload="metadata" style="display: block; width: 100%; max-height: 500px; object-fit: contain;">
+                        <video id="preprocessedVideo" width="100%" preload="metadata" muted style="display: block; width: 100%; max-height: 500px; object-fit: contain;">
                             <source src="{% url 'preprocess:serve_preprocessed_video' task.id %}" type="video/mp4">
                         </video>
                         <div class="video-overlay">
@@ -209,7 +209,7 @@
             </div>
             <div class="modal-body p-0" style="background: #000;">
                 {% if content_type == 'video' %}
-                    <video id="modalVideo" width="100%" controls style="max-height: 80vh; object-fit: contain;">
+                    <video id="modalVideo" width="100%" controls muted style="max-height: 80vh; object-fit: contain;">
                         <source id="modalVideoSource" src="" type="video/mp4">
                     </video>
                 {% else %}

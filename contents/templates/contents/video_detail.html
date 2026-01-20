@@ -194,7 +194,7 @@
                                         </a>
                                         <!-- 탐지 이력이 없을 때만 편집 버튼 표시 - task_id 전달 -->
                                         {% if task.applications.count == 0 %}
-                                        <a href="{% url 'preprocess:start_preprocessing_with_task' video.id task.id %}" 
+                                        <a href="{% url 'preprocess:start_preprocessing_with_task' video.id task.id %}?type=video" 
                                         class="btn btn-outline-info btn-sm">
                                             <i class="bi bi-pencil-square"></i> 편집
                                         </a>
@@ -212,7 +212,7 @@
                                         </a>
                                         
                                     {% elif task.status == "ready" %}
-                                        <!-- ⭐ 준비 상태 (ready) - 편집 가능 - task_id 전달 -->
+                                        <!-- 준비 상태 (ready) - 편집 가능 - task_id 전달 -->
                                         <a href="{% url 'preprocess:start_preprocessing_with_task' video.id task.id %}?type=video" 
                                         class="btn btn-outline-primary btn-sm">
                                             <i class="bi bi-pencil-square"></i> 파이프라인 편집

@@ -56,11 +56,16 @@
                 <!-- 중간 여백 -->
                 <div class="flex-grow-1"></div>
 
-                <!-- 추가 버튼 -->
-                <div class="flex-shrink-0">
-                    <a href="{% url 'modelhub:model_add' %}" class="btn btn-primary">
-                        <i class="bi bi-plus-lg"></i>
-                        <span class="d-none d-md-inline ms-1">모델 추가</span>
+                <!-- 활성화 개수 + 추가 버튼 -->
+                <div class="d-flex align-items-center gap-2">
+                    <span class="badge bg-success d-inline-flex align-items-center px-3" 
+                          id="activeCountBadge"
+                          style="font-size: 0.9rem; min-height: 38px; line-height: 1; border-radius: 8px;">
+                        <i class="bi bi-check-circle me-1"></i> 활성화: {{ active_count }}
+                    </span>
+                    
+                    <a href="{% url 'modelhub:model_add' %}" class="btn btn-primary d-inline-flex align-items-center" style="min-height: 38px; border-radius: 8px;">
+                        <i class="bi bi-plus-lg me-1"></i> 모델 추가
                     </a>
                 </div>
             </div>
@@ -78,13 +83,24 @@
                 <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
                     {% for model in builtin_models %}
                     <div class="col">
-                        <div class="card h-100 shadow-sm hover-card">
+                        <div class="card h-100 shadow-sm hover-card {% if not model.is_active %}inactive-card{% endif %}">
                             <div class="card-body">
                                 <div class="d-flex justify-content-between align-items-start mb-2">
-                                    <h5 class="card-title mb-0">{{ model.display_name }}</h5>
-                                    {% if model.is_default %}
-                                    <span class="badge bg-warning text-dark">기본</span>
-                                    {% endif %}
+                                    <h5 class="card-title mb-0">
+                                        {{ model.display_name }}
+                                    </h5>
+                                    <div class="d-flex gap-1">
+                                        <!-- ⭐ 활성화 토글 버튼 -->
+                                        <button type="button" 
+                                                class="btn btn-sm {% if model.is_active %}btn-success{% else %}btn-secondary{% endif %}"
+                                                onclick="toggleActive('base', {{ model.id }}, this)"
+                                                title="{% if model.is_active %}활성화됨{% else %}비활성화됨{% endif %}">
+                                            <i class="bi bi-{% if model.is_active %}check{% else %}x{% endif %}-circle"></i>
+                                        </button>
+                                        {% if model.is_default %}
+                                        <span class="badge bg-warning text-dark">기본</span>
+                                        {% endif %}
+                                    </div>
                                 </div>
                                 
                                 {% if model.description %}
@@ -121,14 +137,24 @@
         <div class="row">
             <div class="col-md-12">
                 <h5 class="mb-3">
-                    <i class="bi bi-magic text-warning"></i> 커스텀 모델
+                    <i class="bi bi-magic text-custom"></i> 커스텀 모델
                 </h5>
                 <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
                     {% for model in custom_models %}
                     <div class="col">
-                        <div class="card h-100 shadow-sm hover-card">
+                        <div class="card h-100 shadow-sm hover-card {% if not model.is_active %}inactive-card{% endif %}">
                             <div class="card-body">
-                                <h5 class="card-title">{{ model.name }}</h5>
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <h5 class="card-title mb-0">{{ model.name }}</h5>
+                                    <!-- ⭐ 활성화 토글 버튼 -->
+                                    <button type="button" 
+                                            class="btn btn-sm {% if model.is_active %}btn-success{% else %}btn-secondary{% endif %}"
+                                            onclick="toggleActive('custom', {{ model.id }}, this)"
+                                            title="{% if model.is_active %}활성화됨{% else %}비활성화됨{% endif %}">
+                                        <i class="bi bi-{% if model.is_active %}check{% else %}x{% endif %}-circle"></i>
+                                    </button>
+                                </div>
+                                
                                 {% if model.description %}
                                 <p class="card-text text-muted small">{{ model.description|truncatewords:15 }}</p>
                                 {% endif %}
@@ -147,7 +173,7 @@
                             <div class="card-footer bg-white border-0">
                                 <div class="d-grid">
                                     <a href="{% url 'modelhub:model_detail' 'custom' model.id %}" 
-                                           class="btn btn-sm btn-outline-info">
+                                       class="btn btn-sm btn-outline-info">
                                         <i class="bi bi-eye"></i> 상세보기
                                     </a>
                                 </div>
@@ -176,6 +202,49 @@
     {% endif %}
 </div>
 
+<script>
+// 개별 토글 (AJAX)
+function toggleActive(modelType, modelId, button) {
+    fetch(`/modelhub/${modelType}/${modelId}/toggle/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/json',
+        },
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const card = button.closest('.card');
+            const activeBadge = document.getElementById('activeCountBadge');
+
+            if (data.is_active) {
+                button.className = 'btn btn-sm btn-success';
+                button.innerHTML = '<i class="bi bi-check-circle"></i>';
+                button.title = '활성화됨';
+                card.classList.remove('inactive-card');
+            } else {
+                button.className = 'btn btn-sm btn-secondary';
+                button.innerHTML = '<i class="bi bi-x-circle"></i>';
+                button.title = '비활성화됨';
+                card.classList.add('inactive-card');
+            }
+            
+            // 상단 활성화 개수 업데이트
+            if (activeBadge && data.active_count !== undefined) {
+                activeBadge.innerHTML = `<i class="bi bi-check-circle me-1"></i> 활성화: ${data.active_count}`;
+            }
+        } else {
+            alert('상태 변경에 실패했습니다: ' + (data.error || '알 수 없는 오류'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('상태 변경 중 오류가 발생했습니다: ' + error.message);
+    });
+}
+</script>
+
 <style>
 .hover-card {
     transition: transform 0.2s, box-shadow 0.2s;
@@ -183,6 +252,19 @@
 .hover-card:hover {
     transform: translateY(-5px);
     box-shadow: 0 8px 16px rgba(0,0,0,0.15) !important;
+}
+
+/* 비활성화된 카드 스타일 */
+.card.inactive-card {
+    filter: grayscale(70%);
+    opacity: 0.6;
+    transition: all 0.3s ease;
+}
+
+/* 비활성화 카드는 호버 효과 감소 */
+.card.inactive-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1) !important;
 }
 </style>
 {% endblock %}

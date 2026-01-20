@@ -2,6 +2,24 @@
 
 {% block title %}{{ image.title }}{% endblock %}
 
+<div class="card shadow-sm mb-3">
+    <div class="card-header bg-info text-white">
+        <h5 class="mb-0"><i class="bi bi-arrow-left-right"></i> 이미지 비교</h5>
+    </div>
+    <div class="card-body">
+        <p class="mb-3">
+            이 이미지를 다른 이미지와 비교하여 유사도를 분석하고 
+            객체 탐지 결과를 비교할 수 있습니다.
+        </p>
+        <div class="d-grid gap-2">
+            <a href="{% url 'image_compare:select_second_image' image.pk %}" 
+               class="btn btn-info">
+                <i class="bi bi-arrow-left-right"></i> 비교할 이미지 선택
+            </a>
+        </div>
+    </div>
+</div>
+
 {% block breadcrumb_items %}
     <!-- 1단계: 현재 페이지 (활성화) -->
     <li class="custom-breadcrumb-item active">
@@ -74,6 +92,10 @@
                     </p>
                 </div>                
                 <div class="btn-group" role="group">
+                    <a href="{% url 'image_compare:select_second_image' image.pk %}" 
+                    class="btn btn-outline-info">
+                        <i class="bi bi-arrow-left-right"></i> 비교
+                    </a>
                     <a href="{{ image.file.url }}" download class="btn btn-outline-success">
                         <i class="bi bi-download"></i> 다운로드
                     </a>
@@ -189,11 +211,11 @@
                                         class="btn btn-outline-primary btn-sm">
                                             <i class="bi bi-eye"></i> 결과 보기
                                         </a>
-                                        <!-- ⭐ 탐지 이력이 없을 때만 편집 버튼 표시 - task_id 전달 -->
+                                        <!-- 탐지 이력이 없을 때만 편집 버튼 표시 - task_id 전달 -->
                                         {% if task.applications.count == 0 %}
-                                        <a href="{% url 'preprocess:start_preprocessing_with_task' image.id task.id %}" 
+                                        <a href="{% url 'preprocess:start_preprocessing_with_task' image.id task.id %}?type=image" 
                                         class="btn btn-outline-info btn-sm">
-                                            <i class="bi bi-pencil-square"></i> 편집 (재실행)
+                                            <i class="bi bi-pencil-square"></i> 편집
                                         </a>
                                         {% endif %}
                                         <a href="{% url 'vision_engine:select_model' task.id %}" 
@@ -209,7 +231,7 @@
                                         </a>
                                         
                                     {% elif task.status == "ready" %}
-                                        <!-- ⭐ 준비 상태 (ready) - 편집 가능 - task_id 전달 -->
+                                        <!-- 준비 상태 (ready) - 편집 가능 - task_id 전달 -->
                                         <a href="{% url 'preprocess:start_preprocessing_with_task' image.id task.id %}?type=image" 
                                         class="btn btn-outline-primary btn-sm">
                                             <i class="bi bi-pencil-square"></i> 파이프라인 편집
