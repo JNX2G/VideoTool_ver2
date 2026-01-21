@@ -4,7 +4,7 @@ from django.contrib import messages
 from django.utils import timezone
 from django.conf import settings
 from preprocess.models import PreprocessingTask
-from modelhub.models import BuiltinModel, CustomModel
+from modelhub.models import Model  # ✅ 통합 Model 사용
 from .models import Application
 from wsgiref.util import FileWrapper
 import threading
@@ -22,33 +22,27 @@ def select_model(request, task_id):
         messages.error(request, "전처리가 완료되지 않았습니다.")
         return redirect("preprocess:preprocessing_result", task_id=task_id)
 
-    # 활성화된 모델 목록
-    builtin_models = BuiltinModel.objects.filter(is_active=True)
-    custom_models = CustomModel.objects.filter(is_active=True)
+    # ✅ 활성화된 모델 목록 (소스별 분리)
+    builtin_models = Model.objects.filter(is_active=True, source='builtin')
+    custom_models = Model.objects.filter(is_active=True).exclude(source='builtin')
 
     if request.method == "POST":
-        model_type = request.POST.get("model_type")  # 'base' or 'custom'
+        # ✅ model_id만 사용
         model_id = request.POST.get("model_id")
         title = request.POST.get("title", "")
         description = request.POST.get("description", "")
 
+        # ✅ 통합 Model 사용
+        model = get_object_or_404(Model, id=model_id)
+
         # Application 생성
         application = Application.objects.create(
             preprocessing_task=task,
+            model=model,  # ✅ 단일 필드
             title=title or f"모델 적용 - {timezone.now().strftime('%Y%m%d_%H%M%S')}",
             description=description,
             status="ready",
         )
-
-        # 모델 할당
-        if model_type == "base":
-            model = get_object_or_404(BuiltinModel, id=model_id)
-            application.builtin_model = model
-        else:
-            model = get_object_or_404(CustomModel, id=model_id)
-            application.custom_model = model
-
-        application.save()
 
         return redirect("vision_engine:execute_application", application_id=application.id)
 
@@ -139,7 +133,7 @@ def application_result(request, application_id):
         "content": application.get_content(),
         "content_type": application.get_content_type(),
         "summary_stats": summary_stats,
-        "output_url": f"/vision_engine/{application_id}/stream/",  # ⭐ output_url 추가
+        "output_url": f"/vision_engine/{application_id}/stream/",
     }
     return render(request, "vision_engine/application_result.html", context)
 
@@ -171,59 +165,41 @@ def application_delete(request, application_id):
         application.delete()
 
         messages.success(request, "탐지 작업이 삭제되었습니다.")
-
-        # redirect 파라미터에 따라 분기
-        redirect_to = request.POST.get("redirect", "application_list")
         
+        # 리다이렉트 결정
+        redirect_to = request.POST.get("redirect", "application_list")
         if redirect_to == "preprocessing_result":
             return redirect("preprocess:preprocessing_result", task_id=task_id)
+        elif redirect_to == "content_detail":
+            if content_type == "video":
+                return redirect("video_detail", pk=content.id)
+            else:
+                return redirect("image_detail", pk=content.id)
         
-        elif redirect_to == "video_detail" and content_type == "video" and content:
-            return redirect("video_detail", pk=content.id)  # 동영상 상세로
-        
-        elif redirect_to == "image_detail" and content_type == "image" and content:
-            return redirect("image_detail", pk=content.id)  # 이미지 상세로
-        
-        # 기본값: 탐지 목록으로
         return redirect("vision_engine:application_list")
 
     context = {
         "application": application,
-        "task": application.preprocessing_task,
-        "content": application.get_content(),
-        "content_type": application.get_content_type(),
     }
     return render(request, "vision_engine/application_delete.html", context)
 
+
 def cancel_application(request, application_id):
-    """탐지 작업 취소"""
+    """작업 취소"""
     application = get_object_or_404(Application, id=application_id)
-    task_id = application.preprocessing_task.id
+    
+    if application.status == "processing":
+        application.status = "cancelled"
+        application.save(update_fields=["status"])
+        messages.success(request, "작업이 취소되었습니다.")
+    else:
+        messages.warning(request, "진행 중인 작업만 취소할 수 있습니다.")
+    
+    return redirect("vision_engine:application_progress", application_id=application_id)
 
-    if request.method == "POST":
-        if application.status == "processing":
-            # 상태를 cancelled로 변경
-            application.status = "cancelled"
-            application.save(update_fields=['status'])
-            
-            messages.success(request, "탐지 작업이 취소되었습니다.")
-            
-            # ⭐ 전처리 결과 페이지로 리다이렉트
-            return redirect("preprocess:preprocessing_result", task_id=task_id)
-        else:
-            messages.warning(request, "처리 중인 작업만 취소할 수 있습니다.")
-            return redirect("vision_engine:application_progress", application_id=application_id)
-
-    # GET 요청 시에도 전처리 결과로 리다이렉트
-    return redirect("preprocess:preprocessing_result", task_id=task_id)
-
-
-# ============================================
-# 탐지 결과 파일 제공
-# ============================================
 
 def serve_applied_video(request, application_id):
-    """탐지 결과 동영상 스트리밍"""
+    """탐지 결과 동영상 제공 (Range 요청 지원)"""
     application = get_object_or_404(Application, id=application_id)
 
     if not application.output_file_path:
@@ -289,42 +265,3 @@ def serve_applied_image(request, application_id):
     content_type = content_type or "image/jpeg"
 
     return FileResponse(open(image_path, "rb"), content_type=content_type)
-
-
-# vision_engine/views.py에 추가할 코드
-
-def application_list(request):
-    """전체 탐지 목록 (정렬 기능 포함)"""
-    
-    # 기본 쿼리셋
-    applications = Application.objects.all()
-
-    # 상태별 필터
-    status = request.GET.get("status")
-    if status:
-        applications = applications.filter(status=status)
-
-    # 정렬 처리
-    sort = request.GET.get("sort", "-created_at")  # 기본값: 최신순
-    
-    # 허용된 정렬 필드만 사용 (보안)
-    allowed_sort_fields = [
-        'id', '-id',
-        'status', '-status',
-        'total_applications', '-total_applications',
-        'progress', '-progress',
-        'created_at', '-created_at',
-    ]
-    
-    if sort in allowed_sort_fields:
-        applications = applications.order_by(sort)
-    else:
-        # 유효하지 않은 정렬 필드면 기본값 사용
-        applications = applications.order_by("-created_at")
-        sort = "-created_at"
-
-    context = {
-        "applications": applications,
-        "current_sort": sort,  # 현재 정렬 상태 전달
-    }
-    return render(request, "vision_engine/application_list.html", context)

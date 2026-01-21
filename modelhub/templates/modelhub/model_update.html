@@ -1,0 +1,202 @@
+{% extends 'contents/base.html' %}
+
+{% block title %}{{ model.name }} - 수정{% endblock %}
+
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="custom-breadcrumb-item">
+            <a href="{% url 'modelhub:model_list' %}">
+                <i class="bi bi-box-seam"></i> 모델 허브
+            </a>
+        </li>
+        <li class="custom-breadcrumb-item">
+            <a href="{% url 'modelhub:model_detail' model.id %}">
+                <i class="bi bi-eye"></i> {{ model.name }}
+            </a>
+        </li>
+        <li class="custom-breadcrumb-item active">
+            <a href="#">
+                <i class="bi bi-pencil"></i> 수정
+            </a>
+        </li>
+    </ol>
+</nav>
+{% endblock breadcrumb %}
+
+{% block content %}
+<div class="container">
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">
+                <i class="bi bi-pencil"></i> 모델 수정
+            </h5>
+        </div>
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
+                
+                <div class="row">
+                    <div class="col-md-8">
+                        <!-- 소스 정보 (읽기 전용) -->
+                        <div class="alert alert-info">
+                            <strong>소스:</strong> 
+                            <span class="badge bg-{{ model.get_source_badge_class }}">
+                                {{ model.get_source_display }}
+                            </span>
+                            <br>
+                            <small class="text-muted">
+                                ℹ️ 소스와 원본 파일은 수정할 수 없습니다. 이름, 작업 유형, 설명, 활성화 상태만 변경 가능합니다.
+                            </small>
+                        </div>
+
+                        <!-- 모델 이름 -->
+                        <div class="mb-3">
+                            <label for="{{ form.name.id_for_label }}" class="form-label">
+                                <i class="bi bi-tag"></i> 모델 이름 <span class="text-danger">*</span>
+                            </label>
+                            {{ form.name }}
+                            {% if form.name.errors %}
+                                <div class="text-danger">{{ form.name.errors }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- 작업 유형 -->
+                        <div class="mb-3">
+                            <label for="{{ form.task_type.id_for_label }}" class="form-label">
+                                <i class="bi bi-gear"></i> 작업 유형 <span class="text-danger">*</span>
+                            </label>
+                            {{ form.task_type }}
+                            {% if form.task_type.help_text %}
+                                <div class="form-text">
+                                    <i class="bi bi-info-circle"></i> {{ form.task_type.help_text }}
+                                </div>
+                            {% endif %}
+                            {% if form.task_type.errors %}
+                                <div class="text-danger">{{ form.task_type.errors }}</div>
+                            {% endif %}
+                            
+                            <!-- 작업 유형 안내 -->
+                            <div class="mt-2 alert alert-warning-subtle border-warning">
+                                <small>
+                                    <strong>📌 작업 유형별 지원 상태:</strong><br>
+                                    <span class="badge bg-success">완전 지원</span> 객체 탐지 (Object Detection)<br>
+                                    <span class="badge bg-secondary">준비 중</span> 이미지 분류 (Image Classification)<br>
+                                    <span class="badge bg-secondary">준비 중</span> 세그멘테이션 (Segmentation)<br>
+                                    <span class="badge bg-secondary">준비 중</span> 해상도 향상 (Super Resolution)<br>
+                                    <span class="badge bg-secondary">준비 중</span> 이미지 복원 (Image Restoration)
+                                </small>
+                            </div>
+                        </div>
+
+                        <!-- 설명 -->
+                        <div class="mb-3">
+                            <label for="{{ form.description.id_for_label }}" class="form-label">
+                                <i class="bi bi-card-text"></i> 설명
+                            </label>
+                            {{ form.description }}
+                            {% if form.description.errors %}
+                                <div class="text-danger">{{ form.description.errors }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- 활성화 상태 -->
+                        <div class="mb-3">
+                            <div class="form-check">
+                                {{ form.is_active }}
+                                <label class="form-check-label" for="{{ form.is_active.id_for_label }}">
+                                    <i class="bi bi-check-circle"></i> 활성화
+                                </label>
+                            </div>
+                            <small class="text-muted">
+                                비활성화하면 vision_engine에서 선택할 수 없습니다.
+                            </small>
+                            {% if form.is_active.errors %}
+                                <div class="text-danger">{{ form.is_active.errors }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- 버튼 -->
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-circle"></i> 저장
+                            </button>
+                            <a href="{% url 'modelhub:model_detail' model.id %}" class="btn btn-outline-secondary">
+                                <i class="bi bi-x-circle"></i> 취소
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- 오른쪽: 메타데이터 정보 (읽기 전용) -->
+                    <div class="col-md-4">
+                        <div class="card bg-light">
+                            <div class="card-body">
+                                <h6 class="card-title">
+                                    <i class="bi bi-info-circle"></i> 메타데이터 (읽기 전용)
+                                </h6>
+                                <table class="table table-sm small mb-0">
+                                    <tbody>
+                                        {% if model.framework %}
+                                        <tr>
+                                            <th>프레임워크</th>
+                                            <td>{{ model.framework }}</td>
+                                        </tr>
+                                        {% endif %}
+                                        {% if model.architecture %}
+                                        <tr>
+                                            <th>아키텍처</th>
+                                            <td>{{ model.architecture }}</td>
+                                        </tr>
+                                        {% endif %}
+                                        {% if model.num_classes %}
+                                        <tr>
+                                            <th>클래스 개수</th>
+                                            <td>{{ model.num_classes }}개</td>
+                                        </tr>
+                                        {% endif %}
+                                        {% if model.file_size %}
+                                        <tr>
+                                            <th>파일 크기</th>
+                                            <td>{{ model.get_file_size_display }}</td>
+                                        </tr>
+                                        {% endif %}
+                                        <tr>
+                                            <th>사용 횟수</th>
+                                            <td>{{ model.usage_count }}회</td>
+                                        </tr>
+                                        <tr>
+                                            <th>등록일</th>
+                                            <td>{{ model.created_at|date:"Y-m-d H:i" }}</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                                <hr>
+                                <p class="small mb-0 text-muted">
+                                    <i class="bi bi-lightbulb"></i> 
+                                    프레임워크, 아키텍처 등은 자동 추출되므로 수정할 수 없습니다.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+// Task type 변경 시 경고
+document.addEventListener('DOMContentLoaded', function() {
+    const taskTypeSelect = document.querySelector('select[name="task_type"]');
+    if (taskTypeSelect) {
+        const originalValue = taskTypeSelect.value;
+        
+        taskTypeSelect.addEventListener('change', function() {
+            if (this.value !== originalValue && this.value !== 'object_detection') {
+                alert('⚠️ 현재 Vision Engine은 "객체 탐지"만 완전히 지원합니다.\n다른 작업 유형은 준비 중입니다.');
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

@@ -11,7 +11,7 @@
             </a>
         </li>
         <li class="custom-breadcrumb-item active">
-            <a href="{% url 'modelhub:model_add'%}">
+            <a href="#">
                 <i class="bi bi-plus-circle"></i> 모델 추가
             </a>
         </li>
@@ -21,76 +21,452 @@
 
 {% block content %}
 <div class="container">
-    <div class="row">
-        <!-- 기본 모델 추가 -->
-        <div class="col-md-6 mb-4">
-            <div class="card h-100 shadow-sm">
-                <div class="card-body text-center">
-                    <div class="mb-4">
-                        <i class="bi bi-gear-fill text-builtin" style="font-size: 4rem;"></i>
-                    </div>
-                    <h4 class="card-title"> 빌트인 모델</h4>
-                    <p class="card-text text-muted">
-                        사전에 업로드된 모델을 활용합니다.<br>
-                        현재 YOLOv8 모델을 활용 가능합니다.
-                    </p>
-                    <ul class="list-unstyled text-start">
-                        <li><i class="bi bi-check-circle-fill text-builtin"></i> YOLOv8 nano ~ xlarge</li>
-                        <li><i class="bi bi-check-circle-fill text-builtin"></i> 80개 클래스 지원 (COCO)</li>
-                        <li><i class="bi bi-check-circle-fill text-builtin"></i> 자동 다운로드</li>
-                        <li><i class="bi bi-check-circle-fill text-builtin"></i> 즉시 사용 가능</li>
-                    </ul>
-                </div>
-                <div class="card-footer bg-transparent border-0 text-center pb-4">
-                    <a href="{% url 'modelhub:builtin_model_add' %}" class="btn btn-builtin btn-lg">
-                        <i class="bi bi-arrow-right-circle"></i> 기본 모델 추가
-                    </a>
-                </div>
-            </div>
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">
+                <i class="bi bi-plus-circle"></i> 모델 추가
+            </h5>
         </div>
+        <div class="card-body">
+            <!-- 탭 네비게이션 -->
+            <ul class="nav nav-pills mb-4" id="sourceTab" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="builtin-tab" data-bs-toggle="pill" 
+                            data-bs-target="#builtin" type="button" role="tab">
+                        <i class="bi bi-gear-fill text-success"></i> Built-in
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="upload-tab" data-bs-toggle="pill" 
+                            data-bs-target="#upload" type="button" role="tab">
+                        <i class="bi bi-cloud-upload text-primary"></i> Upload
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="git-tab" data-bs-toggle="pill" 
+                            data-bs-target="#git" type="button" role="tab">
+                        <i class="bi bi-git text-warning"></i> Git
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="huggingface-tab" data-bs-toggle="pill" 
+                            data-bs-target="#huggingface" type="button" role="tab">
+                        <i class="bi bi-lightning text-info"></i> HuggingFace
+                    </button>
+                </li>
+            </ul>
 
-        <!-- 커스텀 모델 업로드 -->
-        <div class="col-md-6 mb-4">
-            <div class="card h-100 shadow-sm">
-                <div class="card-body text-center">
-                    <div class="mb-4">
-                        <i class="bi bi-magic text-custom" style="font-size: 4rem;"></i>
+            <!-- 탭 콘텐츠 -->
+            <div class="tab-content" id="sourceTabContent">
+                
+                <!-- ===== Built-in 탭 ===== -->
+                <div class="tab-pane fade show active" id="builtin" role="tabpanel">
+                    <div class="alert alert-success-subtle border-success">
+                        <i class="bi bi-info-circle"></i> 
+                        <strong>Built-in 모델</strong>: 사전 정의된 YOLOv8 모델을 선택합니다. 자동으로 다운로드됩니다.
                     </div>
-                    <h4 class="card-title">커스텀 모델</h4>
-                    <p class="card-text text-muted">
-                        직접 학습시킨 모델 파일을 업로드합니다.<br>
-                        특정 도메인이나 맞춤형 객체 탐지에 적합합니다.
-                    </p>
-                    <ul class="list-unstyled text-start">
-                        <li><i class="bi bi-check-circle-fill text-custom"></i> PyTorch (.pt, .pth)</li>
-                        <li><i class="bi bi-check-circle-fill text-custom"></i> ONNX (.onnx)</li>
-                        <li><i class="bi bi-check-circle-fill text-custom"></i> TensorFlow (.h5, .pb)</li>
-                        <li><i class="bi bi-check-circle-fill text-custom"></i> 성능 지표 기록</li>
-                    </ul>
+
+                    <form method="post" action="{% url 'modelhub:model_add_builtin' %}">
+                        {% csrf_token %}
+                        
+                        <div class="row">
+                            <div class="col-md-8">
+                                <!-- 프리셋 선택 -->
+                                <div class="mb-3">
+                                    <label class="form-label">
+                                        <i class="bi bi-stars"></i> 모델 프리셋 <span class="text-danger">*</span>
+                                    </label>
+                                    <select name="builtin_preset" class="form-select" required>
+                                        <option value="">-- 선택하세요 --</option>
+                                        <option value="yolov8n">YOLOv8 Nano (가장 빠름, 정확도 낮음)</option>
+                                        <option value="yolov8s" selected>YOLOv8 Small (균형) ⭐ 추천</option>
+                                        <option value="yolov8m">YOLOv8 Medium (느림, 정확도 높음)</option>
+                                        <option value="yolov8l">YOLOv8 Large (매우 느림, 정확도 매우 높음)</option>
+                                        <option value="yolov8x">YOLOv8 XLarge (최고 성능, 가장 느림)</option>
+                                    </select>
+                                    <div class="form-text">
+                                        <i class="bi bi-lightbulb"></i> 일반적으로 YOLOv8 Small이 속도와 정확도가 균형잡혀 있습니다.
+                                    </div>
+                                </div>
+
+                                <!-- 설명 -->
+                                <div class="mb-3">
+                                    <label class="form-label">
+                                        <i class="bi bi-card-text"></i> 설명 (선택)
+                                    </label>
+                                    <textarea name="description" class="form-control" rows="3" 
+                                              placeholder="이 모델의 용도나 특징을 간단히 설명하세요"></textarea>
+                                </div>
+
+                                <button type="submit" class="btn btn-success">
+                                    <i class="bi bi-plus-circle"></i> Built-in 모델 추가
+                                </button>
+                            </div>
+
+                            <!-- 안내 -->
+                            <div class="col-md-4">
+                                <div class="card bg-light">
+                                    <div class="card-body">
+                                        <h6 class="card-title"><i class="bi bi-info-circle"></i> Built-in 모델 특징</h6>
+                                        <ul class="small mb-0">
+                                            <li>자동 다운로드</li>
+                                            <li>COCO 80 클래스 지원</li>
+                                            <li>즉시 사용 가능</li>
+                                            <li>검증된 성능</li>
+                                            <li>Object Detection</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
                 </div>
-                <div class="card-footer bg-transparent border-0 text-center pb-4">
-                    <a href="{% url 'modelhub:custom_model_add' %}" class="btn btn-custom btn-lg">
-                        <i class="bi bi-arrow-right-circle"></i> 커스텀 모델 업로드
-                    </a>
+
+                <!-- ===== Upload 탭 ===== -->
+                <div class="tab-pane fade" id="upload" role="tabpanel">
+                    <div class="alert alert-primary-subtle border-primary">
+                        <i class="bi bi-info-circle"></i> 
+                        <strong>파일 업로드</strong>: 직접 학습한 모델 파일(.pt, .onnx 등)을 업로드합니다. 메타데이터가 자동 추출됩니다.
+                    </div>
+
+                    <form method="post" enctype="multipart/form-data" action="{% url 'modelhub:model_add_upload' %}" id="uploadForm">
+                        {% csrf_token %}
+                        
+                        <div class="row">
+                            <div class="col-md-8">
+                                <!-- 파일 선택 -->
+                                <div class="mb-3">
+                                    <label class="form-label">
+                                        <i class="bi bi-file-earmark-arrow-up"></i> 모델 파일 <span class="text-danger">*</span>
+                                    </label>
+                                    <input type="file" name="model_file" id="id_model_file" class="form-control" 
+                                           accept=".pt,.pth,.onnx,.h5,.pb,.tflite" required>
+                                    <div class="form-text">
+                                        <i class="bi bi-info-circle"></i> 
+                                        지원 형식: .pt, .pth, .onnx, .h5, .pb, .tflite (최대 1GB)
+                                    </div>
+                                </div>
+
+                                <!-- 모델 이름 -->
+                                <div class="mb-3">
+                                    <label class="form-label">
+                                        <i class="bi bi-tag"></i> 모델 이름 (선택)
+                                    </label>
+                                    <input type="text" name="name" id="id_name" class="form-control" 
+                                           placeholder="비워두면 파일명에서 자동 생성">
+                                </div>
+
+                                <!-- 작업 유형 -->
+                                <div class="mb-3">
+                                    <label class="form-label">
+                                        <i class="bi bi-gear"></i> 작업 유형 <span class="text-danger">*</span>
+                                    </label>
+                                    <select name="task_type" id="id_task_type" class="form-select" required>
+                                        <option value="">-- 선택하세요 (업로드 후 자동 추천됩니다) --</option>
+                                        <option value="object_detection">객체 탐지 (Object Detection)</option>
+                                        <option value="image_classification">이미지 분류 (Image Classification)</option>
+                                        <option value="segmentation">세그멘테이션 (Segmentation)</option>
+                                        <option value="super_resolution">해상도 향상 (Super Resolution)</option>
+                                        <option value="image_restoration">이미지 복원 (Image Restoration)</option>
+                                    </select>
+                                    <div class="form-text">
+                                        <i class="bi bi-lightbulb"></i> 파일 분석 후 자동으로 추천되지만, 직접 선택할 수 있습니다.
+                                    </div>
+                                </div>
+
+                                <!-- 설명 -->
+                                <div class="mb-3">
+                                    <label class="form-label">
+                                        <i class="bi bi-card-text"></i> 설명 (선택)
+                                    </label>
+                                    <textarea name="description" class="form-control" rows="3" 
+                                              placeholder="학습 데이터셋, 성능, 특징 등을 설명하세요"></textarea>
+                                </div>
+
+                                <button type="submit" class="btn btn-primary" id="uploadBtn">
+                                    <i class="bi bi-upload"></i> 파일 업로드 및 추가
+                                </button>
+                            </div>
+
+                            <!-- 안내 -->
+                            <div class="col-md-4">
+                                <div class="card bg-light mb-3">
+                                    <div class="card-body">
+                                        <h6 class="card-title"><i class="bi bi-info-circle"></i> 자동 추출 정보</h6>
+                                        <ul class="small mb-0">
+                                            <li>프레임워크 (PyTorch, ONNX 등)</li>
+                                            <li>아키텍처 (YOLOv8 등)</li>
+                                            <li>클래스 목록</li>
+                                            <li>입력 크기</li>
+                                            <li>클래스 개수</li>
+                                        </ul>
+                                    </div>
+                                </div>
+
+                                <div class="alert alert-warning-subtle border-warning">
+                                    <small>
+                                        <strong>⚠️ 작업 유형 안내:</strong><br>
+                                        <span class="badge bg-success">완전 지원</span> 객체 탐지<br>
+                                        <span class="badge bg-secondary">준비 중</span> 이미지 분류<br>
+                                        <span class="badge bg-secondary">준비 중</span> 세그멘테이션<br>
+                                        <span class="badge bg-secondary">준비 중</span> 해상도 향상<br>
+                                        <span class="badge bg-secondary">준비 중</span> 이미지 복원
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
                 </div>
+
+                <!-- ===== Git 탭 ===== -->
+                <div class="tab-pane fade" id="git" role="tabpanel">
+                    <div class="alert alert-warning-subtle border-warning">
+                        <i class="bi bi-info-circle"></i> 
+                        <strong>Git Repository</strong>: GitHub 등의 저장소에서 모델을 클론합니다.
+                    </div>
+
+                    <form method="post" action="{% url 'modelhub:model_add_git' %}">
+                        {% csrf_token %}
+                        
+                        <div class="row">
+                            <div class="col-md-8">
+                                <!-- Git URL -->
+                                <div class="mb-3">
+                                    <label class="form-label">
+                                        <i class="bi bi-link-45deg"></i> Git Repository URL <span class="text-danger">*</span>
+                                    </label>
+                                    <input type="url" name="git_url" class="form-control" 
+                                           placeholder="https://github.com/username/repo.git" required>
+                                    <div class="form-text">
+                                        <i class="bi bi-info-circle"></i> 
+                                        공개 저장소만 지원됩니다.
+                                    </div>
+                                </div>
+
+                                <!-- Branch -->
+                                <div class="mb-3">
+                                    <label class="form-label">
+                                        <i class="bi bi-git"></i> Branch (선택)
+                                    </label>
+                                    <input type="text" name="git_branch" class="form-control" 
+                                           placeholder="main" value="main">
+                                </div>
+
+                                <!-- Subfolder -->
+                                <div class="mb-3">
+                                    <label class="form-label">
+                                        <i class="bi bi-folder"></i> Subfolder (선택)
+                                    </label>
+                                    <input type="text" name="git_subfolder" class="form-control" 
+                                           placeholder="models/weights">
+                                    <div class="form-text">
+                                        모델이 저장된 하위 폴더 경로 (비워두면 루트)
+                                    </div>
+                                </div>
+
+                                <!-- 모델 이름 -->
+                                <div class="mb-3">
+                                    <label class="form-label">
+                                        <i class="bi bi-tag"></i> 모델 이름 (선택)
+                                    </label>
+                                    <input type="text" name="name" class="form-control" 
+                                           placeholder="비워두면 Repository 이름에서 자동 생성">
+                                </div>
+
+                                <!-- 작업 유형 -->
+                                <div class="mb-3">
+                                    <label class="form-label">
+                                        <i class="bi bi-gear"></i> 작업 유형
+                                    </label>
+                                    <select name="task_type" class="form-select">
+                                        <option value="">-- 자동 추론 --</option>
+                                        <option value="object_detection">객체 탐지 (Object Detection)</option>
+                                        <option value="image_classification">이미지 분류 (Image Classification)</option>
+                                        <option value="segmentation">세그멘테이션 (Segmentation)</option>
+                                        <option value="super_resolution">해상도 향상 (Super Resolution)</option>
+                                        <option value="image_restoration">이미지 복원 (Image Restoration)</option>
+                                    </select>
+                                    <div class="form-text">
+                                        비워두면 자동으로 추론합니다.
+                                    </div>
+                                </div>
+
+                                <!-- 설명 -->
+                                <div class="mb-3">
+                                    <label class="form-label">
+                                        <i class="bi bi-card-text"></i> 설명 (선택)
+                                    </label>
+                                    <textarea name="description" class="form-control" rows="3"></textarea>
+                                </div>
+
+                                <button type="submit" class="btn btn-warning">
+                                    <i class="bi bi-download"></i> Git 클론 및 추가
+                                </button>
+                            </div>
+
+                            <!-- 안내 -->
+                            <div class="col-md-4">
+                                <div class="card bg-light">
+                                    <div class="card-body">
+                                        <h6 class="card-title"><i class="bi bi-info-circle"></i> Git 모델 특징</h6>
+                                        <ul class="small mb-0">
+                                            <li>자동 클론</li>
+                                            <li>Commit hash 저장</li>
+                                            <li>버전 관리</li>
+                                            <li>README 파싱</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- ===== HuggingFace 탭 ===== -->
+                <div class="tab-pane fade" id="huggingface" role="tabpanel">
+                    <div class="alert alert-info-subtle border-info">
+                        <i class="bi bi-info-circle"></i> 
+                        <strong>HuggingFace Hub</strong>: HuggingFace에서 사전 학습된 모델을 가져옵니다.
+                    </div>
+
+                    <form method="post" action="{% url 'modelhub:model_add_huggingface' %}">
+                        {% csrf_token %}
+                        
+                        <div class="row">
+                            <div class="col-md-8">
+                                <!-- Model ID -->
+                                <div class="mb-3">
+                                    <label class="form-label">
+                                        <i class="bi bi-lightning"></i> Model ID <span class="text-danger">*</span>
+                                    </label>
+                                    <input type="text" name="hf_model_id" class="form-control" 
+                                           placeholder="facebook/detr-resnet-50" required>
+                                    <div class="form-text">
+                                        <i class="bi bi-info-circle"></i> 
+                                        HuggingFace Hub에서 모델 ID를 확인하세요. 예: facebook/detr-resnet-50
+                                    </div>
+                                </div>
+
+                                <!-- Revision -->
+                                <div class="mb-3">
+                                    <label class="form-label">
+                                        <i class="bi bi-git"></i> Revision (선택)
+                                    </label>
+                                    <input type="text" name="hf_revision" class="form-control" 
+                                           placeholder="main" value="main">
+                                </div>
+
+                                <!-- 모델 이름 -->
+                                <div class="mb-3">
+                                    <label class="form-label">
+                                        <i class="bi bi-tag"></i> 모델 이름 (선택)
+                                    </label>
+                                    <input type="text" name="name" class="form-control" 
+                                           placeholder="비워두면 Model ID에서 자동 생성">
+                                </div>
+
+                                <!-- 작업 유형 -->
+                                <div class="mb-3">
+                                    <label class="form-label">
+                                        <i class="bi bi-gear"></i> 작업 유형
+                                    </label>
+                                    <select name="task_type" class="form-select">
+                                        <option value="">-- 자동 추론 --</option>
+                                        <option value="object_detection">객체 탐지 (Object Detection)</option>
+                                        <option value="image_classification">이미지 분류 (Image Classification)</option>
+                                        <option value="segmentation">세그멘테이션 (Segmentation)</option>
+                                        <option value="super_resolution">해상도 향상 (Super Resolution)</option>
+                                        <option value="image_restoration">이미지 복원 (Image Restoration)</option>
+                                    </select>
+                                    <div class="form-text">
+                                        HuggingFace API에서 자동으로 추론됩니다.
+                                    </div>
+                                </div>
+
+                                <!-- 설명 -->
+                                <div class="mb-3">
+                                    <label class="form-label">
+                                        <i class="bi bi-card-text"></i> 설명 (선택)
+                                    </label>
+                                    <textarea name="description" class="form-control" rows="3"></textarea>
+                                </div>
+
+                                <button type="submit" class="btn btn-info">
+                                    <i class="bi bi-download"></i> HuggingFace에서 가져오기
+                                </button>
+                            </div>
+
+                            <!-- 안내 -->
+                            <div class="col-md-4">
+                                <div class="card bg-light">
+                                    <div class="card-body">
+                                        <h6 class="card-title"><i class="bi bi-info-circle"></i> HuggingFace 특징</h6>
+                                        <ul class="small mb-0">
+                                            <li>다양한 모델</li>
+                                            <li>API로 메타데이터 자동 추출</li>
+                                            <li>커뮤니티 모델</li>
+                                            <li>자동 캐싱</li>
+                                        </ul>
+                                        <hr>
+                                        <p class="small mb-0">
+                                            <i class="bi bi-link-45deg"></i> 
+                                            <a href="https://huggingface.co/models" target="_blank">
+                                                모델 찾기 →
+                                            </a>
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+
             </div>
         </div>
     </div>
 
-    <div class="row mt-4">
-        <div class="col-md-12">
-            <div class="alert alert-info">
-                <i class="bi bi-info-circle-fill"></i> 
-                <strong>안내:</strong> 
-                모델 추가 후 탐지 작업에서 선택하여 사용할 수 있습니다.
-            </div>
-        </div>
-    </div>
-
-    <div class="text-center mt-3">
-        <a href="{% url 'modelhub:model_list' %}" class="btn btn-secondary">
-            <i class="bi bi-list"></i> 목록으로
+    <!-- 뒤로 가기 -->
+    <div class="text-center mt-4">
+        <a href="{% url 'modelhub:model_list' %}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> 모델 목록으로
         </a>
     </div>
 </div>
+
+<script>
+// 파일 선택 시 자동 이름 채우기
+document.getElementById('id_model_file')?.addEventListener('change', function(e) {
+    if (this.files && this.files[0]) {
+        const fileName = this.files[0].name;
+        const nameField = document.getElementById('id_name');
+        
+        // 파일 크기 체크 (1GB)
+        if (this.files[0].size > 1024 * 1024 * 1024) {
+            alert('⚠️ 파일 크기가 1GB를 초과합니다.');
+            this.value = '';
+            return;
+        }
+        
+        // 이름 필드가 비어있으면 자동 채우기
+        if (!nameField.value) {
+            const baseName = fileName.replace(/\.(pt|pth|onnx|h5|pb|tflite)$/i, '');
+            nameField.value = baseName;
+        }
+    }
+});
+
+// Task type 변경 시 경고
+document.getElementById('id_task_type')?.addEventListener('change', function() {
+    if (this.value && this.value !== 'object_detection') {
+        alert('⚠️ 현재 Vision Engine은 "객체 탐지"만 완전히 지원합니다.\n다른 작업 유형은 준비 중입니다.');
+    }
+});
+
+// 업로드 폼 제출 시 로딩 표시
+document.getElementById('uploadForm')?.addEventListener('submit', function() {
+    const btn = document.getElementById('uploadBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>업로드 중...';
+});
+</script>
 {% endblock %}

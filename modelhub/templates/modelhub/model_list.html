@@ -15,39 +15,55 @@
 {% endblock breadcrumb %}
 
 {% block content %}
-<div class="container-fluid">
-    <!-- 상단 헤더 -->
-    <div class="card mb-3 border-0 shadow-sm">
-        <div class="card-body p-2 p-md-3">
-            <div class="d-flex gap-2 align-items-center flex-wrap">
-                <!-- 탭 -->
-                <ul class="nav nav-pills flex-shrink-0">
+<div class="container">
+    <!-- 헤더 카드 -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="d-flex flex-wrap align-items-center gap-3">
+                <!-- 탭 네비게이션 -->
+                <ul class="nav nav-pills flex-grow-1 mb-0">
                     <li class="nav-item">
-                        <a class="nav-link py-1 py-md-2 px-2 px-md-3 {% if tab == 'all' %}active{% endif %}" href="?tab=all">
-                            <i class="bi bi-collection"></i>
-                            <span class="d-none d-lg-inline ms-1">전체</span>
-                            <span class="badge {% if tab == 'all' %}bg-white text-primary{% else %}bg-secondary{% endif %} ms-1" style="font-size: 0.65rem;">
+                        <a class="nav-link px-2 px-md-3 {% if tab == 'all' %}active{% endif %}" href="?tab=all">
+                            <i class="bi bi-grid-3x3-gap {% if tab == 'all' %}text-white{% else %}text-muted{% endif %}"></i>
+                            <span class="d-none d-lg-inline {% if tab == 'all' %}text-white{% else %}text-muted{% endif %} ms-1">전체</span>
+                            <span class="badge {% if tab == 'all' %}bg-white text-primary{% else %}bg-light text-dark{% endif %} ms-1" style="font-size: 0.65rem;">
                                 {{ total_models }}
                             </span>
                         </a>
                     </li>
-
                     <li class="nav-item">
-                        <a class="nav-link py-1 py-md-2 px-2 px-md-3 {% if tab == 'base' %}active{% endif %}" href="?tab=base">
-                            <i class="bi bi-gear-fill {% if tab == 'base' %} text-white{% else %}text-builtin{% endif %}"></i>
-                            <span class="d-none d-lg-inline {% if tab == 'base' %} text-white{% else %}text-builtin{% endif %} ms-1">빌트인</span>
-                            <span class="badge {% if tab == 'base' %}bg-white text-builtin{% else %}text-white bg-builtin{% endif %} ms-1" style="font-size: 0.65rem;">
-                                {{ total_base }}
+                        <a class="nav-link px-2 px-md-3 {% if tab == 'builtin' %}active{% endif %}" href="?tab=builtin">
+                            <i class="bi bi-gear-fill {% if tab == 'builtin' %}text-white{% else %}text-success{% endif %}"></i>
+                            <span class="d-none d-lg-inline {% if tab == 'builtin' %}text-white{% else %}text-success{% endif %} ms-1">Built-in</span>
+                            <span class="badge {% if tab == 'builtin' %}bg-white text-success{% else %}bg-success-subtle text-success{% endif %} ms-1" style="font-size: 0.65rem;">
+                                {{ total_builtin }}
                             </span>
                         </a>
                     </li>
-
                     <li class="nav-item">
-                        <a class="nav-link py-1 py-md-2 px-2 px-md-3 {% if tab == 'custom' %}active{% endif %}" href="?tab=custom">
-                            <i class="bi bi-magic {% if tab == 'custom' %} text-white{% else %}text-custom{% endif %}"></i>
-                            <span class="d-none d-lg-inline {% if tab == 'custom' %}text-white{% else %}text-custom{% endif %} ms-1">커스텀</span>
-                            <span class="badge {% if tab == 'custom' %}bg-white text-custom{% else %}text-white bg-custom{% endif %} ms-1" style="font-size: 0.65rem;">
-                                {{ total_custom }}
+                        <a class="nav-link px-2 px-md-3 {% if tab == 'upload' %}active{% endif %}" href="?tab=upload">
+                            <i class="bi bi-cloud-upload {% if tab == 'upload' %}text-white{% else %}text-primary{% endif %}"></i>
+                            <span class="d-none d-lg-inline {% if tab == 'upload' %}text-white{% else %}text-primary{% endif %} ms-1">Upload</span>
+                            <span class="badge {% if tab == 'upload' %}bg-white text-primary{% else %}bg-primary-subtle text-primary{% endif %} ms-1" style="font-size: 0.65rem;">
+                                {{ total_upload }}
+                            </span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link px-2 px-md-3 {% if tab == 'git' %}active{% endif %}" href="?tab=git">
+                            <i class="bi bi-git {% if tab == 'git' %}text-white{% else %}text-warning{% endif %}"></i>
+                            <span class="d-none d-lg-inline {% if tab == 'git' %}text-white{% else %}text-warning{% endif %} ms-1">Git</span>
+                            <span class="badge {% if tab == 'git' %}bg-white text-warning{% else %}bg-warning-subtle text-warning{% endif %} ms-1" style="font-size: 0.65rem;">
+                                {{ total_git }}
+                            </span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link px-2 px-md-3 {% if tab == 'huggingface' %}active{% endif %}" href="?tab=huggingface">
+                            <i class="bi bi-lightning {% if tab == 'huggingface' %}text-white{% else %}text-info{% endif %}"></i>
+                            <span class="d-none d-lg-inline {% if tab == 'huggingface' %}text-white{% else %}text-info{% endif %} ms-1">HuggingFace</span>
+                            <span class="badge {% if tab == 'huggingface' %}bg-white text-info{% else %}bg-info-subtle text-info{% endif %} ms-1" style="font-size: 0.65rem;">
+                                {{ total_huggingface }}
                             </span>
                         </a>
                     </li>
@@ -69,143 +85,148 @@
                     </a>
                 </div>
             </div>
+
+            <!-- 검색 바 -->
+            <!-- <div class="mt-3">
+                <form method="get" class="d-flex gap-2">
+                    <input type="hidden" name="tab" value="{{ tab }}">
+                    <input type="text" name="search" class="form-control" placeholder="모델 이름, 설명, 아키텍처로 검색..." value="{{ search }}">
+                    <button type="submit" class="btn btn-outline-primary">
+                        <i class="bi bi-search"></i> 검색
+                    </button>
+                    {% if search %}
+                    <a href="?tab={{ tab }}" class="btn btn-outline-secondary">
+                        <i class="bi bi-x"></i> 초기화
+                    </a>
+                    {% endif %}
+                </form>
+            </div> -->
         </div>
     </div>
 
     <!-- 모델 그리드 -->
-    {% if tab == 'all' or tab == 'base' %}
-        {% if builtin_models %}
-        <div class="row mb-4">
-            <div class="col-md-12">
-                <h5 class="mb-3">
-                    <i class="bi bi-gear-fill text-builtin"></i> 빌트인 모델
-                </h5>
-                <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
-                    {% for model in builtin_models %}
-                    <div class="col">
-                        <div class="card h-100 shadow-sm hover-card {% if not model.is_active %}inactive-card{% endif %}">
-                            <div class="card-body">
-                                <div class="d-flex justify-content-between align-items-start mb-2">
-                                    <h5 class="card-title mb-0">
-                                        {{ model.display_name }}
-                                    </h5>
-                                    <div class="d-flex gap-1">
-                                        <!-- ⭐ 활성화 토글 버튼 -->
-                                        <button type="button" 
-                                                class="btn btn-sm {% if model.is_active %}btn-success{% else %}btn-secondary{% endif %}"
-                                                onclick="toggleActive('base', {{ model.id }}, this)"
-                                                title="{% if model.is_active %}활성화됨{% else %}비활성화됨{% endif %}">
-                                            <i class="bi bi-{% if model.is_active %}check{% else %}x{% endif %}-circle"></i>
-                                        </button>
-                                        {% if model.is_default %}
-                                        <span class="badge bg-warning text-dark">기본</span>
-                                        {% endif %}
-                                    </div>
-                                </div>
-                                
-                                {% if model.description %}
-                                <p class="card-text text-muted small">{{ model.description|truncatewords:15 }}</p>
+    {% if models %}
+        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+            {% for model in models %}
+            <div class="col">
+                <div class="card h-100 shadow-sm hover-card {% if not model.is_active %}inactive-card{% endif %}">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <h5 class="card-title mb-0">{{ model.name }}</h5>
+                            <!-- 활성화 토글 버튼 -->
+                            <button type="button" 
+                                    class="btn btn-sm {% if model.is_active %}btn-success{% else %}btn-secondary{% endif %}"
+                                    onclick="toggleActive({{ model.id }}, this)"
+                                    title="{% if model.is_active %}활성화됨{% else %}비활성화됨{% endif %}">
+                                <i class="bi bi-{% if model.is_active %}check{% else %}x{% endif %}-circle"></i>
+                            </button>
+                        </div>
+
+                        <!-- 소스 + Task 배지 -->
+                        <div class="mb-2">
+                            <span class="badge bg-{{ model.get_source_badge_class }}">
+                                {% if model.source == 'builtin' %}
+                                    <i class="bi bi-gear-fill"></i> Built-in
+                                {% elif model.source == 'upload' %}
+                                    <i class="bi bi-cloud-upload"></i> Upload
+                                {% elif model.source == 'git' %}
+                                    <i class="bi bi-git"></i> Git
+                                {% elif model.source == 'huggingface' %}
+                                    <i class="bi bi-lightning"></i> HuggingFace
                                 {% endif %}
-                                
-                                <div class="mt-3">
-                                    {% if model.yolo_version %}
-                                    <p class="mb-1 small"><i class="bi bi-tag"></i> {{ model.yolo_version }}</p>
-                                    {% endif %}
-                                    <p class="mb-1 small"><i class="bi bi-hdd"></i> {{ model.get_file_size_display }}</p>
-                                    <p class="mb-0 small"><i class="bi bi-graph-up"></i> 사용: {{ model.usage_count }}회</p>
-                                </div>
-                            </div>
-                            <div class="card-footer bg-white border-0">
-                                <div class="d-grid">
-                                    <a href="{% url 'modelhub:model_detail' 'base' model.id %}" 
-                                       class="btn btn-sm btn-outline-success">
-                                        <i class="bi bi-eye"></i> 상세보기
-                                    </a>
-                                </div>
-                            </div>
+                            </span>
+                            {% if model.task_type %}
+                            <span class="badge bg-secondary">
+                                <i class="bi bi-{{ model.get_task_icon }}"></i> {{ model.get_task_type_display }}
+                            </span>
+                            {% endif %}
+                        </div>
+
+                        {% if model.description %}
+                        <p class="card-text text-muted small">{{ model.description|truncatewords:15 }}</p>
+                        {% endif %}
+
+                        <div class="mt-3">
+                            {% if model.framework %}
+                            <p class="mb-1 small"><i class="bi bi-cpu"></i> {{ model.framework }}</p>
+                            {% endif %}
+                            {% if model.architecture %}
+                            <p class="mb-1 small"><i class="bi bi-diagram-3"></i> {{ model.architecture }}</p>
+                            {% endif %}
+                            {% if model.num_classes %}
+                            <p class="mb-1 small"><i class="bi bi-tags"></i> {{ model.num_classes }}개 클래스</p>
+                            {% endif %}
+                            <p class="mb-1 small"><i class="bi bi-hdd"></i> {{ model.get_file_size_display }}</p>
+                            <p class="mb-0 small"><i class="bi bi-graph-up"></i> 사용: {{ model.usage_count }}회</p>
                         </div>
                     </div>
-                    {% endfor %}
-                </div>
-            </div>
-        </div>
-        {% endif %}
-    {% endif %}
-
-    {% if tab == 'all' or tab == 'custom' %}
-        {% if custom_models %}
-        <div class="row">
-            <div class="col-md-12">
-                <h5 class="mb-3">
-                    <i class="bi bi-magic text-custom"></i> 커스텀 모델
-                </h5>
-                <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
-                    {% for model in custom_models %}
-                    <div class="col">
-                        <div class="card h-100 shadow-sm hover-card {% if not model.is_active %}inactive-card{% endif %}">
-                            <div class="card-body">
-                                <div class="d-flex justify-content-between align-items-start mb-2">
-                                    <h5 class="card-title mb-0">{{ model.name }}</h5>
-                                    <!-- ⭐ 활성화 토글 버튼 -->
-                                    <button type="button" 
-                                            class="btn btn-sm {% if model.is_active %}btn-success{% else %}btn-secondary{% endif %}"
-                                            onclick="toggleActive('custom', {{ model.id }}, this)"
-                                            title="{% if model.is_active %}활성화됨{% else %}비활성화됨{% endif %}">
-                                        <i class="bi bi-{% if model.is_active %}check{% else %}x{% endif %}-circle"></i>
-                                    </button>
-                                </div>
-                                
-                                {% if model.description %}
-                                <p class="card-text text-muted small">{{ model.description|truncatewords:15 }}</p>
-                                {% endif %}
-                                
-                                <div class="mt-3">
-                                    {% if model.framework %}
-                                    <p class="mb-1 small"><i class="bi bi-cpu"></i> {{ model.framework }}</p>
-                                    {% endif %}
-                                    {% if model.accuracy %}
-                                    <p class="mb-1 small"><i class="bi bi-check-circle"></i> 정확도: {{ model.accuracy }}%</p>
-                                    {% endif %}
-                                    <p class="mb-1 small"><i class="bi bi-hdd"></i> {{ model.get_file_size_display }}</p>
-                                    <p class="mb-0 small"><i class="bi bi-graph-up"></i> 사용: {{ model.usage_count }}회</p>
-                                </div>
-                            </div>
-                            <div class="card-footer bg-white border-0">
-                                <div class="d-grid">
-                                    <a href="{% url 'modelhub:model_detail' 'custom' model.id %}" 
-                                       class="btn btn-sm btn-outline-info">
-                                        <i class="bi bi-eye"></i> 상세보기
-                                    </a>
-                                </div>
-                            </div>
+                    <div class="card-footer bg-white border-0">
+                        <div class="d-grid">
+                            <a href="{% url 'modelhub:model_detail' model.id %}" 
+                               class="btn btn-sm btn-outline-primary">
+                                <i class="bi bi-eye"></i> 상세보기
+                            </a>
                         </div>
                     </div>
-                    {% endfor %}
                 </div>
             </div>
+            {% endfor %}
         </div>
-        {% endif %}
-    {% endif %}
-
-    <!-- 빈 상태 -->
-    {% if not builtin_models and not custom_models %}
-    <div class="alert alert-light border text-center py-5">
-        <i class="bi bi-inbox" style="font-size: 4rem; color: #dee2e6;"></i>
-        <h4 class="mt-3 text-muted">등록된 모델이 없습니다</h4>
-        <p class="text-muted">모델을 추가하여 객체 탐지를 시작하세요.</p>
-        <div class="mt-4">
-            <a href="{% url 'modelhub:model_add' %}" class="btn btn-primary btn-lg">
-                <i class="bi bi-plus-lg"></i> 모델 추가
-            </a>
+    {% else %}
+        <!-- 빈 상태 -->
+        <div class="alert alert-light border text-center py-5">
+            <i class="bi bi-inbox" style="font-size: 4rem; color: #dee2e6;"></i>
+            <h4 class="mt-3 text-muted">
+                {% if search %}
+                    검색 결과가 없습니다
+                {% else %}
+                    등록된 모델이 없습니다
+                {% endif %}
+            </h4>
+            <p class="text-muted">
+                {% if search %}
+                    다른 검색어로 시도해보세요.
+                {% else %}
+                    모델을 추가하여 시작하세요.
+                {% endif %}
+            </p>
+            <div class="mt-4">
+                {% if search %}
+                <a href="?tab={{ tab }}" class="btn btn-outline-primary">
+                    <i class="bi bi-arrow-left"></i> 전체 목록 보기
+                </a>
+                {% else %}
+                <a href="{% url 'modelhub:model_add' %}" class="btn btn-primary">
+                    <i class="bi bi-plus-lg"></i> 모델 추가하기
+                </a>
+                {% endif %}
+            </div>
         </div>
-    </div>
     {% endif %}
 </div>
 
+<style>
+.hover-card {
+    transition: all 0.3s ease;
+}
+
+.hover-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+}
+
+.inactive-card {
+    opacity: 0.6;
+}
+
+.inactive-card:hover {
+    opacity: 0.8;
+}
+</style>
+
 <script>
-// 개별 토글 (AJAX)
-function toggleActive(modelType, modelId, button) {
-    fetch(`/modelhub/${modelType}/${modelId}/toggle/`, {
+function toggleActive(modelId, button) {
+    fetch(`/modelhub/${modelId}/toggle/`, {
         method: 'POST',
         headers: {
             'X-CSRFToken': '{{ csrf_token }}',
@@ -215,56 +236,26 @@ function toggleActive(modelType, modelId, button) {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
+            // 버튼 업데이트
+            const isActive = data.is_active;
+            button.className = `btn btn-sm ${isActive ? 'btn-success' : 'btn-secondary'}`;
+            button.innerHTML = `<i class="bi bi-${isActive ? 'check' : 'x'}-circle"></i>`;
+            button.title = isActive ? '활성화됨' : '비활성화됨';
+            
+            // 카드 스타일 업데이트
             const card = button.closest('.card');
-            const activeBadge = document.getElementById('activeCountBadge');
-
-            if (data.is_active) {
-                button.className = 'btn btn-sm btn-success';
-                button.innerHTML = '<i class="bi bi-check-circle"></i>';
-                button.title = '활성화됨';
+            if (isActive) {
                 card.classList.remove('inactive-card');
             } else {
-                button.className = 'btn btn-sm btn-secondary';
-                button.innerHTML = '<i class="bi bi-x-circle"></i>';
-                button.title = '비활성화됨';
                 card.classList.add('inactive-card');
             }
             
-            // 상단 활성화 개수 업데이트
-            if (activeBadge && data.active_count !== undefined) {
-                activeBadge.innerHTML = `<i class="bi bi-check-circle me-1"></i> 활성화: ${data.active_count}`;
-            }
-        } else {
-            alert('상태 변경에 실패했습니다: ' + (data.error || '알 수 없는 오류'));
+            // 활성화 카운트 업데이트
+            document.getElementById('activeCountBadge').innerHTML = 
+                `<i class="bi bi-check-circle me-1"></i> 활성화: ${data.active_count}`;
         }
     })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('상태 변경 중 오류가 발생했습니다: ' + error.message);
-    });
+    .catch(error => console.error('Error:', error));
 }
 </script>
-
-<style>
-.hover-card {
-    transition: transform 0.2s, box-shadow 0.2s;
-}
-.hover-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 8px 16px rgba(0,0,0,0.15) !important;
-}
-
-/* 비활성화된 카드 스타일 */
-.card.inactive-card {
-    filter: grayscale(70%);
-    opacity: 0.6;
-    transition: all 0.3s ease;
-}
-
-/* 비활성화 카드는 호버 효과 감소 */
-.card.inactive-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0,0,0,0.1) !important;
-}
-</style>
 {% endblock %}

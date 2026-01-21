@@ -1,26 +1,42 @@
 from django.urls import path
 from . import views
 
-app_name = "modelhub"
+app_name = 'modelhub'
 
 urlpatterns = [
-    # 모델 목록
-    path("", views.model_list, name="model_list"),
+    # ========================================
+    # 목록
+    # ========================================
+    path('', views.model_list, name='model_list'),
     
-    # 모델 추가
-    path("add/", views.model_add, name="model_add"),
-    path("builtin/add/", views.builtin_model_add, name="builtin_model_add"),
-    path("builtin/add/preset/", views.builtin_model_add_preset, name="builtin_model_add_preset"),
-    path("custom/add/", views.custom_model_add, name="custom_model_add"),
+    # ========================================
+    # 추가 (통합 페이지)
+    # ========================================
+    path('add/', views.model_add, name='model_add'),
     
-    # 통합 상세/삭제/토글 (model_type으로 구분)
-    path("<str:model_type>/<int:model_id>/", views.model_detail, name="model_detail"),
-    path("<str:model_type>/<int:model_id>/delete/", views.model_delete, name="model_delete"),
-    path("<str:model_type>/<int:model_id>/toggle/", views.model_toggle, name="model_toggle"), 
+    # ========================================
+    # 추가 처리 (소스별 POST)
+    # ========================================
+    path('add/builtin/', views.model_add_builtin, name='model_add_builtin'),
+    path('add/upload/', views.model_add_upload, name='model_add_upload'),
+    path('add/git/', views.model_add_git, name='model_add_git'),
+    path('add/huggingface/', views.model_add_huggingface, name='model_add_huggingface'),
     
-    # 커스텀 모델 전용
-    path("custom/<int:model_id>/validate/", views.custom_model_validate, name="custom_model_validate"),
+    # ========================================
+    # 상세/수정/삭제
+    # ========================================
+    path('<int:model_id>/', views.model_detail, name='model_detail'),
+    path('<int:model_id>/update/', views.model_update, name='model_update'),
+    path('<int:model_id>/delete/', views.model_delete, name='model_delete'),
     
-    # API
-    path("api/models/", views.api_all_models, name="api_all_models"),
+    # ========================================
+    # 활성화 토글 (AJAX)
+    # ========================================
+    path('<int:model_id>/toggle/', views.model_toggle, name='model_toggle'),
+    
+    # ========================================
+    # 모델 검증
+    # ========================================
+    path('<int:model_id>/validate/', views.model_validate, name='model_validate'),
+    
 ]

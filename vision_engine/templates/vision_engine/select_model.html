@@ -5,53 +5,28 @@
 {% block breadcrumb %}
 <nav aria-label="breadcrumb">
     <ol class="breadcrumb">
-        <!-- 1단계: 콘텐츠 목록 -->
         <li class="custom-breadcrumb-item">
-            <a href="{% url 'content_list' %}">
-                <i class="bi bi-collection-play"></i> 콘텐츠 목록
-            </a>
+            <a href="{% url 'content_list' %}"><i class="bi bi-collection-play"></i> 콘텐츠 목록</a>
         </li>
-
-        <!-- 2단계: 콘텐츠 상세 -->
         <li class="custom-breadcrumb-item">
             {% if content_type == 'video' %}
-            <a href="{% url 'video_detail' content.id %}">
-                <i class="bi bi-camera-video"></i> 동영상 상세
-            </a>
+            <a href="{% url 'video_detail' content.id %}"><i class="bi bi-camera-video"></i> 동영상 상세</a>
             {% else %}
-            <a href="{% url 'image_detail' content.id %}">
-                <i class="bi bi-image"></i> 이미지 상세
-            </a>
+            <a href="{% url 'image_detail' content.id %}"><i class="bi bi-image"></i> 이미지 상세</a>
             {% endif %}
         </li>
-
-        <!-- 3단계: 전처리 -->
         <li class="custom-breadcrumb-item">
-            <a href="{% url 'preprocess:start_preprocessing' content.id %}">
-                <i class="bi bi-layers-half"></i> 전처리
-            </a>
+            <a href="{% url 'preprocess:start_preprocessing' content.id %}"><i class="bi bi-layers-half"></i> 전처리</a>
         </li>
-
-        <!-- 4단계: 전처리 결과 -->
         <li class="custom-breadcrumb-item">
-            <a href="{% url 'preprocess:preprocessing_result' task.id %}">
-                <i class="bi bi-clipboard-data"></i> 전처리 결과
-            </a>
+            <a href="{% url 'preprocess:preprocessing_result' task.id %}"><i class="bi bi-clipboard-data"></i> 전처리 결과</a>
         </li>
-
-        <!-- 5단계: 모델 선택 (현재) -->
         <li class="custom-breadcrumb-item active">
-            <a href="#">
-                <i class="bi bi-cpu-fill"></i> 모델 선택
-            </a>
+            <a href="#"><i class="bi bi-cpu-fill"></i> 모델 선택</a>
         </li>
-
-        <!-- 6단계: 모델 실행 (비활성화) -->
         <li class="custom-breadcrumb-item disabled">
             <span><i class="bi bi-play-circle-fill"></i> 모델 실행</span>
         </li>
-
-        <!-- 7단계: 모델 결과 (비활성화) -->
         <li class="custom-breadcrumb-item disabled">
             <span><i class="bi bi-clipboard-data"></i> 모델 결과</span>
         </li>
@@ -70,11 +45,8 @@
                 <p class="text-muted">전처리가 완료된 콘텐츠에 적용할 모델을 선택하세요.</p>
                 <p><strong>콘텐츠:</strong> {{ content.title }}</p>
                 <p><strong>전처리 파이프라인:</strong> 
-                    {% if task.preprocessing_pipeline %}
-                        {{ task.preprocessing_pipeline|length }}개 단계
-                    {% else %}
-                        전처리 생략 (원본 사용)
-                    {% endif %}
+                    {% if task.preprocessing_pipeline %}{{ task.preprocessing_pipeline|length }}개 단계
+                    {% else %}전처리 생략 (원본 사용){% endif %}
                 </p>
             </div>
         </div>
@@ -84,10 +56,9 @@
 <form method="post">
     {% csrf_token %}
     
-    <!-- 빌트인 모델 -->
     <div class="row mb-4">
         <div class="col-md-12">
-            <h5 class="mb-3"><i class="bi bi-gear-fill text-builtin"></i> 빌트인 모델</h5>
+            <h5 class="mb-3"><i class="bi bi-gear-fill text-success"></i> 빌트인 모델</h5>
             
             {% if builtin_models %}
             <div class="row">
@@ -96,39 +67,15 @@
                     <div class="card h-100 border-0 shadow-sm hover-shadow">
                         <div class="card-body">
                             <div class="form-check">
-                                <input class="form-check-input" type="radio" 
-                                       name="model_type" value="base" 
-                                       id="base_{{ model.id }}"
-                                       data-model-id="{{ model.id }}">
-                                <label class="form-check-label w-100" for="base_{{ model.id }}">
-                                    <h6 class="mb-2">{{ model.display_name }}</h6>
-                                    
-                                    <!-- 작업 유형 배지 -->
-                                    {% if model.task_type == 'detection' %}
-                                        <span class="badge bg-primary mb-2">
-                                            <i class="bi bi-bounding-box"></i> 객체 탐지
-                                        </span>
-                                    {% elif model.task_type == 'super_resolution' %}
-                                        <span class="badge bg-success mb-2">
-                                            <i class="bi bi-grid-3x3"></i> 해상도 개선
-                                        </span>
-                                    {% elif model.task_type == 'restoration' %}
-                                        <span class="badge bg-info mb-2">
-                                            <i class="bi bi-image"></i> 이미지 복원
-                                        </span>
-                                    {% endif %}
-                                    
-                                    {% if model.yolo_version %}
-                                    <p class="text-muted small mb-1">
-                                        <i class="bi bi-tag"></i> {{ model.yolo_version }}
-                                    </p>
-                                    {% endif %}
-                                    <p class="text-muted small mb-1">
-                                        <i class="bi bi-hdd"></i> {{ model.get_file_size_display }}
-                                    </p>
-                                    <p class="text-muted small mb-1">
-                                        <i class="bi bi-graph-up"></i> 사용: {{ model.usage_count }}회
-                                    </p>
+                                <input class="form-check-input" type="radio" name="model_id" value="{{ model.id }}" id="model_{{ model.id }}" required>
+                                <label class="form-check-label w-100" for="model_{{ model.id }}">
+                                    <h6 class="mb-2">{{ model.name }}</h6>
+                                    <span class="badge bg-success mb-2"><i class="bi bi-gear-fill"></i> Built-in</span>
+                                    {% if model.architecture %}<p class="text-muted small mb-1"><i class="bi bi-diagram-3"></i> {{ model.architecture }}</p>{% endif %}
+                                    {% if model.num_classes %}<p class="text-muted small mb-1"><i class="bi bi-tags"></i> {{ model.num_classes }}개 클래스</p>{% endif %}
+                                    <p class="text-muted small mb-1"><i class="bi bi-hdd"></i> {{ model.get_file_size_display }}</p>
+                                    <p class="text-muted small mb-1"><i class="bi bi-graph-up"></i> 사용: {{ model.usage_count }}회</p>
+                                    {% if model.description %}<p class="text-muted small mt-2">{{ model.description|truncatewords:15 }}</p>{% endif %}
                                 </label>
                             </div>
                         </div>
@@ -137,18 +84,14 @@
                 {% endfor %}
             </div>
             {% else %}
-            <div class="alert alert-info">
-                활성화된 빌트인 모델이 없습니다. 
-                <a href="{% url 'modelhub:model_add' %}" class="alert-link">모델을 추가</a>하세요.
-            </div>
+            <div class="alert alert-info">활성화된 빌트인 모델이 없습니다. <a href="{% url 'modelhub:model_add' %}" class="alert-link">모델을 추가</a>하세요.</div>
             {% endif %}
         </div>
     </div>
     
-    <!-- 커스텀 모델 -->
     <div class="row mb-4">
         <div class="col-md-12">
-            <h5 class="mb-3"><i class="bi bi-magic text-custom"></i> 커스텀 모델</h5>
+            <h5 class="mb-3"><i class="bi bi-cloud-upload text-primary"></i> 커스텀 모델</h5>
             
             {% if custom_models %}
             <div class="row">
@@ -157,39 +100,20 @@
                     <div class="card h-100 border-0 shadow-sm hover-shadow">
                         <div class="card-body">
                             <div class="form-check">
-                                <input class="form-check-input" type="radio" 
-                                       name="model_type" value="custom" 
-                                       id="custom_{{ model.id }}"
-                                       data-model-id="{{ model.id }}">
-                                <label class="form-check-label w-100" for="custom_{{ model.id }}">
+                                <input class="form-check-input" type="radio" name="model_id" value="{{ model.id }}" id="model_{{ model.id }}" required>
+                                <label class="form-check-label w-100" for="model_{{ model.id }}">
                                     <h6 class="mb-2">{{ model.name }}</h6>
-                                    
-                                    <!-- 작업 유형 배지 -->
-                                    {% if model.task_type == 'detection' %}
-                                        <span class="badge bg-primary mb-2">
-                                            <i class="bi bi-bounding-box"></i> 객체 탐지
-                                        </span>
-                                    {% elif model.task_type == 'super_resolution' %}
-                                        <span class="badge bg-success mb-2">
-                                            <i class="bi bi-grid-3x3"></i> 해상도 개선
-                                        </span>
-                                    {% elif model.task_type == 'restoration' %}
-                                        <span class="badge bg-info mb-2">
-                                            <i class="bi bi-image"></i> 이미지 복원
-                                        </span>
-                                    {% endif %}
-                                    
-                                    <p class="text-muted small mb-1">
-                                        <i class="bi bi-cpu"></i> {{ model.framework|default:"Custom" }}
-                                    </p>
-                                    {% if model.accuracy %}
-                                    <p class="text-muted small mb-1">
-                                        <i class="bi bi-check-circle"></i> 정확도: {{ model.accuracy }}%
-                                    </p>
-                                    {% endif %}
-                                    <p class="text-muted small mb-1">
-                                        <i class="bi bi-graph-up"></i> 사용: {{ model.usage_count }}회
-                                    </p>
+                                    <span class="badge bg-primary mb-2">
+                                        {% if model.source == 'upload' %}<i class="bi bi-cloud-upload"></i> Upload
+                                        {% elif model.source == 'git' %}<i class="bi bi-git"></i> Git
+                                        {% elif model.source == 'huggingface' %}<i class="bi bi-lightning"></i> HuggingFace
+                                        {% endif %}
+                                    </span>
+                                    {% if model.architecture %}<p class="text-muted small mb-1"><i class="bi bi-diagram-3"></i> {{ model.architecture }}</p>{% endif %}
+                                    {% if model.framework %}<p class="text-muted small mb-1"><i class="bi bi-cpu"></i> {{ model.framework }}</p>{% endif %}
+                                    {% if model.num_classes %}<p class="text-muted small mb-1"><i class="bi bi-tags"></i> {{ model.num_classes }}개 클래스</p>{% endif %}
+                                    <p class="text-muted small mb-1"><i class="bi bi-graph-up"></i> 사용: {{ model.usage_count }}회</p>
+                                    {% if model.description %}<p class="text-muted small mt-2">{{ model.description|truncatewords:15 }}</p>{% endif %}
                                 </label>
                             </div>
                         </div>
@@ -198,26 +122,19 @@
                 {% endfor %}
             </div>
             {% else %}
-            <div class="alert alert-info">
-                커스텀 모델이 없습니다. 
-                <a href="{% url 'modelhub:model_add' %}" class="alert-link">모델을 업로드</a>하세요.
-            </div>
+            <div class="alert alert-info">커스텀 모델이 없습니다. <a href="{% url 'modelhub:model_add' %}" class="alert-link">모델을 업로드</a>하세요.</div>
             {% endif %}
         </div>
     </div>
 
-    <!-- 모델이 하나도 없는 경우 -->
     {% if not builtin_models and not custom_models %}
     <div class="alert alert-warning">
         <h5><i class="bi bi-exclamation-triangle"></i> 사용 가능한 모델이 없습니다</h5>
         <p>모델을 추가한 후 다시 시도하세요.</p>
-        <a href="{% url 'modelhub:model_add' %}" class="btn btn-primary">
-            <i class="bi bi-plus-circle"></i> 모델 추가하기
-        </a>
+        <a href="{% url 'modelhub:model_add' %}" class="btn btn-primary"><i class="bi bi-plus-circle"></i> 모델 추가하기</a>
     </div>
     {% else %}
     
-    <!-- 작업 정보 입력 -->
     <div class="row mb-4">
         <div class="col-md-12">
             <div class="card border-0 shadow-sm">
@@ -227,29 +144,22 @@
                 <div class="card-body">
                     <div class="mb-3">
                         <label for="title" class="form-label">작업 제목</label>
-                        <input type="text" class="form-control" id="title" name="title" 
-                               placeholder="예: YOLOv8 객체 탐지">
+                        <input type="text" class="form-control" id="title" name="title" placeholder="예: YOLOv8 객체 탐지">
                     </div>
                     <div class="mb-3">
                         <label for="description" class="form-label">설명 (선택)</label>
-                        <textarea class="form-control" id="description" name="description" 
-                                  rows="3" placeholder="작업에 대한 설명을 입력하세요"></textarea>
+                        <textarea class="form-control" id="description" name="description" rows="3" placeholder="작업에 대한 설명을 입력하세요"></textarea>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- 제출 버튼 -->
     <div class="row">
         <div class="col-md-12">
             <div class="d-flex justify-content-between">
-                <a href="{% url 'preprocess:preprocessing_result' task.id %}" class="btn btn-secondary">
-                    <i class="bi bi-arrow-left"></i> 이전
-                </a>
-                <button type="submit" class="btn btn-primary" id="submitBtn">
-                    <i class="bi bi-arrow-right-circle"></i> 다음 (모델 실행)
-                </button>
+                <a href="{% url 'preprocess:preprocessing_result' task.id %}" class="btn btn-secondary"><i class="bi bi-arrow-left"></i> 이전</a>
+                <button type="submit" class="btn btn-primary"><i class="bi bi-arrow-right-circle"></i> 다음 (모델 실행)</button>
             </div>
         </div>
     </div>
@@ -257,51 +167,17 @@
 </form>
 
 <script>
-// 모델 선택 시 hidden input 업데이트
-document.querySelectorAll('input[name="model_type"]').forEach(radio => {
-    radio.addEventListener('change', function() {
-        // 기존 hidden input 제거
-        const existingInput = document.querySelector('input[name="model_id"]');
-        if (existingInput) {
-            existingInput.remove();
-        }
-        
-        // 새로운 hidden input 추가
-        const modelId = this.getAttribute('data-model-id');
-        const hiddenInput = document.createElement('input');
-        hiddenInput.type = 'hidden';
-        hiddenInput.name = 'model_id';
-        hiddenInput.value = modelId;
-        this.closest('form').appendChild(hiddenInput);
-        
-        // 제출 버튼 활성화
-        document.getElementById('submitBtn').disabled = false;
-    });
-});
-
-// 폼 제출 검증
 document.querySelector('form').addEventListener('submit', function(e) {
-    const selectedModel = document.querySelector('input[name="model_type"]:checked');
-    if (!selectedModel) {
+    if (!document.querySelector('input[name="model_id"]:checked')) {
         e.preventDefault();
         alert('모델을 선택해주세요.');
-        return false;
     }
 });
 </script>
 
 <style>
-.hover-shadow {
-    transition: all 0.3s ease;
-}
-
-.hover-shadow:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
-}
-
-.form-check-input:checked ~ .form-check-label {
-    font-weight: bold;
-}
+.hover-shadow { transition: all 0.3s ease; }
+.hover-shadow:hover { transform: translateY(-5px); box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important; }
+.form-check-input:checked ~ .form-check-label { font-weight: bold; }
 </style>
 {% endblock %}

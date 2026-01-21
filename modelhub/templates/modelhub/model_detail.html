@@ -1,187 +1,288 @@
 {% extends 'contents/base.html' %}
 
-{% block title %}모델 상세{% endblock %}
+{% block title %}{{ model.name }} - 상세{% endblock %}
 
 {% block breadcrumb %}
-<div class="row">
-    <div class="col-md-12">
-        <div class="breadcrumb-container">
-            <nav aria-label="breadcrumb">
-                <ol class="custom-breadcrumb">
-                    <li class="custom-breadcrumb-item">
-                        <a href="{% url 'modelhub:model_list' %}">
-                            <i class="bi bi-box-seam"></i> 모델 허브
-                        </a>
-                    </li>
-                    <li class="custom-breadcrumb-item active">
-                        <a href="#">
-                            <i class="bi bi-info-circle"></i> {{ model.display_name|default:model.name }}
-                        </a>
-                    </li>
-                </ol>
-            </nav>
-        </div>
-    </div>
-</div>
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="custom-breadcrumb-item">
+            <a href="{% url 'modelhub:model_list' %}">
+                <i class="bi bi-box-seam"></i> 모델 허브
+            </a>
+        </li>
+        <li class="custom-breadcrumb-item active">
+            <a href="#">
+                <i class="bi bi-eye"></i> {{ model.name }}
+            </a>
+        </li>
+    </ol>
+</nav>
 {% endblock breadcrumb %}
 
 {% block content %}
-<div class="container-fluid">
+<div class="container">
     <!-- 모델 정보 카드 -->
-    <div class="row mb-4">
-        <div class="col-md-12">
-            <div class="card border-0 shadow-sm">
-                <div class="card-header bg-white">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0">
-                            <i class="bi bi-info-circle"></i> 모델 정보
-                        </h5>
-                        <div class="btn-group" role="group">
-                            <a href="{% url 'modelhub:model_toggle' model_type model.id %}" 
-                            class="btn btn-sm {% if model.is_active %}btn-success{% else %}btn-secondary{% endif %}"
-                            style="width: 90px; text-align: center;">
-                                <i class="bi bi-toggle-{% if model.is_active %}on{% else %}off{% endif %}"></i>
-                                {% if model.is_active %}활성화{% else %}비활성화{% endif %}
-                            </a>
-                            <a href="{% url 'modelhub:model_delete' model_type model.id %}" 
-                               class="btn btn-sm btn-outline-danger">
-                                <i class="bi bi-trash"></i> 삭제
-                            </a>
-                        </div>
-                    </div>
-                </div>
-                <div class="card-body">
-                    <table class="table table-borderless">
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">
+                <i class="bi bi-{{ model.get_task_icon }}"></i> {{ model.name }}
+            </h5>
+            <div>
+                <!-- 활성화 상태 -->
+                <span class="badge {% if model.is_active %}bg-success{% else %}bg-secondary{% endif %} me-2">
+                    {% if model.is_active %}
+                        <i class="bi bi-check-circle"></i> 활성화
+                    {% else %}
+                        <i class="bi bi-x-circle"></i> 비활성화
+                    {% endif %}
+                </span>
+                
+                <!-- 소스 배지 -->
+                <span class="badge bg-{{ model.get_source_badge_class }}">
+                    {% if model.source == 'builtin' %}
+                        <i class="bi bi-gear-fill"></i> Built-in
+                    {% elif model.source == 'upload' %}
+                        <i class="bi bi-cloud-upload"></i> Upload
+                    {% elif model.source == 'git' %}
+                        <i class="bi bi-git"></i> Git
+                    {% elif model.source == 'huggingface' %}
+                        <i class="bi bi-lightning"></i> HuggingFace
+                    {% endif %}
+                </span>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <!-- 왼쪽: 기본 정보 -->
+                <div class="col-md-6">
+                    <h6 class="text-muted mb-3">
+                        <i class="bi bi-info-circle"></i> 기본 정보
+                    </h6>
+                    
+                    <table class="table table-sm">
                         <tbody>
                             <tr>
-                                <th style="width: 200px;">모델 이름:</th>
-                                <td>{{ model.display_name|default:model.name }}</td>
+                                <th width="40%"><i class="bi bi-tag"></i> 모델 이름</th>
+                                <td>{{ model.name }}</td>
                             </tr>
+                            {% if model.task_type %}
                             <tr>
-                                <th>설명:</th>
-                                <td>{{ model.description|default:"-" }}</td>
+                                <th><i class="bi bi-diagram-3"></i> 작업 유형</th>
+                                <td>{{ model.get_task_type_display }}</td>
                             </tr>
+                            {% endif %}
+                            {% if model.framework %}
                             <tr>
-                                <th>모델 타입:</th>
-                                <td>
-                                    {% if model_type == 'base' %}
-                                        <span class="badge bg-success">빌트인</span>
-                                    {% else %}
-                                        <span class="badge bg-info">커스텀</span>
-                                    {% endif %}
-                                </td>
+                                <th><i class="bi bi-cpu"></i> 프레임워크</th>
+                                <td>{{ model.framework }}</td>
                             </tr>
+                            {% endif %}
+                            {% if model.architecture %}
                             <tr>
-                                <th>상태:</th>
-                                <td>
-                                    {% if model.is_active %}
-                                        <span class="badge bg-success">활성화</span>
-                                    {% else %}
-                                        <span class="badge bg-secondary">비활성화</span>
-                                    {% endif %}
-                                </td>
+                                <th><i class="bi bi-diagram-2"></i> 아키텍처</th>
+                                <td>{{ model.architecture }}</td>
                             </tr>
+                            {% endif %}
+                            {% if model.num_classes %}
                             <tr>
-                                <th>파일 크기:</th>
+                                <th><i class="bi bi-tags"></i> 클래스 개수</th>
+                                <td>{{ model.num_classes }}개</td>
+                            </tr>
+                            {% endif %}
+                            {% if model.input_size %}
+                            <tr>
+                                <th><i class="bi bi-aspect-ratio"></i> 입력 크기</th>
+                                <td>{{ model.input_size|join:" × " }}</td>
+                            </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- 오른쪽: 소스별 정보 & 통계 -->
+                <div class="col-md-6">
+                    <h6 class="text-muted mb-3">
+                        <i class="bi bi-folder"></i> 파일 정보 & 통계
+                    </h6>
+                    
+                    <table class="table table-sm">
+                        <tbody>
+                            {% if model.source == 'builtin' and model.builtin_preset %}
+                            <tr>
+                                <th width="40%"><i class="bi bi-stars"></i> 프리셋</th>
+                                <td><code>{{ model.builtin_preset }}</code></td>
+                            </tr>
+                            {% endif %}
+                            
+                            {% if model.source == 'upload' and model.model_file %}
+                            <tr>
+                                <th><i class="bi bi-file-earmark"></i> 파일명</th>
+                                <td>{{ model.model_file.name|default:"-" }}</td>
+                            </tr>
+                            {% endif %}
+                            
+                            {% if model.source == 'git' and model.git_url %}
+                            <tr>
+                                <th><i class="bi bi-link-45deg"></i> Git URL</th>
+                                <td><a href="{{ model.git_url }}" target="_blank">{{ model.git_url|truncatechars:40 }}</a></td>
+                            </tr>
+                            {% if model.git_commit_hash %}
+                            <tr>
+                                <th><i class="bi bi-git"></i> Commit</th>
+                                <td><code>{{ model.git_commit_hash|slice:":8" }}</code></td>
+                            </tr>
+                            {% endif %}
+                            {% endif %}
+                            
+                            {% if model.source == 'huggingface' and model.hf_model_id %}
+                            <tr>
+                                <th><i class="bi bi-lightning"></i> Model ID</th>
+                                <td><code>{{ model.hf_model_id }}</code></td>
+                            </tr>
+                            {% endif %}
+                            
+                            <tr>
+                                <th><i class="bi bi-hdd"></i> 파일 크기</th>
                                 <td>{{ model.get_file_size_display }}</td>
                             </tr>
                             <tr>
-                                <th>생성일:</th>
+                                <th><i class="bi bi-graph-up"></i> 사용 횟수</th>
+                                <td>{{ model.usage_count }}회</td>
+                            </tr>
+                            <tr>
+                                <th><i class="bi bi-calendar-plus"></i> 등록일</th>
                                 <td>{{ model.created_at|date:"Y-m-d H:i" }}</td>
                             </tr>
                             <tr>
-                                <th>완료된 작업:</th>
-                                <td>
-                                    <span class="badge bg-primary">{{ completed_count }}</span>
-                                </td>
+                                <th><i class="bi bi-calendar-check"></i> 수정일</th>
+                                <td>{{ model.updated_at|date:"Y-m-d H:i" }}</td>
                             </tr>
                         </tbody>
                     </table>
                 </div>
             </div>
-        </div>
-    </div>
 
-    <!-- 모델 적용 작업 목록 -->
-    <div class="row">
-        <div class="col-md-12">
-            <div class="card border-0 shadow-sm">
-                <div class="card-header bg-white">
-                    <h5 class="mb-0">
-                        <i class="bi bi-search"></i> 이 모델을 사용한 작업
-                        <span class="badge bg-secondary ms-2">{{ applications.count }}</span>
-                    </h5>
-                </div>
-                <div class="card-body">
-                    {% if applications %}
-                    <div class="table-responsive">
-                        <table class="table table-hover">
-                            <thead>
-                                <tr>
-                                    <th>ID</th>
-                                    <th>제목</th>
-                                    <th>콘텐츠</th>
-                                    <th>상태</th>
-                                    <th>탐지 수</th>
-                                    <th>생성일</th>
-                                    <th>작업</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for application in applications %}
-                                <tr>
-                                    <td>{{ application.id }}</td>
-                                    <td>{{ application.title|truncatewords:10 }}</td>
-                                    <td>
-                                        {% if application.get_content_type == 'video' %}
-                                            <i class="bi bi-camera-video text-primary"></i>
-                                            {{ application.get_content.title|truncatewords:5 }}
-                                        {% elif application.get_content_type == 'image' %}
-                                            <i class="bi bi-image text-success"></i>
-                                            {{ application.get_content.title|truncatewords:5 }}
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        {% if application.status == 'completed' %}
-                                            <span class="badge bg-success">완료</span>
-                                        {% elif application.status == 'processing' %}
-                                            <span class="badge bg-warning">처리 중</span>
-                                        {% elif application.status == 'failed' %}
-                                            <span class="badge bg-danger">실패</span>
-                                        {% else %}
-                                            <span class="badge bg-secondary">대기</span>
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        {% if application.total_applications > 0 %}
-                                            <span class="badge bg-primary">{{ application.total_applications }}</span>
-                                        {% else %}
-                                            -
-                                        {% endif %}
-                                    </td>
-                                    <td>{{ application.created_at|date:"Y-m-d H:i" }}</td>
-                                    <td>
-                                        {% if application.status == 'completed' %}
-                                            <a href="{% url 'vision_engine:application_result' application.id %}" 
-                                               class="btn btn-sm btn-outline-primary">
-                                                <i class="bi bi-eye"></i> 결과
-                                            </a>
-                                        {% endif %}
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
+            <!-- 설명 -->
+            {% if model.description %}
+            <div class="mt-4">
+                <h6 class="text-muted mb-2">
+                    <i class="bi bi-card-text"></i> 설명
+                </h6>
+                <p class="mb-0">{{ model.description }}</p>
+            </div>
+            {% endif %}
+
+            <!-- 클래스 목록 -->
+            {% if model.classes %}
+            <div class="mt-4">
+                <h6 class="text-muted mb-2">
+                    <i class="bi bi-tags"></i> 감지 가능한 클래스 ({{ model.classes|length }}개)
+                </h6>
+                <div class="row g-2">
+                    {% for class_name in model.classes %}
+                    <div class="col-md-3 col-sm-4 col-6">
+                        <span class="badge bg-light text-dark border">{{ class_name }}</span>
                     </div>
-                    {% else %}
-                    <div class="alert alert-light text-center py-4">
-                        <i class="bi bi-inbox" style="font-size: 3rem; color: #dee2e6;"></i>
-                        <p class="mt-2 mb-0">아직 이 모델을 사용한 작업이 없습니다.</p>
-                    </div>
-                    {% endif %}
+                    {% endfor %}
                 </div>
+            </div>
+            {% endif %}
+
+            <!-- 작업 버튼 -->
+            <div class="mt-4 d-flex gap-2 flex-wrap">
+                <a href="{% url 'modelhub:model_update' model.id %}" class="btn btn-primary">
+                    <i class="bi bi-pencil"></i> 수정
+                </a>
+                <button type="button" class="btn btn-{% if model.is_active %}warning{% else %}success{% endif %}" 
+                        onclick="toggleActive()">
+                    <i class="bi bi-{% if model.is_active %}pause{% else %}play{% endif %}-circle"></i>
+                    {% if model.is_active %}비활성화{% else %}활성화{% endif %}
+                </button>
+                <a href="{% url 'modelhub:model_validate' model.id %}" class="btn btn-info">
+                    <i class="bi bi-check-circle"></i> 검증
+                </a>
+                <a href="{% url 'modelhub:model_delete' model.id %}" class="btn btn-danger">
+                    <i class="bi bi-trash"></i> 삭제
+                </a>
+                <a href="{% url 'modelhub:model_list' %}" class="btn btn-outline-secondary ms-auto">
+                    <i class="bi bi-arrow-left"></i> 목록으로
+                </a>
             </div>
         </div>
     </div>
+
+    <!-- 사용 기록 -->
+    {% if applications %}
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">
+                <i class="bi bi-clock-history"></i> 사용 기록 ({{ applications|length }}개)
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>작업</th>
+                            <th>상태</th>
+                            <th>생성일</th>
+                            <th>작업</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for app in applications %}
+                        <tr>
+                            <td>{{ app.id }}</td>
+                            <td>{{ app.title|truncatechars:40 }}</td>
+                            <td>
+                                <span class="badge bg-{{ app.get_status_display_badge|default:'secondary' }}">
+                                    {{ app.get_status_display }}
+                                </span>
+                            </td>
+                            <td>{{ app.created_at|date:"m/d H:i" }}</td>
+                            <td>
+                                <a href="{% url 'vision_engine:application_result' app.id %}" 
+                                   class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-eye"></i> 보기
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="alert alert-light text-center border">
+        <i class="bi bi-inbox" style="font-size: 2rem; color: #dee2e6;"></i>
+        <p class="mt-2 mb-0">아직 이 모델을 사용한 기록이 없습니다.</p>
+    </div>
+    {% endif %}
 </div>
+
+<script>
+function toggleActive() {
+    fetch('{% url "modelhub:model_toggle" model.id %}', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+        },
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('오류가 발생했습니다.');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('오류가 발생했습니다.');
+    });
+}
+</script>
 {% endblock %}

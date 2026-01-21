@@ -6,9 +6,7 @@
 <nav aria-label="breadcrumb">
     <ol class="breadcrumb">
         <li class="custom-breadcrumb-item active">
-            <a href="{% url 'vision_engine:application_list' %}">
-                <i class="bi bi-search"></i> 모델 결과
-            </a>
+            <a href="{% url 'vision_engine:application_list' %}"><i class="bi bi-search"></i> 모델 결과</a>
         </li>
     </ol>
 </nav>
@@ -34,88 +32,17 @@
     <div class="card border-0 shadow-sm">
         <div class="card-body p-0">
             <div class="table-responsive">
-                <table class="table table-hover mb-0 fixed-table">
+                <table class="table table-hover mb-0">
                     <thead class="table-light text-center">
                         <tr>
-                            <!-- 정렬 가능한 컬럼: ID -->
-                            <th style="width: 60px;">
-                                <a href="?{% if request.GET.status %}status={{ request.GET.status }}&{% endif %}sort={% if current_sort == 'id' %}-id{% else %}id{% endif %}" 
-                                   class="text-decoration-none text-dark d-flex align-items-center justify-content-center">
-                                    ID
-                                    {% if current_sort == 'id' %}
-                                        <i class="bi bi-arrow-up ms-1"></i>
-                                    {% elif current_sort == '-id' %}
-                                        <i class="bi bi-arrow-down ms-1"></i>
-                                    {% else %}
-                                        <i class="bi bi-arrow-down-up ms-1 text-muted"></i>
-                                    {% endif %}
-                                </a>
-                            </th>
-                            
+                            <th style="width: 60px;">ID</th>
                             <th style="width: 20%;">제목</th>
                             <th style="width: 10%;">콘텐츠</th>
                             <th style="width: 15%;">모델</th>
-                            
-                            <!-- 정렬 가능한 컬럼: 상태 -->
-                            <th style="width: 100px;">
-                                <a href="?{% if request.GET.status %}status={{ request.GET.status }}&{% endif %}sort={% if current_sort == 'status' %}-status{% else %}status{% endif %}" 
-                                   class="text-decoration-none text-dark d-flex align-items-center justify-content-center">
-                                    상태
-                                    {% if current_sort == 'status' %}
-                                        <i class="bi bi-arrow-up ms-1"></i>
-                                    {% elif current_sort == '-status' %}
-                                        <i class="bi bi-arrow-down ms-1"></i>
-                                    {% else %}
-                                        <i class="bi bi-arrow-down-up ms-1 text-muted"></i>
-                                    {% endif %}
-                                </a>
-                            </th>
-                            
-                            <!-- 정렬 가능한 컬럼: 탐지 수 -->
-                            <th style="width: 80px;">
-                                <a href="?{% if request.GET.status %}status={{ request.GET.status }}&{% endif %}sort={% if current_sort == 'total_applications' %}-total_applications{% else %}total_applications{% endif %}" 
-                                   class="text-decoration-none text-dark d-flex align-items-center justify-content-center">
-                                    탐지 수
-                                    {% if current_sort == 'total_applications' %}
-                                        <i class="bi bi-arrow-up ms-1"></i>
-                                    {% elif current_sort == '-total_applications' %}
-                                        <i class="bi bi-arrow-down ms-1"></i>
-                                    {% else %}
-                                        <i class="bi bi-arrow-down-up ms-1 text-muted"></i>
-                                    {% endif %}
-                                </a>
-                            </th>
-                            
-                            <!-- 정렬 가능한 컬럼: 진행률 -->
-                            <th style="width: 120px;">
-                                <a href="?{% if request.GET.status %}status={{ request.GET.status }}&{% endif %}sort={% if current_sort == 'progress' %}-progress{% else %}progress{% endif %}" 
-                                   class="text-decoration-none text-dark d-flex align-items-center justify-content-center">
-                                    진행률
-                                    {% if current_sort == 'progress' %}
-                                        <i class="bi bi-arrow-up ms-1"></i>
-                                    {% elif current_sort == '-progress' %}
-                                        <i class="bi bi-arrow-down ms-1"></i>
-                                    {% else %}
-                                        <i class="bi bi-arrow-down-up ms-1 text-muted"></i>
-                                    {% endif %}
-                                </a>
-                            </th>
-                            
-                            <!-- 정렬 가능한 컬럼: 생성일 -->
-                            <th style="width: 150px;">
-                                <a href="?{% if request.GET.status %}status={{ request.GET.status }}&{% endif %}sort={% if current_sort == 'created_at' %}-created_at{% else %}created_at{% endif %}" 
-                                   class="text-decoration-none text-dark d-flex align-items-center justify-content-center">
-                                    생성일
-                                    {% if current_sort == 'created_at' %}
-                                        <i class="bi bi-arrow-up ms-1"></i>
-                                    {% elif current_sort == '-created_at' %}
-                                        <i class="bi bi-arrow-down ms-1"></i>
-                                    {% else %}
-                                        <i class="bi bi-arrow-down-up ms-1 text-muted"></i>
-                                    {% endif %}
-                                </a>
-                            </th>
-                            
+                            <th style="width: 100px;">상태</th>
+                            <th style="width: 80px;">탐지 수</th>
+                            <th style="width: 120px;">진행률</th>
+                            <th style="width: 150px;">생성일</th>
                             <th style="width: 110px;">작업</th>
                         </tr>
                     </thead>
@@ -124,28 +51,20 @@
                             {% for application in applications %}
                             <tr class="text-center">
                                 <td>{{ application.id }}</td>
+                                <td class="text-start">{{ application.title }}</td>
                                 <td class="text-start">
-                                    <span class="text-truncate-custom" title="{{ application.title }}">
-                                        {{ application.title }}
-                                    </span>
-                                </td>
-                                <td class="text-start">
-                                    <span class="text-truncate-custom" title="{{ application.get_content.title }}">
-                                        {% if application.get_content_type == 'video' %}
-                                            <i class="bi bi-camera-video text-primary me-1"></i>
-                                        {% else %}
-                                            <i class="bi bi-image text-success me-1"></i>
-                                        {% endif %}
-                                        {{ application.get_content.title }}
-                                    </span>
+                                    {% if application.get_content_type == 'video' %}
+                                        <i class="bi bi-camera-video text-primary me-1"></i>
+                                    {% else %}
+                                        <i class="bi bi-image text-success me-1"></i>
+                                    {% endif %}
+                                    {{ application.get_content.title|truncatewords:8 }}
                                 </td>
                                 <td>
-                                    <span class="text-truncate-custom">
-                                        {{ application.get_model_name }}
-                                        {% if application.builtin_model %}
-                                            <i class="bi bi-gear-fill text-builtin ms-1"></i>
-                                        {% endif %}
-                                    </span>
+                                    {{ application.get_model_name|truncatewords:5 }}
+                                    {% if application.model.source == 'builtin' %}
+                                        <i class="bi bi-gear-fill text-success ms-1"></i>
+                                    {% endif %}
                                 </td>
                                 <td>
                                     {% if application.status == 'completed' %}
@@ -198,30 +117,4 @@
         </div>
     </div>
 </div>
-
-
-<style>
-    /* 테이블 레이아웃 고정 및 텍스트 넘침 방지 */
-    .fixed-table {
-        table-layout: fixed;
-        width: 100%;
-    }
-    .text-truncate-custom {
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        display: block;
-        max-width: 100%;
-    }
-    
-    /* 정렬 링크 스타일 */
-    thead th a {
-        cursor: pointer;
-    }
-    thead th a:hover {
-        background-color: rgba(0, 0, 0, 0.05);
-        border-radius: 4px;
-    }
-</style>
-
 {% endblock %}

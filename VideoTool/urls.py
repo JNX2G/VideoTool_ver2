@@ -39,3 +39,5 @@ urlpatterns = [
 
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    urlpatterns += static('/models/', document_root=settings.MODELS_ROOT)
+    urlpatterns += static('/results/', document_root=settings.RESULTS_ROOT)
